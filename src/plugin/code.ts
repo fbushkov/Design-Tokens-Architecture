@@ -442,141 +442,664 @@ function generateCSSVariables(tokens: DesignTokens): string {
 interface SemanticColorMapping {
   category: string;
   subcategory: string;
+  variant?: string;
   states: string[];
   sourceColor: string;
   sourceStep: number; // 25-975, где 500 = base
 }
 
-// Define semantic token structure for LIGHT theme
-// Light theme: use lighter shades (low numbers) for backgrounds, darker (high numbers) for text
+// ============================================
+// SEMANTIC TOKEN STRUCTURE (LIGHT THEME)
+// Comprehensive SaaS/CRM categories
+// ============================================
 const SEMANTIC_COLOR_MAPPINGS: SemanticColorMapping[] = [
-  // Background - lighter shades for light theme
-  { category: 'bg', subcategory: 'primary', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'bg', subcategory: 'secondary', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'neutral', sourceStep: 50 },
-  { category: 'bg', subcategory: 'tertiary', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'neutral', sourceStep: 100 },
-  { category: 'bg', subcategory: 'inverse', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'neutral', sourceStep: 900 },
-  { category: 'bg', subcategory: 'brand', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'brand', sourceStep: 500 },
-  { category: 'bg', subcategory: 'accent', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'accent', sourceStep: 500 },
-  { category: 'bg', subcategory: 'success', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'success', sourceStep: 100 },
-  { category: 'bg', subcategory: 'warning', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'warning', sourceStep: 100 },
-  { category: 'bg', subcategory: 'error', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'error', sourceStep: 100 },
+  // ============================================
+  // BG (BACKGROUND) - All background colors
+  // ============================================
+  // Page backgrounds
+  { category: 'bg', subcategory: 'page', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'bg', subcategory: 'page', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 50 },
+  { category: 'bg', subcategory: 'page', variant: 'tertiary', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  // Container/Card backgrounds
+  { category: 'bg', subcategory: 'card', variant: 'primary', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'bg', subcategory: 'card', variant: 'secondary', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 50 },
+  { category: 'bg', subcategory: 'card', variant: 'elevated', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  // Interactive backgrounds
+  { category: 'bg', subcategory: 'interactive', variant: 'primary', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 50 },
+  { category: 'bg', subcategory: 'interactive', variant: 'secondary', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 100 },
+  // Overlay/Modal backgrounds
+  { category: 'bg', subcategory: 'overlay', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'bg', subcategory: 'overlay', variant: 'light', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
+  { category: 'bg', subcategory: 'modal', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'bg', subcategory: 'drawer', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'bg', subcategory: 'popover', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'bg', subcategory: 'tooltip', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
+  // Semantic backgrounds
+  { category: 'bg', subcategory: 'brand', variant: 'subtle', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 50 },
+  { category: 'bg', subcategory: 'brand', variant: 'default', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 100 },
+  { category: 'bg', subcategory: 'success', variant: 'subtle', states: ['default'], sourceColor: 'success', sourceStep: 50 },
+  { category: 'bg', subcategory: 'success', variant: 'default', states: ['default'], sourceColor: 'success', sourceStep: 100 },
+  { category: 'bg', subcategory: 'warning', variant: 'subtle', states: ['default'], sourceColor: 'warning', sourceStep: 50 },
+  { category: 'bg', subcategory: 'warning', variant: 'default', states: ['default'], sourceColor: 'warning', sourceStep: 100 },
+  { category: 'bg', subcategory: 'error', variant: 'subtle', states: ['default'], sourceColor: 'error', sourceStep: 50 },
+  { category: 'bg', subcategory: 'error', variant: 'default', states: ['default'], sourceColor: 'error', sourceStep: 100 },
+  { category: 'bg', subcategory: 'info', variant: 'subtle', states: ['default'], sourceColor: 'brand', sourceStep: 50 },
+  { category: 'bg', subcategory: 'info', variant: 'default', states: ['default'], sourceColor: 'brand', sourceStep: 100 },
+  // Inverse backgrounds
+  { category: 'bg', subcategory: 'inverse', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'bg', subcategory: 'inverse', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
+  // Table backgrounds
+  { category: 'bg', subcategory: 'table', variant: 'header', states: ['default'], sourceColor: 'neutral', sourceStep: 50 },
+  { category: 'bg', subcategory: 'table', variant: 'row-odd', states: ['default', 'hover', 'selected'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'bg', subcategory: 'table', variant: 'row-even', states: ['default', 'hover', 'selected'], sourceColor: 'neutral', sourceStep: 50 },
+  // Input/Form backgrounds
+  { category: 'bg', subcategory: 'input', variant: 'default', states: ['default', 'hover', 'focus', 'disabled', 'error'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'bg', subcategory: 'input', variant: 'filled', states: ['default', 'hover', 'focus', 'disabled', 'error'], sourceColor: 'neutral', sourceStep: 50 },
+  // Sidebar/Navigation backgrounds
+  { category: 'bg', subcategory: 'sidebar', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'bg', subcategory: 'sidebar', variant: 'dark', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'bg', subcategory: 'header', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'bg', subcategory: 'header', variant: 'dark', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'bg', subcategory: 'nav', variant: 'item', states: ['default', 'hover', 'active', 'selected'], sourceColor: 'neutral', sourceStep: 25 },
+  // Skeleton/Loading backgrounds
+  { category: 'bg', subcategory: 'skeleton', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  { category: 'bg', subcategory: 'skeleton', variant: 'shimmer', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
   
-  // Text - darker shades for light theme
+  // ============================================
+  // TEXT - All text colors
+  // ============================================
+  // Primary text hierarchy
   { category: 'text', subcategory: 'primary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 900 },
-  { category: 'text', subcategory: 'secondary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 700 },
-  { category: 'text', subcategory: 'tertiary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 500 },
-  { category: 'text', subcategory: 'inverse', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'text', subcategory: 'brand', states: ['default', 'hover', 'disabled'], sourceColor: 'brand', sourceStep: 500 },
-  { category: 'text', subcategory: 'accent', states: ['default', 'hover', 'disabled'], sourceColor: 'accent', sourceStep: 500 },
-  { category: 'text', subcategory: 'success', states: ['default', 'hover', 'disabled'], sourceColor: 'success', sourceStep: 600 },
-  { category: 'text', subcategory: 'warning', states: ['default', 'hover', 'disabled'], sourceColor: 'warning', sourceStep: 600 },
-  { category: 'text', subcategory: 'error', states: ['default', 'hover', 'disabled'], sourceColor: 'error', sourceStep: 600 },
-  { category: 'text', subcategory: 'link', states: ['default', 'hover', 'visited', 'disabled'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'text', subcategory: 'secondary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 600 },
+  { category: 'text', subcategory: 'tertiary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 400 },
+  { category: 'text', subcategory: 'placeholder', states: ['default'], sourceColor: 'neutral', sourceStep: 400 },
+  { category: 'text', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 300 },
+  // Semantic text
+  { category: 'text', subcategory: 'brand', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'text', subcategory: 'success', states: ['default'], sourceColor: 'success', sourceStep: 600 },
+  { category: 'text', subcategory: 'warning', states: ['default'], sourceColor: 'warning', sourceStep: 600 },
+  { category: 'text', subcategory: 'error', states: ['default'], sourceColor: 'error', sourceStep: 600 },
+  { category: 'text', subcategory: 'info', states: ['default'], sourceColor: 'brand', sourceStep: 600 },
+  // Link text
+  { category: 'text', subcategory: 'link', variant: 'default', states: ['default', 'hover', 'active', 'visited', 'disabled'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'text', subcategory: 'link', variant: 'subtle', states: ['default', 'hover', 'active', 'visited', 'disabled'], sourceColor: 'neutral', sourceStep: 600 },
+  // Inverse text
+  { category: 'text', subcategory: 'inverse', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'text', subcategory: 'inverse', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
+  // On-color text (for colored backgrounds)
+  { category: 'text', subcategory: 'on-brand', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'text', subcategory: 'on-success', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'text', subcategory: 'on-warning', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'text', subcategory: 'on-error', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'text', subcategory: 'on-info', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  // Label text
+  { category: 'text', subcategory: 'label', variant: 'default', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 700 },
+  { category: 'text', subcategory: 'label', variant: 'required', states: ['default'], sourceColor: 'error', sourceStep: 500 },
+  // Caption/Helper text
+  { category: 'text', subcategory: 'caption', states: ['default'], sourceColor: 'neutral', sourceStep: 500 },
+  { category: 'text', subcategory: 'helper', states: ['default', 'error'], sourceColor: 'neutral', sourceStep: 500 },
   
-  // Border
-  { category: 'border', subcategory: 'primary', states: ['default', 'hover', 'focus', 'disabled'], sourceColor: 'neutral', sourceStep: 300 },
-  { category: 'border', subcategory: 'secondary', states: ['default', 'hover', 'focus', 'disabled'], sourceColor: 'neutral', sourceStep: 200 },
-  { category: 'border', subcategory: 'brand', states: ['default', 'hover', 'focus', 'disabled'], sourceColor: 'brand', sourceStep: 500 },
-  { category: 'border', subcategory: 'accent', states: ['default', 'hover', 'focus', 'disabled'], sourceColor: 'accent', sourceStep: 500 },
-  { category: 'border', subcategory: 'success', states: ['default', 'hover', 'focus', 'disabled'], sourceColor: 'success', sourceStep: 500 },
-  { category: 'border', subcategory: 'warning', states: ['default', 'hover', 'focus', 'disabled'], sourceColor: 'warning', sourceStep: 500 },
-  { category: 'border', subcategory: 'error', states: ['default', 'hover', 'focus', 'disabled'], sourceColor: 'error', sourceStep: 500 },
+  // ============================================
+  // BORDER - All border/stroke colors
+  // ============================================
+  // Base borders
+  { category: 'border', subcategory: 'default', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 200 },
+  { category: 'border', subcategory: 'subtle', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  { category: 'border', subcategory: 'strong', states: ['default'], sourceColor: 'neutral', sourceStep: 400 },
+  { category: 'border', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  // Semantic borders
+  { category: 'border', subcategory: 'brand', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'border', subcategory: 'success', states: ['default'], sourceColor: 'success', sourceStep: 500 },
+  { category: 'border', subcategory: 'warning', states: ['default'], sourceColor: 'warning', sourceStep: 500 },
+  { category: 'border', subcategory: 'error', states: ['default'], sourceColor: 'error', sourceStep: 500 },
+  { category: 'border', subcategory: 'info', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  // Focus borders
+  { category: 'border', subcategory: 'focus', variant: 'default', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'border', subcategory: 'focus', variant: 'error', states: ['default'], sourceColor: 'error', sourceStep: 500 },
+  // Input borders
+  { category: 'border', subcategory: 'input', states: ['default', 'hover', 'focus', 'error', 'disabled'], sourceColor: 'neutral', sourceStep: 300 },
+  // Card borders
+  { category: 'border', subcategory: 'card', states: ['default', 'hover', 'selected'], sourceColor: 'neutral', sourceStep: 200 },
+  // Table borders
+  { category: 'border', subcategory: 'table', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
+  { category: 'border', subcategory: 'table', variant: 'header', states: ['default'], sourceColor: 'neutral', sourceStep: 300 },
+  // Inverse borders
+  { category: 'border', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
   
-  // Divider
-  { category: 'divider', subcategory: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
-  { category: 'divider', subcategory: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
-  { category: 'divider', subcategory: 'bold', states: ['default'], sourceColor: 'neutral', sourceStep: 400 },
-  
-  // Action (buttons, interactive elements)
-  { category: 'action', subcategory: 'primary', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'brand', sourceStep: 500 },
-  { category: 'action', subcategory: 'secondary', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'neutral', sourceStep: 100 },
-  { category: 'action', subcategory: 'tertiary', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'neutral', sourceStep: 50 },
-  { category: 'action', subcategory: 'destructive', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'error', sourceStep: 500 },
-  { category: 'action', subcategory: 'success', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'success', sourceStep: 500 },
-  
-  // Icon
-  { category: 'icon', subcategory: 'primary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 800 },
+  // ============================================
+  // ICON - All icon colors
+  // ============================================
+  // Base icons
+  { category: 'icon', subcategory: 'primary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 700 },
   { category: 'icon', subcategory: 'secondary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 500 },
-  { category: 'icon', subcategory: 'inverse', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'icon', subcategory: 'brand', states: ['default', 'hover', 'disabled'], sourceColor: 'brand', sourceStep: 500 },
-  { category: 'icon', subcategory: 'accent', states: ['default', 'hover', 'disabled'], sourceColor: 'accent', sourceStep: 500 },
-  { category: 'icon', subcategory: 'success', states: ['default', 'hover', 'disabled'], sourceColor: 'success', sourceStep: 500 },
-  { category: 'icon', subcategory: 'warning', states: ['default', 'hover', 'disabled'], sourceColor: 'warning', sourceStep: 500 },
-  { category: 'icon', subcategory: 'error', states: ['default', 'hover', 'disabled'], sourceColor: 'error', sourceStep: 500 },
+  { category: 'icon', subcategory: 'tertiary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 400 },
+  { category: 'icon', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 300 },
+  // Semantic icons
+  { category: 'icon', subcategory: 'brand', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'icon', subcategory: 'success', states: ['default'], sourceColor: 'success', sourceStep: 500 },
+  { category: 'icon', subcategory: 'warning', states: ['default'], sourceColor: 'warning', sourceStep: 500 },
+  { category: 'icon', subcategory: 'error', states: ['default'], sourceColor: 'error', sourceStep: 500 },
+  { category: 'icon', subcategory: 'info', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  // Inverse icons
+  { category: 'icon', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  // On-color icons
+  { category: 'icon', subcategory: 'on-brand', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'icon', subcategory: 'on-success', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'icon', subcategory: 'on-warning', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'icon', subcategory: 'on-error', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
   
-  // Surface (cards, modals, etc.)
-  { category: 'surface', subcategory: 'default', states: ['default', 'hover', 'active'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'surface', subcategory: 'raised', states: ['default', 'hover', 'active'], sourceColor: 'neutral', sourceStep: 50 },
-  { category: 'surface', subcategory: 'overlay', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
+  // ============================================
+  // DIVIDER - Separator lines
+  // ============================================
+  { category: 'divider', subcategory: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
+  { category: 'divider', subcategory: 'subtle', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  { category: 'divider', subcategory: 'strong', states: ['default'], sourceColor: 'neutral', sourceStep: 300 },
+  { category: 'divider', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
   
-  // Focus
-  { category: 'focus', subcategory: 'ring', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  // ============================================
+  // ACTION - Interactive elements (buttons, links)
+  // ============================================
+  { category: 'action', subcategory: 'primary', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'action', subcategory: 'secondary', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'neutral', sourceStep: 100 },
+  { category: 'action', subcategory: 'tertiary', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'action', subcategory: 'ghost', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'action', subcategory: 'danger', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'error', sourceStep: 500 },
+  { category: 'action', subcategory: 'success', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'success', sourceStep: 500 },
+  { category: 'action', subcategory: 'warning', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'warning', sourceStep: 500 },
+  
+  // ============================================
+  // SURFACE - Container backgrounds (legacy support)
+  // ============================================
+  { category: 'surface', subcategory: 'page', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'surface', subcategory: 'card', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'surface', subcategory: 'elevated', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'surface', subcategory: 'overlay', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'surface', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  
+  // ============================================
+  // CONTENT - Text/icons (legacy support)
+  // ============================================
+  { category: 'content', subcategory: 'primary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'content', subcategory: 'secondary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 600 },
+  { category: 'content', subcategory: 'tertiary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 400 },
+  { category: 'content', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 300 },
+  { category: 'content', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'content', subcategory: 'brand', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'content', subcategory: 'on-action-primary', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'content', subcategory: 'on-action-secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  
+  // ============================================
+  // STROKE - Borders (legacy support)
+  // ============================================
+  { category: 'stroke', subcategory: 'default', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 200 },
+  { category: 'stroke', subcategory: 'subtle', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  { category: 'stroke', subcategory: 'strong', states: ['default'], sourceColor: 'neutral', sourceStep: 400 },
+  { category: 'stroke', subcategory: 'focus', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'stroke', subcategory: 'error', states: ['default'], sourceColor: 'error', sourceStep: 500 },
+  { category: 'stroke', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  
+  // ============================================
+  // FEEDBACK - Status indicators
+  // ============================================
+  { category: 'feedback', subcategory: 'success-surface', states: ['default'], sourceColor: 'success', sourceStep: 50 },
+  { category: 'feedback', subcategory: 'success-content', states: ['default'], sourceColor: 'success', sourceStep: 700 },
+  { category: 'feedback', subcategory: 'success-stroke', states: ['default'], sourceColor: 'success', sourceStep: 500 },
+  { category: 'feedback', subcategory: 'warning-surface', states: ['default'], sourceColor: 'warning', sourceStep: 50 },
+  { category: 'feedback', subcategory: 'warning-content', states: ['default'], sourceColor: 'warning', sourceStep: 700 },
+  { category: 'feedback', subcategory: 'warning-stroke', states: ['default'], sourceColor: 'warning', sourceStep: 500 },
+  { category: 'feedback', subcategory: 'error-surface', states: ['default'], sourceColor: 'error', sourceStep: 50 },
+  { category: 'feedback', subcategory: 'error-content', states: ['default'], sourceColor: 'error', sourceStep: 700 },
+  { category: 'feedback', subcategory: 'error-stroke', states: ['default'], sourceColor: 'error', sourceStep: 500 },
+  { category: 'feedback', subcategory: 'info-surface', states: ['default'], sourceColor: 'brand', sourceStep: 50 },
+  { category: 'feedback', subcategory: 'info-content', states: ['default'], sourceColor: 'brand', sourceStep: 700 },
+  { category: 'feedback', subcategory: 'info-stroke', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  
+  // ============================================
+  // FOCUS - Focus ring colors
+  // ============================================
+  { category: 'focus', subcategory: 'ring', variant: 'default', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'focus', subcategory: 'ring', variant: 'error', states: ['default'], sourceColor: 'error', sourceStep: 500 },
+  { category: 'focus', subcategory: 'ring', variant: 'success', states: ['default'], sourceColor: 'success', sourceStep: 500 },
+  { category: 'focus', subcategory: 'outline', variant: 'default', states: ['default'], sourceColor: 'brand', sourceStep: 300 },
+  
+  // ============================================
+  // STATUS - Status indicator colors
+  // ============================================
+  { category: 'status', subcategory: 'online', states: ['default'], sourceColor: 'success', sourceStep: 500 },
+  { category: 'status', subcategory: 'offline', states: ['default'], sourceColor: 'neutral', sourceStep: 400 },
+  { category: 'status', subcategory: 'away', states: ['default'], sourceColor: 'warning', sourceStep: 500 },
+  { category: 'status', subcategory: 'busy', states: ['default'], sourceColor: 'error', sourceStep: 500 },
+  { category: 'status', subcategory: 'active', states: ['default'], sourceColor: 'success', sourceStep: 500 },
+  { category: 'status', subcategory: 'inactive', states: ['default'], sourceColor: 'neutral', sourceStep: 400 },
+  { category: 'status', subcategory: 'pending', states: ['default'], sourceColor: 'warning', sourceStep: 500 },
+  { category: 'status', subcategory: 'completed', states: ['default'], sourceColor: 'success', sourceStep: 500 },
+  { category: 'status', subcategory: 'failed', states: ['default'], sourceColor: 'error', sourceStep: 500 },
+  { category: 'status', subcategory: 'draft', states: ['default'], sourceColor: 'neutral', sourceStep: 400 },
+  { category: 'status', subcategory: 'published', states: ['default'], sourceColor: 'success', sourceStep: 500 },
+  { category: 'status', subcategory: 'archived', states: ['default'], sourceColor: 'neutral', sourceStep: 500 },
+  
+  // ============================================
+  // BADGE - Badge/Tag colors
+  // ============================================
+  { category: 'badge', subcategory: 'neutral', variant: 'surface', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  { category: 'badge', subcategory: 'neutral', variant: 'content', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
+  { category: 'badge', subcategory: 'brand', variant: 'surface', states: ['default'], sourceColor: 'brand', sourceStep: 100 },
+  { category: 'badge', subcategory: 'brand', variant: 'content', states: ['default'], sourceColor: 'brand', sourceStep: 700 },
+  { category: 'badge', subcategory: 'success', variant: 'surface', states: ['default'], sourceColor: 'success', sourceStep: 100 },
+  { category: 'badge', subcategory: 'success', variant: 'content', states: ['default'], sourceColor: 'success', sourceStep: 700 },
+  { category: 'badge', subcategory: 'warning', variant: 'surface', states: ['default'], sourceColor: 'warning', sourceStep: 100 },
+  { category: 'badge', subcategory: 'warning', variant: 'content', states: ['default'], sourceColor: 'warning', sourceStep: 700 },
+  { category: 'badge', subcategory: 'error', variant: 'surface', states: ['default'], sourceColor: 'error', sourceStep: 100 },
+  { category: 'badge', subcategory: 'error', variant: 'content', states: ['default'], sourceColor: 'error', sourceStep: 700 },
+  { category: 'badge', subcategory: 'info', variant: 'surface', states: ['default'], sourceColor: 'brand', sourceStep: 100 },
+  { category: 'badge', subcategory: 'info', variant: 'content', states: ['default'], sourceColor: 'brand', sourceStep: 700 },
+  
+  // ============================================
+  // DATA-VIZ - Data visualization colors
+  // ============================================
+  { category: 'data-viz', subcategory: 'categorical', variant: '1', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'data-viz', subcategory: 'categorical', variant: '2', states: ['default'], sourceColor: 'success', sourceStep: 500 },
+  { category: 'data-viz', subcategory: 'categorical', variant: '3', states: ['default'], sourceColor: 'warning', sourceStep: 500 },
+  { category: 'data-viz', subcategory: 'categorical', variant: '4', states: ['default'], sourceColor: 'error', sourceStep: 500 },
+  { category: 'data-viz', subcategory: 'categorical', variant: '5', states: ['default'], sourceColor: 'neutral', sourceStep: 500 },
+  { category: 'data-viz', subcategory: 'sequential', variant: 'start', states: ['default'], sourceColor: 'brand', sourceStep: 100 },
+  { category: 'data-viz', subcategory: 'sequential', variant: 'end', states: ['default'], sourceColor: 'brand', sourceStep: 700 },
+  { category: 'data-viz', subcategory: 'positive', states: ['default'], sourceColor: 'success', sourceStep: 500 },
+  { category: 'data-viz', subcategory: 'negative', states: ['default'], sourceColor: 'error', sourceStep: 500 },
+  { category: 'data-viz', subcategory: 'neutral', states: ['default'], sourceColor: 'neutral', sourceStep: 500 },
+  
+  // ============================================
+  // NAV (NAVIGATION) - Navigation specific colors
+  // ============================================
+  { category: 'nav', subcategory: 'item', variant: 'bg', states: ['default', 'hover', 'active', 'selected'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'nav', subcategory: 'item', variant: 'text', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 600 },
+  { category: 'nav', subcategory: 'item', variant: 'icon', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 500 },
+  { category: 'nav', subcategory: 'indicator', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'nav', subcategory: 'breadcrumb', variant: 'text', states: ['default', 'hover', 'current'], sourceColor: 'neutral', sourceStep: 500 },
+  { category: 'nav', subcategory: 'breadcrumb', variant: 'separator', states: ['default'], sourceColor: 'neutral', sourceStep: 300 },
+  { category: 'nav', subcategory: 'tab', variant: 'bg', states: ['default', 'hover', 'active', 'selected'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'nav', subcategory: 'tab', variant: 'text', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 600 },
+  { category: 'nav', subcategory: 'tab', variant: 'indicator', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  
+  // ============================================
+  // FORM - Form-specific colors
+  // ============================================
+  { category: 'form', subcategory: 'label', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 700 },
+  { category: 'form', subcategory: 'required', states: ['default'], sourceColor: 'error', sourceStep: 500 },
+  { category: 'form', subcategory: 'helper', states: ['default', 'error'], sourceColor: 'neutral', sourceStep: 500 },
+  { category: 'form', subcategory: 'counter', states: ['default', 'error'], sourceColor: 'neutral', sourceStep: 500 },
+  { category: 'form', subcategory: 'input-bg', states: ['default', 'hover', 'focus', 'disabled', 'error'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'form', subcategory: 'input-border', states: ['default', 'hover', 'focus', 'disabled', 'error'], sourceColor: 'neutral', sourceStep: 300 },
+  { category: 'form', subcategory: 'input-text', states: ['default', 'placeholder', 'disabled'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'form', subcategory: 'checkbox-bg', states: ['default', 'hover', 'checked', 'disabled'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'form', subcategory: 'checkbox-border', states: ['default', 'hover', 'checked', 'disabled', 'error'], sourceColor: 'neutral', sourceStep: 300 },
+  { category: 'form', subcategory: 'checkbox-check', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'form', subcategory: 'radio-bg', states: ['default', 'hover', 'checked', 'disabled'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'form', subcategory: 'radio-border', states: ['default', 'hover', 'checked', 'disabled', 'error'], sourceColor: 'neutral', sourceStep: 300 },
+  { category: 'form', subcategory: 'radio-dot', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'form', subcategory: 'switch-bg', states: ['off', 'on', 'disabled'], sourceColor: 'neutral', sourceStep: 300 },
+  { category: 'form', subcategory: 'switch-thumb', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'form', subcategory: 'select-bg', states: ['default', 'hover', 'focus', 'disabled'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'form', subcategory: 'select-border', states: ['default', 'hover', 'focus', 'disabled', 'error'], sourceColor: 'neutral', sourceStep: 300 },
+  
+  // ============================================
+  // AVATAR - Avatar colors
+  // ============================================
+  { category: 'avatar', subcategory: 'bg', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
+  { category: 'avatar', subcategory: 'bg', variant: 'brand', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'avatar', subcategory: 'text', states: ['default'], sourceColor: 'neutral', sourceStep: 600 },
+  { category: 'avatar', subcategory: 'border', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
+  { category: 'avatar', subcategory: 'presence', variant: 'online', states: ['default'], sourceColor: 'success', sourceStep: 500 },
+  { category: 'avatar', subcategory: 'presence', variant: 'offline', states: ['default'], sourceColor: 'neutral', sourceStep: 400 },
+  { category: 'avatar', subcategory: 'presence', variant: 'away', states: ['default'], sourceColor: 'warning', sourceStep: 500 },
+  { category: 'avatar', subcategory: 'presence', variant: 'busy', states: ['default'], sourceColor: 'error', sourceStep: 500 },
+  
+  // ============================================
+  // PROGRESS - Progress indicators
+  // ============================================
+  { category: 'progress', subcategory: 'track', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  { category: 'progress', subcategory: 'fill', variant: 'default', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'progress', subcategory: 'fill', variant: 'success', states: ['default'], sourceColor: 'success', sourceStep: 500 },
+  { category: 'progress', subcategory: 'fill', variant: 'warning', states: ['default'], sourceColor: 'warning', sourceStep: 500 },
+  { category: 'progress', subcategory: 'fill', variant: 'error', states: ['default'], sourceColor: 'error', sourceStep: 500 },
+  
+  // ============================================
+  // SCROLLBAR - Scrollbar colors
+  // ============================================
+  { category: 'scrollbar', subcategory: 'track', states: ['default'], sourceColor: 'neutral', sourceStep: 50 },
+  { category: 'scrollbar', subcategory: 'thumb', states: ['default', 'hover', 'active'], sourceColor: 'neutral', sourceStep: 300 },
+  
+  // ============================================
+  // SELECTION - Selection/highlight colors
+  // ============================================
+  { category: 'selection', subcategory: 'bg', states: ['default'], sourceColor: 'brand', sourceStep: 100 },
+  { category: 'selection', subcategory: 'text', states: ['default'], sourceColor: 'brand', sourceStep: 900 },
+  { category: 'selection', subcategory: 'highlight', states: ['default'], sourceColor: 'warning', sourceStep: 200 },
 ];
 
-// Semantic mappings for DARK theme (inverted logic)
-// Dark theme: use darker shades (high numbers) for backgrounds, lighter (low numbers) for text
+// ============================================
+// SEMANTIC TOKEN STRUCTURE (DARK THEME)
+// Comprehensive SaaS/CRM categories
+// ============================================
 const SEMANTIC_COLOR_MAPPINGS_DARK: SemanticColorMapping[] = [
-  // Background - darker shades for dark theme
-  { category: 'bg', subcategory: 'primary', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'neutral', sourceStep: 925 },
-  { category: 'bg', subcategory: 'secondary', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'neutral', sourceStep: 875 },
-  { category: 'bg', subcategory: 'tertiary', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'neutral', sourceStep: 800 },
-  { category: 'bg', subcategory: 'inverse', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'neutral', sourceStep: 50 },
-  { category: 'bg', subcategory: 'brand', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'brand', sourceStep: 500 },
-  { category: 'bg', subcategory: 'accent', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'accent', sourceStep: 500 },
-  { category: 'bg', subcategory: 'success', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'success', sourceStep: 800 },
-  { category: 'bg', subcategory: 'warning', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'warning', sourceStep: 800 },
-  { category: 'bg', subcategory: 'error', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'error', sourceStep: 800 },
+  // ============================================
+  // BG (BACKGROUND) - All background colors (dark theme)
+  // ============================================
+  // Page backgrounds
+  { category: 'bg', subcategory: 'page', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 950 },
+  { category: 'bg', subcategory: 'page', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'bg', subcategory: 'page', variant: 'tertiary', states: ['default'], sourceColor: 'neutral', sourceStep: 850 },
+  // Container/Card backgrounds
+  { category: 'bg', subcategory: 'card', variant: 'primary', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'bg', subcategory: 'card', variant: 'secondary', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 850 },
+  { category: 'bg', subcategory: 'card', variant: 'elevated', states: ['default'], sourceColor: 'neutral', sourceStep: 850 },
+  // Interactive backgrounds
+  { category: 'bg', subcategory: 'interactive', variant: 'primary', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 850 },
+  { category: 'bg', subcategory: 'interactive', variant: 'secondary', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 800 },
+  // Overlay/Modal backgrounds
+  { category: 'bg', subcategory: 'overlay', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 950 },
+  { category: 'bg', subcategory: 'overlay', variant: 'light', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'bg', subcategory: 'modal', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'bg', subcategory: 'drawer', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'bg', subcategory: 'popover', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 850 },
+  { category: 'bg', subcategory: 'tooltip', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  // Semantic backgrounds
+  { category: 'bg', subcategory: 'brand', variant: 'subtle', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 900 },
+  { category: 'bg', subcategory: 'brand', variant: 'default', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 800 },
+  { category: 'bg', subcategory: 'success', variant: 'subtle', states: ['default'], sourceColor: 'success', sourceStep: 900 },
+  { category: 'bg', subcategory: 'success', variant: 'default', states: ['default'], sourceColor: 'success', sourceStep: 800 },
+  { category: 'bg', subcategory: 'warning', variant: 'subtle', states: ['default'], sourceColor: 'warning', sourceStep: 900 },
+  { category: 'bg', subcategory: 'warning', variant: 'default', states: ['default'], sourceColor: 'warning', sourceStep: 800 },
+  { category: 'bg', subcategory: 'error', variant: 'subtle', states: ['default'], sourceColor: 'error', sourceStep: 900 },
+  { category: 'bg', subcategory: 'error', variant: 'default', states: ['default'], sourceColor: 'error', sourceStep: 800 },
+  { category: 'bg', subcategory: 'info', variant: 'subtle', states: ['default'], sourceColor: 'brand', sourceStep: 900 },
+  { category: 'bg', subcategory: 'info', variant: 'default', states: ['default'], sourceColor: 'brand', sourceStep: 800 },
+  // Inverse backgrounds
+  { category: 'bg', subcategory: 'inverse', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  { category: 'bg', subcategory: 'inverse', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
+  // Table backgrounds
+  { category: 'bg', subcategory: 'table', variant: 'header', states: ['default'], sourceColor: 'neutral', sourceStep: 850 },
+  { category: 'bg', subcategory: 'table', variant: 'row-odd', states: ['default', 'hover', 'selected'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'bg', subcategory: 'table', variant: 'row-even', states: ['default', 'hover', 'selected'], sourceColor: 'neutral', sourceStep: 850 },
+  // Input/Form backgrounds
+  { category: 'bg', subcategory: 'input', variant: 'default', states: ['default', 'hover', 'focus', 'disabled', 'error'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'bg', subcategory: 'input', variant: 'filled', states: ['default', 'hover', 'focus', 'disabled', 'error'], sourceColor: 'neutral', sourceStep: 850 },
+  // Sidebar/Navigation backgrounds
+  { category: 'bg', subcategory: 'sidebar', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 950 },
+  { category: 'bg', subcategory: 'sidebar', variant: 'dark', states: ['default'], sourceColor: 'neutral', sourceStep: 975 },
+  { category: 'bg', subcategory: 'header', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'bg', subcategory: 'header', variant: 'dark', states: ['default'], sourceColor: 'neutral', sourceStep: 950 },
+  { category: 'bg', subcategory: 'nav', variant: 'item', states: ['default', 'hover', 'active', 'selected'], sourceColor: 'neutral', sourceStep: 900 },
+  // Skeleton/Loading backgrounds
+  { category: 'bg', subcategory: 'skeleton', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
+  { category: 'bg', subcategory: 'skeleton', variant: 'shimmer', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
   
-  // Text - lighter shades for dark theme
+  // ============================================
+  // TEXT - All text colors (dark theme)
+  // ============================================
+  // Primary text hierarchy
   { category: 'text', subcategory: 'primary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 50 },
-  { category: 'text', subcategory: 'secondary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 200 },
-  { category: 'text', subcategory: 'tertiary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 400 },
-  { category: 'text', subcategory: 'inverse', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 925 },
-  { category: 'text', subcategory: 'brand', states: ['default', 'hover', 'disabled'], sourceColor: 'brand', sourceStep: 300 },
-  { category: 'text', subcategory: 'accent', states: ['default', 'hover', 'disabled'], sourceColor: 'accent', sourceStep: 300 },
-  { category: 'text', subcategory: 'success', states: ['default', 'hover', 'disabled'], sourceColor: 'success', sourceStep: 300 },
-  { category: 'text', subcategory: 'warning', states: ['default', 'hover', 'disabled'], sourceColor: 'warning', sourceStep: 300 },
-  { category: 'text', subcategory: 'error', states: ['default', 'hover', 'disabled'], sourceColor: 'error', sourceStep: 300 },
-  { category: 'text', subcategory: 'link', states: ['default', 'hover', 'visited', 'disabled'], sourceColor: 'brand', sourceStep: 300 },
+  { category: 'text', subcategory: 'secondary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 300 },
+  { category: 'text', subcategory: 'tertiary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 500 },
+  { category: 'text', subcategory: 'placeholder', states: ['default'], sourceColor: 'neutral', sourceStep: 500 },
+  { category: 'text', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 600 },
+  // Semantic text
+  { category: 'text', subcategory: 'brand', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 400 },
+  { category: 'text', subcategory: 'success', states: ['default'], sourceColor: 'success', sourceStep: 400 },
+  { category: 'text', subcategory: 'warning', states: ['default'], sourceColor: 'warning', sourceStep: 400 },
+  { category: 'text', subcategory: 'error', states: ['default'], sourceColor: 'error', sourceStep: 400 },
+  { category: 'text', subcategory: 'info', states: ['default'], sourceColor: 'brand', sourceStep: 400 },
+  // Link text
+  { category: 'text', subcategory: 'link', variant: 'default', states: ['default', 'hover', 'active', 'visited', 'disabled'], sourceColor: 'brand', sourceStep: 400 },
+  { category: 'text', subcategory: 'link', variant: 'subtle', states: ['default', 'hover', 'active', 'visited', 'disabled'], sourceColor: 'neutral', sourceStep: 300 },
+  // Inverse text
+  { category: 'text', subcategory: 'inverse', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'text', subcategory: 'inverse', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
+  // On-color text
+  { category: 'text', subcategory: 'on-brand', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'text', subcategory: 'on-success', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'text', subcategory: 'on-warning', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'text', subcategory: 'on-error', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'text', subcategory: 'on-info', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  // Label text
+  { category: 'text', subcategory: 'label', variant: 'default', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 200 },
+  { category: 'text', subcategory: 'label', variant: 'required', states: ['default'], sourceColor: 'error', sourceStep: 400 },
+  // Caption/Helper text
+  { category: 'text', subcategory: 'caption', states: ['default'], sourceColor: 'neutral', sourceStep: 400 },
+  { category: 'text', subcategory: 'helper', states: ['default', 'error'], sourceColor: 'neutral', sourceStep: 400 },
   
-  // Border - adjusted for dark theme
-  { category: 'border', subcategory: 'primary', states: ['default', 'hover', 'focus', 'disabled'], sourceColor: 'neutral', sourceStep: 600 },
-  { category: 'border', subcategory: 'secondary', states: ['default', 'hover', 'focus', 'disabled'], sourceColor: 'neutral', sourceStep: 700 },
-  { category: 'border', subcategory: 'brand', states: ['default', 'hover', 'focus', 'disabled'], sourceColor: 'brand', sourceStep: 400 },
-  { category: 'border', subcategory: 'accent', states: ['default', 'hover', 'focus', 'disabled'], sourceColor: 'accent', sourceStep: 400 },
-  { category: 'border', subcategory: 'success', states: ['default', 'hover', 'focus', 'disabled'], sourceColor: 'success', sourceStep: 400 },
-  { category: 'border', subcategory: 'warning', states: ['default', 'hover', 'focus', 'disabled'], sourceColor: 'warning', sourceStep: 400 },
-  { category: 'border', subcategory: 'error', states: ['default', 'hover', 'focus', 'disabled'], sourceColor: 'error', sourceStep: 400 },
+  // ============================================
+  // BORDER - All border/stroke colors (dark theme)
+  // ============================================
+  // Base borders
+  { category: 'border', subcategory: 'default', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 700 },
+  { category: 'border', subcategory: 'subtle', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
+  { category: 'border', subcategory: 'strong', states: ['default'], sourceColor: 'neutral', sourceStep: 500 },
+  { category: 'border', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
+  // Semantic borders
+  { category: 'border', subcategory: 'brand', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'border', subcategory: 'success', states: ['default'], sourceColor: 'success', sourceStep: 500 },
+  { category: 'border', subcategory: 'warning', states: ['default'], sourceColor: 'warning', sourceStep: 500 },
+  { category: 'border', subcategory: 'error', states: ['default'], sourceColor: 'error', sourceStep: 500 },
+  { category: 'border', subcategory: 'info', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  // Focus borders
+  { category: 'border', subcategory: 'focus', variant: 'default', states: ['default'], sourceColor: 'brand', sourceStep: 400 },
+  { category: 'border', subcategory: 'focus', variant: 'error', states: ['default'], sourceColor: 'error', sourceStep: 400 },
+  // Input borders
+  { category: 'border', subcategory: 'input', states: ['default', 'hover', 'focus', 'error', 'disabled'], sourceColor: 'neutral', sourceStep: 600 },
+  // Card borders
+  { category: 'border', subcategory: 'card', states: ['default', 'hover', 'selected'], sourceColor: 'neutral', sourceStep: 700 },
+  // Table borders
+  { category: 'border', subcategory: 'table', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
+  { category: 'border', subcategory: 'table', variant: 'header', states: ['default'], sourceColor: 'neutral', sourceStep: 600 },
+  // Inverse borders
+  { category: 'border', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 300 },
   
-  // Divider - adjusted for dark theme
-  { category: 'divider', subcategory: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
-  { category: 'divider', subcategory: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
-  { category: 'divider', subcategory: 'bold', states: ['default'], sourceColor: 'neutral', sourceStep: 500 },
-  
-  // Action - similar for dark theme
-  { category: 'action', subcategory: 'primary', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'brand', sourceStep: 500 },
-  { category: 'action', subcategory: 'secondary', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'neutral', sourceStep: 800 },
-  { category: 'action', subcategory: 'tertiary', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'neutral', sourceStep: 850 },
-  { category: 'action', subcategory: 'destructive', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'error', sourceStep: 500 },
-  { category: 'action', subcategory: 'success', states: ['default', 'hover', 'active', 'disabled'], sourceColor: 'success', sourceStep: 500 },
-  
-  // Icon - inverted for dark theme
-  { category: 'icon', subcategory: 'primary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 100 },
+  // ============================================
+  // ICON - All icon colors (dark theme)
+  // ============================================
+  { category: 'icon', subcategory: 'primary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 200 },
   { category: 'icon', subcategory: 'secondary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 400 },
-  { category: 'icon', subcategory: 'inverse', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 925 },
-  { category: 'icon', subcategory: 'brand', states: ['default', 'hover', 'disabled'], sourceColor: 'brand', sourceStep: 400 },
-  { category: 'icon', subcategory: 'accent', states: ['default', 'hover', 'disabled'], sourceColor: 'accent', sourceStep: 400 },
-  { category: 'icon', subcategory: 'success', states: ['default', 'hover', 'disabled'], sourceColor: 'success', sourceStep: 400 },
-  { category: 'icon', subcategory: 'warning', states: ['default', 'hover', 'disabled'], sourceColor: 'warning', sourceStep: 400 },
-  { category: 'icon', subcategory: 'error', states: ['default', 'hover', 'disabled'], sourceColor: 'error', sourceStep: 400 },
+  { category: 'icon', subcategory: 'tertiary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 500 },
+  { category: 'icon', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 600 },
+  { category: 'icon', subcategory: 'brand', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 400 },
+  { category: 'icon', subcategory: 'success', states: ['default'], sourceColor: 'success', sourceStep: 400 },
+  { category: 'icon', subcategory: 'warning', states: ['default'], sourceColor: 'warning', sourceStep: 400 },
+  { category: 'icon', subcategory: 'error', states: ['default'], sourceColor: 'error', sourceStep: 400 },
+  { category: 'icon', subcategory: 'info', states: ['default'], sourceColor: 'brand', sourceStep: 400 },
+  { category: 'icon', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'icon', subcategory: 'on-brand', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'icon', subcategory: 'on-success', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'icon', subcategory: 'on-warning', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'icon', subcategory: 'on-error', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
   
-  // Surface - inverted for dark theme
-  { category: 'surface', subcategory: 'default', states: ['default', 'hover', 'active'], sourceColor: 'neutral', sourceStep: 900 },
-  { category: 'surface', subcategory: 'raised', states: ['default', 'hover', 'active'], sourceColor: 'neutral', sourceStep: 850 },
-  { category: 'surface', subcategory: 'overlay', states: ['default'], sourceColor: 'neutral', sourceStep: 600 },
+  // ============================================
+  // DIVIDER - Separator lines (dark theme)
+  // ============================================
+  { category: 'divider', subcategory: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
+  { category: 'divider', subcategory: 'subtle', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
+  { category: 'divider', subcategory: 'strong', states: ['default'], sourceColor: 'neutral', sourceStep: 600 },
+  { category: 'divider', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 300 },
   
-  // Focus
-  { category: 'focus', subcategory: 'ring', states: ['default'], sourceColor: 'brand', sourceStep: 400 },
+  // ============================================
+  // ACTION - Interactive elements (dark theme)
+  // ============================================
+  { category: 'action', subcategory: 'primary', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'action', subcategory: 'secondary', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'neutral', sourceStep: 800 },
+  { category: 'action', subcategory: 'tertiary', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'action', subcategory: 'ghost', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'action', subcategory: 'danger', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'error', sourceStep: 500 },
+  { category: 'action', subcategory: 'success', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'success', sourceStep: 500 },
+  { category: 'action', subcategory: 'warning', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'warning', sourceStep: 500 },
+  
+  // ============================================
+  // SURFACE - Container backgrounds (dark theme, legacy support)
+  // ============================================
+  { category: 'surface', subcategory: 'page', states: ['default'], sourceColor: 'neutral', sourceStep: 950 },
+  { category: 'surface', subcategory: 'card', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'surface', subcategory: 'elevated', states: ['default'], sourceColor: 'neutral', sourceStep: 850 },
+  { category: 'surface', subcategory: 'overlay', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
+  { category: 'surface', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  
+  // ============================================
+  // CONTENT - Text/icons (dark theme, legacy support)
+  // ============================================
+  { category: 'content', subcategory: 'primary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 50 },
+  { category: 'content', subcategory: 'secondary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 300 },
+  { category: 'content', subcategory: 'tertiary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 500 },
+  { category: 'content', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 600 },
+  { category: 'content', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'content', subcategory: 'brand', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 400 },
+  { category: 'content', subcategory: 'on-action-primary', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'content', subcategory: 'on-action-secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 50 },
+  
+  // ============================================
+  // STROKE - Borders (dark theme, legacy support)
+  // ============================================
+  { category: 'stroke', subcategory: 'default', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 700 },
+  { category: 'stroke', subcategory: 'subtle', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
+  { category: 'stroke', subcategory: 'strong', states: ['default'], sourceColor: 'neutral', sourceStep: 500 },
+  { category: 'stroke', subcategory: 'focus', states: ['default'], sourceColor: 'brand', sourceStep: 400 },
+  { category: 'stroke', subcategory: 'error', states: ['default'], sourceColor: 'error', sourceStep: 500 },
+  { category: 'stroke', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
+  
+  // ============================================
+  // FEEDBACK - Status indicators (dark theme)
+  // ============================================
+  { category: 'feedback', subcategory: 'success-surface', states: ['default'], sourceColor: 'success', sourceStep: 900 },
+  { category: 'feedback', subcategory: 'success-content', states: ['default'], sourceColor: 'success', sourceStep: 300 },
+  { category: 'feedback', subcategory: 'success-stroke', states: ['default'], sourceColor: 'success', sourceStep: 500 },
+  { category: 'feedback', subcategory: 'warning-surface', states: ['default'], sourceColor: 'warning', sourceStep: 900 },
+  { category: 'feedback', subcategory: 'warning-content', states: ['default'], sourceColor: 'warning', sourceStep: 300 },
+  { category: 'feedback', subcategory: 'warning-stroke', states: ['default'], sourceColor: 'warning', sourceStep: 500 },
+  { category: 'feedback', subcategory: 'error-surface', states: ['default'], sourceColor: 'error', sourceStep: 900 },
+  { category: 'feedback', subcategory: 'error-content', states: ['default'], sourceColor: 'error', sourceStep: 300 },
+  { category: 'feedback', subcategory: 'error-stroke', states: ['default'], sourceColor: 'error', sourceStep: 500 },
+  { category: 'feedback', subcategory: 'info-surface', states: ['default'], sourceColor: 'brand', sourceStep: 900 },
+  { category: 'feedback', subcategory: 'info-content', states: ['default'], sourceColor: 'brand', sourceStep: 300 },
+  { category: 'feedback', subcategory: 'info-stroke', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  
+  // ============================================
+  // FOCUS - Focus ring colors (dark theme)
+  // ============================================
+  { category: 'focus', subcategory: 'ring', variant: 'default', states: ['default'], sourceColor: 'brand', sourceStep: 400 },
+  { category: 'focus', subcategory: 'ring', variant: 'error', states: ['default'], sourceColor: 'error', sourceStep: 400 },
+  { category: 'focus', subcategory: 'ring', variant: 'success', states: ['default'], sourceColor: 'success', sourceStep: 400 },
+  { category: 'focus', subcategory: 'outline', variant: 'default', states: ['default'], sourceColor: 'brand', sourceStep: 600 },
+  
+  // ============================================
+  // STATUS - Status indicator colors (dark theme)
+  // ============================================
+  { category: 'status', subcategory: 'online', states: ['default'], sourceColor: 'success', sourceStep: 400 },
+  { category: 'status', subcategory: 'offline', states: ['default'], sourceColor: 'neutral', sourceStep: 500 },
+  { category: 'status', subcategory: 'away', states: ['default'], sourceColor: 'warning', sourceStep: 400 },
+  { category: 'status', subcategory: 'busy', states: ['default'], sourceColor: 'error', sourceStep: 400 },
+  { category: 'status', subcategory: 'active', states: ['default'], sourceColor: 'success', sourceStep: 400 },
+  { category: 'status', subcategory: 'inactive', states: ['default'], sourceColor: 'neutral', sourceStep: 500 },
+  { category: 'status', subcategory: 'pending', states: ['default'], sourceColor: 'warning', sourceStep: 400 },
+  { category: 'status', subcategory: 'completed', states: ['default'], sourceColor: 'success', sourceStep: 400 },
+  { category: 'status', subcategory: 'failed', states: ['default'], sourceColor: 'error', sourceStep: 400 },
+  { category: 'status', subcategory: 'draft', states: ['default'], sourceColor: 'neutral', sourceStep: 500 },
+  { category: 'status', subcategory: 'published', states: ['default'], sourceColor: 'success', sourceStep: 400 },
+  { category: 'status', subcategory: 'archived', states: ['default'], sourceColor: 'neutral', sourceStep: 400 },
+  
+  // ============================================
+  // BADGE - Badge/Tag colors (dark theme)
+  // ============================================
+  { category: 'badge', subcategory: 'neutral', variant: 'surface', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
+  { category: 'badge', subcategory: 'neutral', variant: 'content', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
+  { category: 'badge', subcategory: 'brand', variant: 'surface', states: ['default'], sourceColor: 'brand', sourceStep: 800 },
+  { category: 'badge', subcategory: 'brand', variant: 'content', states: ['default'], sourceColor: 'brand', sourceStep: 200 },
+  { category: 'badge', subcategory: 'success', variant: 'surface', states: ['default'], sourceColor: 'success', sourceStep: 800 },
+  { category: 'badge', subcategory: 'success', variant: 'content', states: ['default'], sourceColor: 'success', sourceStep: 200 },
+  { category: 'badge', subcategory: 'warning', variant: 'surface', states: ['default'], sourceColor: 'warning', sourceStep: 800 },
+  { category: 'badge', subcategory: 'warning', variant: 'content', states: ['default'], sourceColor: 'warning', sourceStep: 200 },
+  { category: 'badge', subcategory: 'error', variant: 'surface', states: ['default'], sourceColor: 'error', sourceStep: 800 },
+  { category: 'badge', subcategory: 'error', variant: 'content', states: ['default'], sourceColor: 'error', sourceStep: 200 },
+  { category: 'badge', subcategory: 'info', variant: 'surface', states: ['default'], sourceColor: 'brand', sourceStep: 800 },
+  { category: 'badge', subcategory: 'info', variant: 'content', states: ['default'], sourceColor: 'brand', sourceStep: 200 },
+  
+  // ============================================
+  // DATA-VIZ - Data visualization colors (dark theme)
+  // ============================================
+  { category: 'data-viz', subcategory: 'categorical', variant: '1', states: ['default'], sourceColor: 'brand', sourceStep: 400 },
+  { category: 'data-viz', subcategory: 'categorical', variant: '2', states: ['default'], sourceColor: 'success', sourceStep: 400 },
+  { category: 'data-viz', subcategory: 'categorical', variant: '3', states: ['default'], sourceColor: 'warning', sourceStep: 400 },
+  { category: 'data-viz', subcategory: 'categorical', variant: '4', states: ['default'], sourceColor: 'error', sourceStep: 400 },
+  { category: 'data-viz', subcategory: 'categorical', variant: '5', states: ['default'], sourceColor: 'neutral', sourceStep: 400 },
+  { category: 'data-viz', subcategory: 'sequential', variant: 'start', states: ['default'], sourceColor: 'brand', sourceStep: 800 },
+  { category: 'data-viz', subcategory: 'sequential', variant: 'end', states: ['default'], sourceColor: 'brand', sourceStep: 300 },
+  { category: 'data-viz', subcategory: 'positive', states: ['default'], sourceColor: 'success', sourceStep: 400 },
+  { category: 'data-viz', subcategory: 'negative', states: ['default'], sourceColor: 'error', sourceStep: 400 },
+  { category: 'data-viz', subcategory: 'neutral', states: ['default'], sourceColor: 'neutral', sourceStep: 400 },
+  
+  // ============================================
+  // NAV (NAVIGATION) - Navigation colors (dark theme)
+  // ============================================
+  { category: 'nav', subcategory: 'item', variant: 'bg', states: ['default', 'hover', 'active', 'selected'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'nav', subcategory: 'item', variant: 'text', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 300 },
+  { category: 'nav', subcategory: 'item', variant: 'icon', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 400 },
+  { category: 'nav', subcategory: 'indicator', states: ['default'], sourceColor: 'brand', sourceStep: 400 },
+  { category: 'nav', subcategory: 'breadcrumb', variant: 'text', states: ['default', 'hover', 'current'], sourceColor: 'neutral', sourceStep: 400 },
+  { category: 'nav', subcategory: 'breadcrumb', variant: 'separator', states: ['default'], sourceColor: 'neutral', sourceStep: 600 },
+  { category: 'nav', subcategory: 'tab', variant: 'bg', states: ['default', 'hover', 'active', 'selected'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'nav', subcategory: 'tab', variant: 'text', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 300 },
+  { category: 'nav', subcategory: 'tab', variant: 'indicator', states: ['default'], sourceColor: 'brand', sourceStep: 400 },
+  
+  // ============================================
+  // FORM - Form-specific colors (dark theme)
+  // ============================================
+  { category: 'form', subcategory: 'label', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 200 },
+  { category: 'form', subcategory: 'required', states: ['default'], sourceColor: 'error', sourceStep: 400 },
+  { category: 'form', subcategory: 'helper', states: ['default', 'error'], sourceColor: 'neutral', sourceStep: 400 },
+  { category: 'form', subcategory: 'counter', states: ['default', 'error'], sourceColor: 'neutral', sourceStep: 400 },
+  { category: 'form', subcategory: 'input-bg', states: ['default', 'hover', 'focus', 'disabled', 'error'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'form', subcategory: 'input-border', states: ['default', 'hover', 'focus', 'disabled', 'error'], sourceColor: 'neutral', sourceStep: 600 },
+  { category: 'form', subcategory: 'input-text', states: ['default', 'placeholder', 'disabled'], sourceColor: 'neutral', sourceStep: 100 },
+  { category: 'form', subcategory: 'checkbox-bg', states: ['default', 'hover', 'checked', 'disabled'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'form', subcategory: 'checkbox-border', states: ['default', 'hover', 'checked', 'disabled', 'error'], sourceColor: 'neutral', sourceStep: 600 },
+  { category: 'form', subcategory: 'checkbox-check', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'form', subcategory: 'radio-bg', states: ['default', 'hover', 'checked', 'disabled'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'form', subcategory: 'radio-border', states: ['default', 'hover', 'checked', 'disabled', 'error'], sourceColor: 'neutral', sourceStep: 600 },
+  { category: 'form', subcategory: 'radio-dot', states: ['default'], sourceColor: 'brand', sourceStep: 400 },
+  { category: 'form', subcategory: 'switch-bg', states: ['off', 'on', 'disabled'], sourceColor: 'neutral', sourceStep: 600 },
+  { category: 'form', subcategory: 'switch-thumb', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  { category: 'form', subcategory: 'select-bg', states: ['default', 'hover', 'focus', 'disabled'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'form', subcategory: 'select-border', states: ['default', 'hover', 'focus', 'disabled', 'error'], sourceColor: 'neutral', sourceStep: 600 },
+  
+  // ============================================
+  // AVATAR - Avatar colors (dark theme)
+  // ============================================
+  { category: 'avatar', subcategory: 'bg', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
+  { category: 'avatar', subcategory: 'bg', variant: 'brand', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'avatar', subcategory: 'text', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
+  { category: 'avatar', subcategory: 'border', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
+  { category: 'avatar', subcategory: 'presence', variant: 'online', states: ['default'], sourceColor: 'success', sourceStep: 400 },
+  { category: 'avatar', subcategory: 'presence', variant: 'offline', states: ['default'], sourceColor: 'neutral', sourceStep: 500 },
+  { category: 'avatar', subcategory: 'presence', variant: 'away', states: ['default'], sourceColor: 'warning', sourceStep: 400 },
+  { category: 'avatar', subcategory: 'presence', variant: 'busy', states: ['default'], sourceColor: 'error', sourceStep: 400 },
+  
+  // ============================================
+  // PROGRESS - Progress indicators (dark theme)
+  // ============================================
+  { category: 'progress', subcategory: 'track', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
+  { category: 'progress', subcategory: 'fill', variant: 'default', states: ['default'], sourceColor: 'brand', sourceStep: 400 },
+  { category: 'progress', subcategory: 'fill', variant: 'success', states: ['default'], sourceColor: 'success', sourceStep: 400 },
+  { category: 'progress', subcategory: 'fill', variant: 'warning', states: ['default'], sourceColor: 'warning', sourceStep: 400 },
+  { category: 'progress', subcategory: 'fill', variant: 'error', states: ['default'], sourceColor: 'error', sourceStep: 400 },
+  
+  // ============================================
+  // SCROLLBAR - Scrollbar colors (dark theme)
+  // ============================================
+  { category: 'scrollbar', subcategory: 'track', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'scrollbar', subcategory: 'thumb', states: ['default', 'hover', 'active'], sourceColor: 'neutral', sourceStep: 600 },
+  
+  // ============================================
+  // SELECTION - Selection/highlight colors (dark theme)
+  // ============================================
+  { category: 'selection', subcategory: 'bg', states: ['default'], sourceColor: 'brand', sourceStep: 800 },
+  { category: 'selection', subcategory: 'text', states: ['default'], sourceColor: 'brand', sourceStep: 100 },
+  { category: 'selection', subcategory: 'highlight', states: ['default'], sourceColor: 'warning', sourceStep: 700 },
 ];
 
 async function createColorVariablesWithStructure(
@@ -666,9 +1189,11 @@ async function createColorVariablesWithStructure(
   // Now uses unified scale: colors/{color}/{step} (e.g., colors/brand/500, colors/neutral/25)
   const getPrimitiveForMapping = (mapping: SemanticColorMapping, state: string, isDark: boolean): Variable | undefined => {
     const mappings = isDark ? SEMANTIC_COLOR_MAPPINGS_DARK : SEMANTIC_COLOR_MAPPINGS;
+    // Find mapping considering variant if present
     const actualMapping = mappings.find(m => 
       m.category === mapping.category && 
-      m.subcategory === mapping.subcategory
+      m.subcategory === mapping.subcategory &&
+      m.variant === mapping.variant
     ) || mapping;
     
     let step = actualMapping.sourceStep;
@@ -717,21 +1242,31 @@ async function createColorVariablesWithStructure(
   };
   
   // 2. Create Semantic Token Variables with light/dark modes
-  // Naming with category folders: bg/primary, bg/primary-hover, text/primary, etc.
+  // Naming with category folders: bg/page/primary, bg/card/primary-hover, text/primary, etc.
   const refreshedVariables = await getLocalVariables();
   
   for (const mapping of SEMANTIC_COLOR_MAPPINGS) {
     for (const state of mapping.states) {
-      // Token name with category folder: category/subcategory-state (e.g., bg/primary-hover)
-      // For default state, just category/subcategory (e.g., bg/primary)
-      const tokenName = state === 'default' 
-        ? `${mapping.category}/${mapping.subcategory}`
-        : `${mapping.category}/${mapping.subcategory}-${state}`;
+      // Token name with category folder: category/subcategory/variant-state (e.g., bg/page/primary-hover)
+      // If no variant: category/subcategory-state (e.g., text/primary-hover)
+      // For default state, omit the state suffix
+      let tokenName: string;
+      if (mapping.variant) {
+        tokenName = state === 'default' 
+          ? `${mapping.category}/${mapping.subcategory}/${mapping.variant}`
+          : `${mapping.category}/${mapping.subcategory}/${mapping.variant}-${state}`;
+      } else {
+        tokenName = state === 'default' 
+          ? `${mapping.category}/${mapping.subcategory}`
+          : `${mapping.category}/${mapping.subcategory}-${state}`;
+      }
       
       // Get primitives for light and dark modes
       const lightPrimitive = getPrimitiveForMapping(mapping, state, false);
       const darkMapping = SEMANTIC_COLOR_MAPPINGS_DARK.find(m => 
-        m.category === mapping.category && m.subcategory === mapping.subcategory
+        m.category === mapping.category && 
+        m.subcategory === mapping.subcategory &&
+        m.variant === mapping.variant
       );
       const darkPrimitive = darkMapping ? getPrimitiveForMapping(darkMapping, state, true) : lightPrimitive;
       
@@ -765,45 +1300,225 @@ async function createColorVariablesWithStructure(
         tokenVar.setValueForMode(darkModeId!, darkAlias);
       }
       
-      tokenVar.description = `${mapping.category} ${mapping.subcategory} - ${state} state`;
+      tokenVar.description = mapping.variant 
+        ? `${mapping.category} ${mapping.subcategory} ${mapping.variant} - ${state} state`
+        : `${mapping.category} ${mapping.subcategory} - ${state} state`;
     }
   }
   
   // 3. Create Component Token Variables with light/dark modes
-  // Updated to use category folders: button/primary-bg, input/border, etc.
+  // Structure: component/element/property-state
   const componentMappings = [
-    { name: 'button/primary-bg', source: 'action/primary' },
-    { name: 'button/primary-bg-hover', source: 'action/primary-hover' },
-    { name: 'button/primary-bg-active', source: 'action/primary-active' },
-    { name: 'button/primary-bg-disabled', source: 'action/primary-disabled' },
-    { name: 'button/primary-text', source: 'text/inverse' },
-    { name: 'button/primary-text-disabled', source: 'text/tertiary-disabled' },
+    // ============================================
+    // BUTTON COMPONENT
+    // ============================================
+    // Primary Button
+    { name: 'button/primary/root-bg', source: 'action/primary' },
+    { name: 'button/primary/root-bg-hover', source: 'action/primary-hover' },
+    { name: 'button/primary/root-bg-active', source: 'action/primary-active' },
+    { name: 'button/primary/root-bg-focus', source: 'action/primary-focus' },
+    { name: 'button/primary/root-bg-disabled', source: 'action/primary-disabled' },
+    { name: 'button/primary/label', source: 'content/on-action-primary' },
+    { name: 'button/primary/icon', source: 'content/on-action-primary' },
     
-    { name: 'button/secondary-bg', source: 'action/secondary' },
-    { name: 'button/secondary-bg-hover', source: 'action/secondary-hover' },
-    { name: 'button/secondary-text', source: 'text/primary' },
+    // Secondary Button
+    { name: 'button/secondary/root-bg', source: 'action/secondary' },
+    { name: 'button/secondary/root-bg-hover', source: 'action/secondary-hover' },
+    { name: 'button/secondary/root-bg-active', source: 'action/secondary-active' },
+    { name: 'button/secondary/root-stroke', source: 'stroke/action-secondary' },
+    { name: 'button/secondary/label', source: 'content/on-action-secondary' },
+    { name: 'button/secondary/icon', source: 'content/on-action-secondary' },
     
-    { name: 'button/destructive-bg', source: 'action/destructive' },
-    { name: 'button/destructive-bg-hover', source: 'action/destructive-hover' },
-    { name: 'button/destructive-text', source: 'text/inverse' },
+    // Ghost Button
+    { name: 'button/ghost/root-bg', source: 'action/ghost' },
+    { name: 'button/ghost/root-bg-hover', source: 'action/ghost-hover' },
+    { name: 'button/ghost/label', source: 'content/primary' },
+    { name: 'button/ghost/icon', source: 'content/primary' },
     
-    { name: 'input/bg', source: 'bg/primary' },
-    { name: 'input/border', source: 'border/primary' },
-    { name: 'input/border-hover', source: 'border/primary-hover' },
-    { name: 'input/border-focus', source: 'border/brand-focus' },
-    { name: 'input/border-error', source: 'border/error' },
-    { name: 'input/text', source: 'text/primary' },
-    { name: 'input/placeholder', source: 'text/tertiary' },
+    // Danger Button
+    { name: 'button/danger/root-bg', source: 'action/danger' },
+    { name: 'button/danger/root-bg-hover', source: 'action/danger-hover' },
+    { name: 'button/danger/label', source: 'content/on-action-danger' },
+    { name: 'button/danger/icon', source: 'content/on-action-danger' },
     
-    { name: 'card/bg', source: 'surface/default' },
-    { name: 'card/border', source: 'border/secondary' },
+    // ============================================
+    // INPUT COMPONENT
+    // ============================================
+    { name: 'input/container/surface', source: 'surface/interactive' },
+    { name: 'input/container/surface-hover', source: 'surface/interactive-hover' },
+    { name: 'input/container/stroke', source: 'stroke/default' },
+    { name: 'input/container/stroke-hover', source: 'stroke/default-hover' },
+    { name: 'input/container/stroke-focus', source: 'stroke/focus' },
+    { name: 'input/container/stroke-error', source: 'stroke/error' },
+    { name: 'input/container/stroke-disabled', source: 'stroke/disabled' },
+    { name: 'input/value', source: 'content/primary' },
+    { name: 'input/placeholder', source: 'content/tertiary' },
+    { name: 'input/label', source: 'content/primary' },
+    { name: 'input/helper', source: 'content/secondary' },
+    { name: 'input/helper-error', source: 'content/error' },
+    { name: 'input/icon', source: 'content/secondary' },
     
-    { name: 'badge/success-bg', source: 'bg/success' },
-    { name: 'badge/success-text', source: 'text/success' },
-    { name: 'badge/warning-bg', source: 'bg/warning' },
-    { name: 'badge/warning-text', source: 'text/warning' },
-    { name: 'badge/error-bg', source: 'bg/error' },
-    { name: 'badge/error-text', source: 'text/error' },
+    // ============================================
+    // SELECT COMPONENT
+    // ============================================
+    { name: 'select/container/surface', source: 'surface/interactive' },
+    { name: 'select/container/stroke', source: 'stroke/default' },
+    { name: 'select/container/stroke-focus', source: 'stroke/focus' },
+    { name: 'select/value', source: 'content/primary' },
+    { name: 'select/placeholder', source: 'content/tertiary' },
+    { name: 'select/icon', source: 'content/secondary' },
+    { name: 'select/option/surface', source: 'surface/card' },
+    { name: 'select/option/surface-hover', source: 'surface/interactive-hover' },
+    { name: 'select/option/surface-selected', source: 'surface/interactive-selected' },
+    { name: 'select/option/content', source: 'content/primary' },
+    
+    // ============================================
+    // CHECKBOX / RADIO COMPONENT
+    // ============================================
+    { name: 'checkbox/container/surface', source: 'surface/interactive' },
+    { name: 'checkbox/container/surface-checked', source: 'action/primary' },
+    { name: 'checkbox/container/stroke', source: 'stroke/default' },
+    { name: 'checkbox/container/stroke-focus', source: 'stroke/focus' },
+    { name: 'checkbox/icon', source: 'content/on-action-primary' },
+    { name: 'checkbox/label', source: 'content/primary' },
+    
+    { name: 'radio/container/surface', source: 'surface/interactive' },
+    { name: 'radio/container/surface-checked', source: 'action/primary' },
+    { name: 'radio/container/stroke', source: 'stroke/default' },
+    { name: 'radio/indicator', source: 'content/on-action-primary' },
+    { name: 'radio/label', source: 'content/primary' },
+    
+    // ============================================
+    // TOGGLE / SWITCH COMPONENT
+    // ============================================
+    { name: 'toggle/track/surface', source: 'surface/interactive' },
+    { name: 'toggle/track/surface-checked', source: 'action/primary' },
+    { name: 'toggle/thumb/surface', source: 'surface/elevated' },
+    { name: 'toggle/label', source: 'content/primary' },
+    
+    // ============================================
+    // CARD COMPONENT
+    // ============================================
+    { name: 'card/container/surface', source: 'surface/card' },
+    { name: 'card/container/surface-hover', source: 'surface/card-hover' },
+    { name: 'card/container/stroke', source: 'stroke/subtle' },
+    { name: 'card/header/content', source: 'content/primary' },
+    { name: 'card/body/content', source: 'content/secondary' },
+    { name: 'card/footer/content', source: 'content/tertiary' },
+    
+    // ============================================
+    // MODAL / DIALOG COMPONENT
+    // ============================================
+    { name: 'modal/overlay/surface', source: 'surface/overlay' },
+    { name: 'modal/container/surface', source: 'surface/elevated' },
+    { name: 'modal/header/content', source: 'content/primary' },
+    { name: 'modal/body/content', source: 'content/secondary' },
+    { name: 'modal/close/icon', source: 'content/secondary' },
+    
+    // ============================================
+    // BADGE COMPONENT
+    // ============================================
+    { name: 'badge/success/surface', source: 'feedback/success-surface' },
+    { name: 'badge/success/content', source: 'feedback/success-content' },
+    { name: 'badge/warning/surface', source: 'feedback/warning-surface' },
+    { name: 'badge/warning/content', source: 'feedback/warning-content' },
+    { name: 'badge/error/surface', source: 'feedback/error-surface' },
+    { name: 'badge/error/content', source: 'feedback/error-content' },
+    { name: 'badge/info/surface', source: 'feedback/info-surface' },
+    { name: 'badge/info/content', source: 'feedback/info-content' },
+    { name: 'badge/neutral/surface', source: 'surface/interactive' },
+    { name: 'badge/neutral/content', source: 'content/primary' },
+    
+    // ============================================
+    // ALERT / TOAST COMPONENT
+    // ============================================
+    { name: 'alert/success/surface', source: 'feedback/success-surface' },
+    { name: 'alert/success/content', source: 'feedback/success-content' },
+    { name: 'alert/success/stroke', source: 'feedback/success-stroke' },
+    { name: 'alert/success/icon', source: 'feedback/success-content' },
+    { name: 'alert/warning/surface', source: 'feedback/warning-surface' },
+    { name: 'alert/warning/content', source: 'feedback/warning-content' },
+    { name: 'alert/warning/stroke', source: 'feedback/warning-stroke' },
+    { name: 'alert/warning/icon', source: 'feedback/warning-content' },
+    { name: 'alert/error/surface', source: 'feedback/error-surface' },
+    { name: 'alert/error/content', source: 'feedback/error-content' },
+    { name: 'alert/error/stroke', source: 'feedback/error-stroke' },
+    { name: 'alert/error/icon', source: 'feedback/error-content' },
+    { name: 'alert/info/surface', source: 'feedback/info-surface' },
+    { name: 'alert/info/content', source: 'feedback/info-content' },
+    { name: 'alert/info/stroke', source: 'feedback/info-stroke' },
+    { name: 'alert/info/icon', source: 'feedback/info-content' },
+    
+    // ============================================
+    // TOOLTIP COMPONENT
+    // ============================================
+    { name: 'tooltip/container/surface', source: 'surface/inverse' },
+    { name: 'tooltip/content', source: 'content/on-surface-inverse' },
+    
+    // ============================================
+    // AVATAR COMPONENT
+    // ============================================
+    { name: 'avatar/container/surface', source: 'surface/interactive' },
+    { name: 'avatar/container/stroke', source: 'stroke/subtle' },
+    { name: 'avatar/initials', source: 'content/primary' },
+    { name: 'avatar/icon', source: 'content/secondary' },
+    
+    // ============================================
+    // TABS COMPONENT
+    // ============================================
+    { name: 'tabs/item/content', source: 'content/secondary' },
+    { name: 'tabs/item/content-hover', source: 'content/primary' },
+    { name: 'tabs/item/content-active', source: 'content/brand' },
+    { name: 'tabs/indicator', source: 'action/primary' },
+    
+    // ============================================
+    // NAVIGATION COMPONENT
+    // ============================================
+    { name: 'nav/item/surface', source: 'surface/page' },
+    { name: 'nav/item/surface-hover', source: 'surface/interactive-hover' },
+    { name: 'nav/item/surface-active', source: 'surface/interactive-selected' },
+    { name: 'nav/item/content', source: 'content/secondary' },
+    { name: 'nav/item/content-active', source: 'content/brand' },
+    { name: 'nav/item/icon', source: 'content/secondary' },
+    { name: 'nav/item/icon-active', source: 'content/brand' },
+    
+    // ============================================
+    // TABLE COMPONENT
+    // ============================================
+    { name: 'table/header/surface', source: 'surface/interactive' },
+    { name: 'table/header/content', source: 'content/primary' },
+    { name: 'table/row/surface', source: 'surface/card' },
+    { name: 'table/row/surface-hover', source: 'surface/interactive-hover' },
+    { name: 'table/row/surface-selected', source: 'surface/interactive-selected' },
+    { name: 'table/cell/content', source: 'content/primary' },
+    { name: 'table/divider', source: 'stroke/subtle' },
+    
+    // ============================================
+    // PAGINATION COMPONENT
+    // ============================================
+    { name: 'pagination/item/surface', source: 'surface/interactive' },
+    { name: 'pagination/item/surface-hover', source: 'surface/interactive-hover' },
+    { name: 'pagination/item/surface-active', source: 'action/primary' },
+    { name: 'pagination/item/content', source: 'content/primary' },
+    { name: 'pagination/item/content-active', source: 'content/on-action-primary' },
+    
+    // ============================================
+    // PROGRESS / LOADER COMPONENT
+    // ============================================
+    { name: 'progress/track/surface', source: 'surface/interactive' },
+    { name: 'progress/indicator/surface', source: 'action/primary' },
+    { name: 'loader/indicator', source: 'action/primary' },
+    
+    // ============================================
+    // SKELETON COMPONENT
+    // ============================================
+    { name: 'skeleton/surface', source: 'surface/interactive' },
+    
+    // ============================================
+    // DIVIDER COMPONENT
+    // ============================================
+    { name: 'divider/default', source: 'stroke/subtle' },
+    { name: 'divider/strong', source: 'stroke/default' },
   ];
   
   const allVariables = await getLocalVariables();
@@ -935,8 +1650,10 @@ async function createBaseTokens(): Promise<void> {
   }
   
   // ============================================
-  // FONT SIZE TOKENS
+  // TYPOGRAPHY TOKENS (grouped together)
   // ============================================
+  
+  // Font Size
   const fontSizeScale: Record<string, number> = {
     'xs': 12,
     'sm': 14,
@@ -954,7 +1671,7 @@ async function createBaseTokens(): Promise<void> {
   };
   
   for (const [name, value] of Object.entries(fontSizeScale)) {
-    const varName = `font-size/${name}`;
+    const varName = `typography/font-size/${name}`;
     let variable = existingVariables.find(v => 
       v.name === varName && v.variableCollectionId === primitivesCollection!.id
     );
@@ -967,9 +1684,7 @@ async function createBaseTokens(): Promise<void> {
     variable.description = `${value}px font size`;
   }
   
-  // ============================================
-  // FONT WEIGHT TOKENS
-  // ============================================
+  // Font Weight
   const fontWeightScale: Record<string, number> = {
     'thin': 100,
     'extralight': 200,
@@ -983,7 +1698,7 @@ async function createBaseTokens(): Promise<void> {
   };
   
   for (const [name, value] of Object.entries(fontWeightScale)) {
-    const varName = `font-weight/${name}`;
+    const varName = `typography/font-weight/${name}`;
     let variable = existingVariables.find(v => 
       v.name === varName && v.variableCollectionId === primitivesCollection!.id
     );
@@ -996,9 +1711,7 @@ async function createBaseTokens(): Promise<void> {
     variable.description = `Font weight ${value}`;
   }
   
-  // ============================================
-  // LINE HEIGHT TOKENS
-  // ============================================
+  // Line Height
   const lineHeightScale: Record<string, number> = {
     'none': 1,
     'tight': 1.25,
@@ -1009,7 +1722,7 @@ async function createBaseTokens(): Promise<void> {
   };
   
   for (const [name, value] of Object.entries(lineHeightScale)) {
-    const varName = `line-height/${name}`;
+    const varName = `typography/line-height/${name}`;
     let variable = existingVariables.find(v => 
       v.name === varName && v.variableCollectionId === primitivesCollection!.id
     );
@@ -1022,9 +1735,7 @@ async function createBaseTokens(): Promise<void> {
     variable.description = `Line height ${value}`;
   }
   
-  // ============================================
-  // LETTER SPACING TOKENS
-  // ============================================
+  // Letter Spacing
   const letterSpacingScale: Record<string, number> = {
     'tighter': -0.05,
     'tight': -0.025,
@@ -1035,7 +1746,7 @@ async function createBaseTokens(): Promise<void> {
   };
   
   for (const [name, value] of Object.entries(letterSpacingScale)) {
-    const varName = `letter-spacing/${name}`;
+    const varName = `typography/letter-spacing/${name}`;
     let variable = existingVariables.find(v => 
       v.name === varName && v.variableCollectionId === primitivesCollection!.id
     );
@@ -1115,7 +1826,7 @@ async function createBaseTokens(): Promise<void> {
   }
   
   // ============================================
-  // DURATION TOKENS (for animations)
+  // MOTION TOKENS (duration & easing grouped)
   // ============================================
   const durationScale: Record<string, number> = {
     '0': 0,
@@ -1130,7 +1841,7 @@ async function createBaseTokens(): Promise<void> {
   };
   
   for (const [name, value] of Object.entries(durationScale)) {
-    const varName = `duration/${name}`;
+    const varName = `motion/duration/${name}`;
     let variable = existingVariables.find(v => 
       v.name === varName && v.variableCollectionId === primitivesCollection!.id
     );
@@ -1166,6 +1877,34 @@ async function createBaseTokens(): Promise<void> {
     
     variable.setValueForMode(primitivesCollection.defaultModeId, value);
     variable.description = `${value}px border width`;
+  }
+  
+  // ============================================
+  // ELEVATION/SHADOW BLUR TOKENS
+  // ============================================
+  const elevationScale: Record<string, number> = {
+    'none': 0,
+    'xs': 2,
+    'sm': 4,
+    'md': 8,
+    'lg': 16,
+    'xl': 24,
+    '2xl': 32,
+    '3xl': 48,
+  };
+  
+  for (const [name, value] of Object.entries(elevationScale)) {
+    const varName = `elevation/${name}`;
+    let variable = existingVariables.find(v => 
+      v.name === varName && v.variableCollectionId === primitivesCollection!.id
+    );
+    
+    if (!variable) {
+      variable = await createVariable(varName, primitivesCollection, 'FLOAT');
+    }
+    
+    variable.setValueForMode(primitivesCollection.defaultModeId, value);
+    variable.description = `${value}px shadow blur`;
   }
 }
 
