@@ -1247,18 +1247,23 @@ async function createColorVariablesWithStructure(
   
   for (const mapping of SEMANTIC_COLOR_MAPPINGS) {
     for (const state of mapping.states) {
-      // Token name with category folder: category/subcategory/variant-state (e.g., bg/page/primary-hover)
-      // If no variant: category/subcategory-state (e.g., text/primary-hover)
-      // For default state, omit the state suffix
+      // Token name with consistent naming: category/subcategory/subcategory-variant-state
+      // Folder name matches variable prefix for consistency
+      // Examples:
+      //   text/link/link-default, text/link/link-hover
+      //   text/primary/primary, text/primary/primary-hover
+      //   bg/page/page-primary, bg/page/page-secondary
       let tokenName: string;
       if (mapping.variant) {
+        // With variant: category/subcategory/subcategory-variant-state
         tokenName = state === 'default' 
-          ? `${mapping.category}/${mapping.subcategory}/${mapping.variant}`
-          : `${mapping.category}/${mapping.subcategory}/${mapping.variant}-${state}`;
+          ? `${mapping.category}/${mapping.subcategory}/${mapping.subcategory}-${mapping.variant}`
+          : `${mapping.category}/${mapping.subcategory}/${mapping.subcategory}-${mapping.variant}-${state}`;
       } else {
+        // Without variant: category/subcategory/subcategory-state
         tokenName = state === 'default' 
-          ? `${mapping.category}/${mapping.subcategory}`
-          : `${mapping.category}/${mapping.subcategory}-${state}`;
+          ? `${mapping.category}/${mapping.subcategory}/${mapping.subcategory}`
+          : `${mapping.category}/${mapping.subcategory}/${mapping.subcategory}-${state}`;
       }
       
       // Get primitives for light and dark modes
@@ -1313,212 +1318,211 @@ async function createColorVariablesWithStructure(
     // BUTTON COMPONENT
     // ============================================
     // Primary Button
-    { name: 'button/primary/primary-bg', source: 'action/primary' },
-    { name: 'button/primary/primary-bg-hover', source: 'action/primary-hover' },
-    { name: 'button/primary/primary-bg-active', source: 'action/primary-active' },
-    { name: 'button/primary/primary-bg-focus', source: 'action/primary-focus' },
-    { name: 'button/primary/primary-bg-disabled', source: 'action/primary-disabled' },
-    { name: 'button/primary/primary-label', source: 'content/on-action-primary' },
-    { name: 'button/primary/primary-icon', source: 'content/on-action-primary' },
+    { name: 'button/primary/primary-bg', source: 'action/primary/primary' },
+    { name: 'button/primary/primary-bg-hover', source: 'action/primary/primary-hover' },
+    { name: 'button/primary/primary-bg-active', source: 'action/primary/primary-active' },
+    { name: 'button/primary/primary-bg-focus', source: 'action/primary/primary-focus' },
+    { name: 'button/primary/primary-bg-disabled', source: 'action/primary/primary-disabled' },
+    { name: 'button/primary/primary-label', source: 'content/on-action-primary/on-action-primary' },
+    { name: 'button/primary/primary-icon', source: 'content/on-action-primary/on-action-primary' },
     
     // Secondary Button
-    { name: 'button/secondary/secondary-bg', source: 'action/secondary' },
-    { name: 'button/secondary/secondary-bg-hover', source: 'action/secondary-hover' },
-    { name: 'button/secondary/secondary-bg-active', source: 'action/secondary-active' },
-    { name: 'button/secondary/secondary-stroke', source: 'stroke/action-secondary' },
-    { name: 'button/secondary/secondary-label', source: 'content/on-action-secondary' },
-    { name: 'button/secondary/secondary-icon', source: 'content/on-action-secondary' },
+    { name: 'button/secondary/secondary-bg', source: 'action/secondary/secondary' },
+    { name: 'button/secondary/secondary-bg-hover', source: 'action/secondary/secondary-hover' },
+    { name: 'button/secondary/secondary-bg-active', source: 'action/secondary/secondary-active' },
+    { name: 'button/secondary/secondary-stroke', source: 'stroke/default/default' },
+    { name: 'button/secondary/secondary-label', source: 'content/on-action-secondary/on-action-secondary' },
+    { name: 'button/secondary/secondary-icon', source: 'content/on-action-secondary/on-action-secondary' },
     
     // Ghost Button
-    { name: 'button/ghost/ghost-bg', source: 'action/ghost' },
-    { name: 'button/ghost/ghost-bg-hover', source: 'action/ghost-hover' },
-    { name: 'button/ghost/ghost-label', source: 'content/primary' },
-    { name: 'button/ghost/ghost-icon', source: 'content/primary' },
+    { name: 'button/ghost/ghost-bg', source: 'action/ghost/ghost' },
+    { name: 'button/ghost/ghost-bg-hover', source: 'action/ghost/ghost-hover' },
+    { name: 'button/ghost/ghost-label', source: 'content/primary/primary' },
+    { name: 'button/ghost/ghost-icon', source: 'content/primary/primary' },
     
     // Danger Button
-    { name: 'button/danger/danger-bg', source: 'action/danger' },
-    { name: 'button/danger/danger-bg-hover', source: 'action/danger-hover' },
-    { name: 'button/danger/danger-label', source: 'content/on-action-danger' },
-    { name: 'button/danger/danger-icon', source: 'content/on-action-danger' },
+    { name: 'button/danger/danger-bg', source: 'action/danger/danger' },
+    { name: 'button/danger/danger-bg-hover', source: 'action/danger/danger-hover' },
+    { name: 'button/danger/danger-label', source: 'content/inverse/inverse' },
+    { name: 'button/danger/danger-icon', source: 'content/inverse/inverse' },
     
     // ============================================
     // INPUT COMPONENT
     // ============================================
-    { name: 'input/container/container-surface', source: 'surface/interactive' },
-    { name: 'input/container/container-surface-hover', source: 'surface/interactive-hover' },
-    { name: 'input/container/container-stroke', source: 'stroke/default' },
-    { name: 'input/container/container-stroke-hover', source: 'stroke/default-hover' },
-    { name: 'input/container/container-stroke-focus', source: 'stroke/focus' },
-    { name: 'input/container/container-stroke-error', source: 'stroke/error' },
-    { name: 'input/container/container-stroke-disabled', source: 'stroke/disabled' },
-    { name: 'input/text/text-value', source: 'content/primary' },
-    { name: 'input/text/text-placeholder', source: 'content/tertiary' },
-    { name: 'input/text/text-label', source: 'content/primary' },
-    { name: 'input/text/text-helper', source: 'content/secondary' },
-    { name: 'input/text/text-helper-error', source: 'content/error' },
-    { name: 'input/icon/icon-default', source: 'content/secondary' },
+    { name: 'input/container/container-surface', source: 'surface/card/card' },
+    { name: 'input/container/container-surface-hover', source: 'surface/card/card-hover' },
+    { name: 'input/container/container-stroke', source: 'stroke/default/default' },
+    { name: 'input/container/container-stroke-hover', source: 'stroke/default/default-hover' },
+    { name: 'input/container/container-stroke-focus', source: 'stroke/focus/focus' },
+    { name: 'input/container/container-stroke-error', source: 'stroke/error/error' },
+    { name: 'input/container/container-stroke-disabled', source: 'stroke/disabled/disabled' },
+    { name: 'input/text/text-value', source: 'content/primary/primary' },
+    { name: 'input/text/text-placeholder', source: 'content/tertiary/tertiary' },
+    { name: 'input/text/text-label', source: 'content/primary/primary' },
+    { name: 'input/text/text-helper', source: 'content/secondary/secondary' },
+    { name: 'input/text/text-helper-error', source: 'text/error/error' },
+    { name: 'input/icon/icon-default', source: 'content/secondary/secondary' },
     
     // ============================================
     // SELECT COMPONENT
     // ============================================
-    { name: 'select/container/container-surface', source: 'surface/interactive' },
-    { name: 'select/container/container-stroke', source: 'stroke/default' },
-    { name: 'select/container/container-stroke-focus', source: 'stroke/focus' },
-    { name: 'select/text/text-value', source: 'content/primary' },
-    { name: 'select/text/text-placeholder', source: 'content/tertiary' },
-    { name: 'select/icon/icon-default', source: 'content/secondary' },
-    { name: 'select/option/option-surface', source: 'surface/card' },
-    { name: 'select/option/option-surface-hover', source: 'surface/interactive-hover' },
-    { name: 'select/option/option-surface-selected', source: 'surface/interactive-selected' },
-    { name: 'select/option/option-content', source: 'content/primary' },
+    { name: 'select/container/container-surface', source: 'surface/card/card' },
+    { name: 'select/container/container-stroke', source: 'stroke/default/default' },
+    { name: 'select/container/container-stroke-focus', source: 'stroke/focus/focus' },
+    { name: 'select/text/text-value', source: 'content/primary/primary' },
+    { name: 'select/text/text-placeholder', source: 'content/tertiary/tertiary' },
+    { name: 'select/icon/icon-default', source: 'content/secondary/secondary' },
+    { name: 'select/option/option-surface', source: 'surface/card/card' },
+    { name: 'select/option/option-surface-hover', source: 'surface/card/card-hover' },
+    { name: 'select/option/option-content', source: 'content/primary/primary' },
     
     // ============================================
     // CHECKBOX / RADIO COMPONENT
     // ============================================
-    { name: 'checkbox/container/container-surface', source: 'surface/interactive' },
-    { name: 'checkbox/container/container-surface-checked', source: 'action/primary' },
-    { name: 'checkbox/container/container-stroke', source: 'stroke/default' },
-    { name: 'checkbox/container/container-stroke-focus', source: 'stroke/focus' },
-    { name: 'checkbox/icon/icon-check', source: 'content/on-action-primary' },
-    { name: 'checkbox/text/text-label', source: 'content/primary' },
+    { name: 'checkbox/container/container-surface', source: 'surface/card/card' },
+    { name: 'checkbox/container/container-surface-checked', source: 'action/primary/primary' },
+    { name: 'checkbox/container/container-stroke', source: 'stroke/default/default' },
+    { name: 'checkbox/container/container-stroke-focus', source: 'stroke/focus/focus' },
+    { name: 'checkbox/icon/icon-check', source: 'content/on-action-primary/on-action-primary' },
+    { name: 'checkbox/text/text-label', source: 'content/primary/primary' },
     
-    { name: 'radio/container/container-surface', source: 'surface/interactive' },
-    { name: 'radio/container/container-surface-checked', source: 'action/primary' },
-    { name: 'radio/container/container-stroke', source: 'stroke/default' },
-    { name: 'radio/indicator/indicator-dot', source: 'content/on-action-primary' },
-    { name: 'radio/text/text-label', source: 'content/primary' },
+    { name: 'radio/container/container-surface', source: 'surface/card/card' },
+    { name: 'radio/container/container-surface-checked', source: 'action/primary/primary' },
+    { name: 'radio/container/container-stroke', source: 'stroke/default/default' },
+    { name: 'radio/indicator/indicator-dot', source: 'content/on-action-primary/on-action-primary' },
+    { name: 'radio/text/text-label', source: 'content/primary/primary' },
     
     // ============================================
     // TOGGLE / SWITCH COMPONENT
     // ============================================
-    { name: 'toggle/track/track-surface', source: 'surface/interactive' },
-    { name: 'toggle/track/track-surface-checked', source: 'action/primary' },
-    { name: 'toggle/thumb/thumb-surface', source: 'surface/elevated' },
-    { name: 'toggle/text/text-label', source: 'content/primary' },
+    { name: 'toggle/track/track-surface', source: 'surface/card/card' },
+    { name: 'toggle/track/track-surface-checked', source: 'action/primary/primary' },
+    { name: 'toggle/thumb/thumb-surface', source: 'surface/elevated/elevated' },
+    { name: 'toggle/text/text-label', source: 'content/primary/primary' },
     
     // ============================================
     // CARD COMPONENT
     // ============================================
-    { name: 'card/container/container-surface', source: 'surface/card' },
-    { name: 'card/container/container-surface-hover', source: 'surface/card-hover' },
-    { name: 'card/container/container-stroke', source: 'stroke/subtle' },
-    { name: 'card/header/header-content', source: 'content/primary' },
-    { name: 'card/body/body-content', source: 'content/secondary' },
-    { name: 'card/footer/footer-content', source: 'content/tertiary' },
+    { name: 'card/container/container-surface', source: 'surface/card/card' },
+    { name: 'card/container/container-surface-hover', source: 'surface/card/card-hover' },
+    { name: 'card/container/container-stroke', source: 'stroke/subtle/subtle' },
+    { name: 'card/header/header-content', source: 'content/primary/primary' },
+    { name: 'card/body/body-content', source: 'content/secondary/secondary' },
+    { name: 'card/footer/footer-content', source: 'content/tertiary/tertiary' },
     
     // ============================================
     // MODAL / DIALOG COMPONENT
     // ============================================
-    { name: 'modal/overlay/overlay-surface', source: 'surface/overlay' },
-    { name: 'modal/container/container-surface', source: 'surface/elevated' },
-    { name: 'modal/header/header-content', source: 'content/primary' },
-    { name: 'modal/body/body-content', source: 'content/secondary' },
-    { name: 'modal/close/close-icon', source: 'content/secondary' },
+    { name: 'modal/overlay/overlay-surface', source: 'surface/overlay/overlay' },
+    { name: 'modal/container/container-surface', source: 'surface/elevated/elevated' },
+    { name: 'modal/header/header-content', source: 'content/primary/primary' },
+    { name: 'modal/body/body-content', source: 'content/secondary/secondary' },
+    { name: 'modal/close/close-icon', source: 'content/secondary/secondary' },
     
     // ============================================
     // BADGE COMPONENT
     // ============================================
-    { name: 'badge/success/success-surface', source: 'feedback/success-surface' },
-    { name: 'badge/success/success-content', source: 'feedback/success-content' },
-    { name: 'badge/warning/warning-surface', source: 'feedback/warning-surface' },
-    { name: 'badge/warning/warning-content', source: 'feedback/warning-content' },
-    { name: 'badge/error/error-surface', source: 'feedback/error-surface' },
-    { name: 'badge/error/error-content', source: 'feedback/error-content' },
-    { name: 'badge/info/info-surface', source: 'feedback/info-surface' },
-    { name: 'badge/info/info-content', source: 'feedback/info-content' },
-    { name: 'badge/neutral/neutral-surface', source: 'surface/interactive' },
-    { name: 'badge/neutral/neutral-content', source: 'content/primary' },
+    { name: 'badge/success/success-surface', source: 'feedback/success-surface/success-surface' },
+    { name: 'badge/success/success-content', source: 'feedback/success-content/success-content' },
+    { name: 'badge/warning/warning-surface', source: 'feedback/warning-surface/warning-surface' },
+    { name: 'badge/warning/warning-content', source: 'feedback/warning-content/warning-content' },
+    { name: 'badge/error/error-surface', source: 'feedback/error-surface/error-surface' },
+    { name: 'badge/error/error-content', source: 'feedback/error-content/error-content' },
+    { name: 'badge/info/info-surface', source: 'feedback/info-surface/info-surface' },
+    { name: 'badge/info/info-content', source: 'feedback/info-content/info-content' },
+    { name: 'badge/neutral/neutral-surface', source: 'bg/interactive/interactive-primary' },
+    { name: 'badge/neutral/neutral-content', source: 'content/primary/primary' },
     
     // ============================================
     // ALERT / TOAST COMPONENT
     // ============================================
-    { name: 'alert/success/success-surface', source: 'feedback/success-surface' },
-    { name: 'alert/success/success-content', source: 'feedback/success-content' },
-    { name: 'alert/success/success-stroke', source: 'feedback/success-stroke' },
-    { name: 'alert/success/success-icon', source: 'feedback/success-content' },
-    { name: 'alert/warning/warning-surface', source: 'feedback/warning-surface' },
-    { name: 'alert/warning/warning-content', source: 'feedback/warning-content' },
-    { name: 'alert/warning/warning-stroke', source: 'feedback/warning-stroke' },
-    { name: 'alert/warning/warning-icon', source: 'feedback/warning-content' },
-    { name: 'alert/error/error-surface', source: 'feedback/error-surface' },
-    { name: 'alert/error/error-content', source: 'feedback/error-content' },
-    { name: 'alert/error/error-stroke', source: 'feedback/error-stroke' },
-    { name: 'alert/error/error-icon', source: 'feedback/error-content' },
-    { name: 'alert/info/info-surface', source: 'feedback/info-surface' },
-    { name: 'alert/info/info-content', source: 'feedback/info-content' },
-    { name: 'alert/info/info-stroke', source: 'feedback/info-stroke' },
-    { name: 'alert/info/info-icon', source: 'feedback/info-content' },
+    { name: 'alert/success/success-surface', source: 'feedback/success-surface/success-surface' },
+    { name: 'alert/success/success-content', source: 'feedback/success-content/success-content' },
+    { name: 'alert/success/success-stroke', source: 'feedback/success-stroke/success-stroke' },
+    { name: 'alert/success/success-icon', source: 'feedback/success-content/success-content' },
+    { name: 'alert/warning/warning-surface', source: 'feedback/warning-surface/warning-surface' },
+    { name: 'alert/warning/warning-content', source: 'feedback/warning-content/warning-content' },
+    { name: 'alert/warning/warning-stroke', source: 'feedback/warning-stroke/warning-stroke' },
+    { name: 'alert/warning/warning-icon', source: 'feedback/warning-content/warning-content' },
+    { name: 'alert/error/error-surface', source: 'feedback/error-surface/error-surface' },
+    { name: 'alert/error/error-content', source: 'feedback/error-content/error-content' },
+    { name: 'alert/error/error-stroke', source: 'feedback/error-stroke/error-stroke' },
+    { name: 'alert/error/error-icon', source: 'feedback/error-content/error-content' },
+    { name: 'alert/info/info-surface', source: 'feedback/info-surface/info-surface' },
+    { name: 'alert/info/info-content', source: 'feedback/info-content/info-content' },
+    { name: 'alert/info/info-stroke', source: 'feedback/info-stroke/info-stroke' },
+    { name: 'alert/info/info-icon', source: 'feedback/info-content/info-content' },
     
     // ============================================
     // TOOLTIP COMPONENT
     // ============================================
-    { name: 'tooltip/container/container-surface', source: 'surface/inverse' },
-    { name: 'tooltip/text/text-content', source: 'content/on-surface-inverse' },
+    { name: 'tooltip/container/container-surface', source: 'surface/inverse/inverse' },
+    { name: 'tooltip/text/text-content', source: 'content/inverse/inverse-primary' },
     
     // ============================================
     // AVATAR COMPONENT
     // ============================================
-    { name: 'avatar/container/container-surface', source: 'surface/interactive' },
-    { name: 'avatar/container/container-stroke', source: 'stroke/subtle' },
-    { name: 'avatar/text/text-initials', source: 'content/primary' },
-    { name: 'avatar/icon/icon-default', source: 'content/secondary' },
+    { name: 'avatar/container/container-surface', source: 'bg/interactive/interactive-primary' },
+    { name: 'avatar/container/container-stroke', source: 'stroke/subtle/subtle' },
+    { name: 'avatar/text/text-initials', source: 'content/primary/primary' },
+    { name: 'avatar/icon/icon-default', source: 'content/secondary/secondary' },
     
     // ============================================
     // TABS COMPONENT
     // ============================================
-    { name: 'tabs/item/item-content', source: 'content/secondary' },
-    { name: 'tabs/item/item-content-hover', source: 'content/primary' },
-    { name: 'tabs/item/item-content-active', source: 'content/brand' },
-    { name: 'tabs/indicator/indicator-bar', source: 'action/primary' },
+    { name: 'tabs/item/item-content', source: 'content/secondary/secondary' },
+    { name: 'tabs/item/item-content-hover', source: 'content/primary/primary' },
+    { name: 'tabs/item/item-content-active', source: 'content/brand/brand' },
+    { name: 'tabs/indicator/indicator-bar', source: 'action/primary/primary' },
     
     // ============================================
     // NAVIGATION COMPONENT
     // ============================================
-    { name: 'nav/item/item-surface', source: 'surface/page' },
-    { name: 'nav/item/item-surface-hover', source: 'surface/interactive-hover' },
-    { name: 'nav/item/item-surface-active', source: 'surface/interactive-selected' },
-    { name: 'nav/item/item-content', source: 'content/secondary' },
-    { name: 'nav/item/item-content-active', source: 'content/brand' },
-    { name: 'nav/icon/icon-default', source: 'content/secondary' },
-    { name: 'nav/icon/icon-active', source: 'content/brand' },
+    { name: 'nav/item/item-surface', source: 'surface/page/page' },
+    { name: 'nav/item/item-surface-hover', source: 'bg/interactive/interactive-primary-hover' },
+    { name: 'nav/item/item-surface-active', source: 'bg/interactive/interactive-primary-selected' },
+    { name: 'nav/item/item-content', source: 'content/secondary/secondary' },
+    { name: 'nav/item/item-content-active', source: 'content/brand/brand' },
+    { name: 'nav/icon/icon-default', source: 'content/secondary/secondary' },
+    { name: 'nav/icon/icon-active', source: 'content/brand/brand' },
     
     // ============================================
     // TABLE COMPONENT
     // ============================================
-    { name: 'table/header/header-surface', source: 'surface/interactive' },
-    { name: 'table/header/header-content', source: 'content/primary' },
-    { name: 'table/row/row-surface', source: 'surface/card' },
-    { name: 'table/row/row-surface-hover', source: 'surface/interactive-hover' },
-    { name: 'table/row/row-surface-selected', source: 'surface/interactive-selected' },
-    { name: 'table/cell/cell-content', source: 'content/primary' },
-    { name: 'table/divider/divider-line', source: 'stroke/subtle' },
+    { name: 'table/header/header-surface', source: 'bg/interactive/interactive-primary' },
+    { name: 'table/header/header-content', source: 'content/primary/primary' },
+    { name: 'table/row/row-surface', source: 'surface/card/card' },
+    { name: 'table/row/row-surface-hover', source: 'bg/interactive/interactive-primary-hover' },
+    { name: 'table/row/row-surface-selected', source: 'bg/interactive/interactive-primary-selected' },
+    { name: 'table/cell/cell-content', source: 'content/primary/primary' },
+    { name: 'table/divider/divider-line', source: 'stroke/subtle/subtle' },
     
     // ============================================
     // PAGINATION COMPONENT
     // ============================================
-    { name: 'pagination/item/item-surface', source: 'surface/interactive' },
-    { name: 'pagination/item/item-surface-hover', source: 'surface/interactive-hover' },
-    { name: 'pagination/item/item-surface-active', source: 'action/primary' },
-    { name: 'pagination/item/item-content', source: 'content/primary' },
-    { name: 'pagination/item/item-content-active', source: 'content/on-action-primary' },
+    { name: 'pagination/item/item-surface', source: 'bg/interactive/interactive-primary' },
+    { name: 'pagination/item/item-surface-hover', source: 'bg/interactive/interactive-primary-hover' },
+    { name: 'pagination/item/item-surface-active', source: 'action/primary/primary' },
+    { name: 'pagination/item/item-content', source: 'content/primary/primary' },
+    { name: 'pagination/item/item-content-active', source: 'content/on-action-primary/on-action-primary' },
     
     // ============================================
     // PROGRESS / LOADER COMPONENT
     // ============================================
-    { name: 'progress/track/track-surface', source: 'surface/interactive' },
-    { name: 'progress/indicator/indicator-surface', source: 'action/primary' },
-    { name: 'loader/indicator/indicator-spinner', source: 'action/primary' },
+    { name: 'progress/track/track-surface', source: 'bg/interactive/interactive-primary' },
+    { name: 'progress/indicator/indicator-surface', source: 'action/primary/primary' },
+    { name: 'loader/indicator/indicator-spinner', source: 'action/primary/primary' },
     
     // ============================================
     // SKELETON COMPONENT
     // ============================================
-    { name: 'skeleton/container/container-surface', source: 'surface/interactive' },
+    { name: 'skeleton/container/container-surface', source: 'bg/interactive/interactive-primary' },
     
     // ============================================
     // DIVIDER COMPONENT
     // ============================================
-    { name: 'divider/line/line-default', source: 'stroke/subtle' },
-    { name: 'divider/line/line-strong', source: 'stroke/default' },
+    { name: 'divider/line/line-default', source: 'stroke/subtle/subtle' },
+    { name: 'divider/line/line-strong', source: 'stroke/default/default' },
   ];
   
   const allVariables = await getLocalVariables();
