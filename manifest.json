@@ -1,0 +1,16 @@
+{
+  "name": "Design Tokens Architecture",
+  "id": "design-tokens-architecture",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": ["*"],
+    "reasoning": "Export tokens to external services like Storybook"
+  },
+  "permissions": ["currentuser"]
+}
