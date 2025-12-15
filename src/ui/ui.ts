@@ -341,9 +341,9 @@ function generateFigmaVariables(): object {
           ? `${palette.name} base color`
           : `${palette.name} darkened ${Math.round((step - 500) / 5)}%`;
       
-      // Group all colors under colors/ folder
+      // Group all colors under colors/ folder with color name prefix
       variables.push({
-        name: `colors/${palette.name}/${step}`,
+        name: `colors/${palette.name}/${palette.name}-${step}`,
         value: palette.shades[step].rgba,
         description
       });
