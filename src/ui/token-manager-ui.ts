@@ -30,7 +30,7 @@ import {
   buildFullPath,
 } from '../types/token-manager-state';
 
-import { getCurrentProduct, productState } from './primitives-generator-ui';
+import { getCurrentProduct } from './primitives-generator-ui';
 
 import {
   DEFAULT_PALETTES,
@@ -261,24 +261,7 @@ export function renderTokenTree(): string {
   const state = getState();
   
   // Use filterTokens which applies all filters (collection, enabled, search)
-  let tokens = filterTokens();
-  
-  // Filter by current product
-  const currentProductId = productState.currentProductId;
-  if (currentProductId !== '__shared__') {
-    // Show shared colors + current product colors
-    tokens = tokens.filter(token => {
-      const path = token.fullPath.toLowerCase();
-      // Always show shared colors
-      if (path.includes('/shared/')) return true;
-      // Show only current product's colors
-      if (path.includes('/products/')) {
-        return path.includes(`/products/${currentProductId}/`);
-      }
-      // Show non-color tokens (typography, spacing, etc.)
-      return !path.includes('/products/');
-    });
-  }
+  const tokens = filterTokens();
 
   if (tokens.length === 0) {
     return `

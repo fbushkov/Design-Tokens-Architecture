@@ -6,7 +6,7 @@
 
 import { getState, createToken, getTokens } from '../types/token-manager-state';
 import { TokenDefinition } from '../types/token-manager';
-import { productState, getCurrentProduct, getThemes, ThemeConfig } from './primitives-generator-ui';
+import { getCurrentProduct, getThemes, ThemeConfig } from './primitives-generator-ui';
 
 // ============================================
 // ВАЛИДАЦИЯ ПРИМИТИВОВ
@@ -174,15 +174,12 @@ function syncThemesFromPrimitives(): void {
   if (!tokensState.themes.find(t => t.id === tokensState.currentTheme)) {
     tokensState.currentTheme = tokensState.themes[0]?.id || 'light';
   }
-  
-  renderThemeChips();
 }
 
 export function addTheme(name: string): ThemeDefinition {
   const id = name.toLowerCase().replace(/\s+/g, '-');
   const theme: ThemeDefinition = { id, name };
   tokensState.themes.push(theme);
-  renderThemeChips();
   return theme;
 }
 
@@ -195,37 +192,10 @@ export function removeTheme(themeId: string): void {
   if (tokensState.currentTheme === themeId) {
     tokensState.currentTheme = 'light';
   }
-  renderThemeChips();
 }
 
 export function setCurrentTheme(themeId: string): void {
   tokensState.currentTheme = themeId;
-  renderThemeChips();
-}
-
-function renderThemeChips(): void {
-  const container = document.getElementById('theme-chips-container');
-  if (!container) return;
-  
-  container.innerHTML = tokensState.themes.map(theme => {
-    const isLight = theme.id.includes('light') || theme.id === 'light';
-    const icon = isLight ? '☀️' : '🌙';
-    
-    return `
-    <button class="theme-chip ${theme.id === tokensState.currentTheme ? 'active' : ''}" 
-            data-theme-id="${theme.id}">
-      <span class="theme-chip-icon">${icon}</span>
-      <span class="theme-chip-label">${theme.name}</span>
-    </button>
-  `}).join('');
-  
-  // Добавляем обработчики
-  container.querySelectorAll('.theme-chip').forEach(chip => {
-    chip.addEventListener('click', (e) => {
-      const themeId = (chip as HTMLElement).getAttribute('data-theme-id');
-      if (themeId) setCurrentTheme(themeId);
-    });
-  });
 }
 
 // ============================================
@@ -262,10 +232,6 @@ export function generateSemanticTokens(): boolean {
   }
   
   const currentProduct = getCurrentProduct();
-  if (!currentProduct) {
-    showNotification('❌ Выберите продукт', true);
-    return false;
-  }
   
   const categories = Array.from(tokensState.selectedCategories);
   let createdCount = 0;
@@ -370,17 +336,6 @@ export function initTokensTab(): void {
     syncThemesFromPrimitives();
     showNotification('🎨 Темы синхронизированы');
   });
-  
-  // Обработчик добавления темы - теперь редиректим на примитивы
-  const btnAddTheme = document.getElementById('btn-add-token-theme');
-  if (btnAddTheme) {
-    btnAddTheme.addEventListener('click', () => {
-      showNotification('💡 Добавьте новую тему во вкладке Примитивы', false);
-      // Можно добавить автопереключение на вкладку примитивов
-      const primitivesTab = document.querySelector('[data-tab="primitives"]') as HTMLButtonElement;
-      if (primitivesTab) primitivesTab.click();
-    });
-  }
   
   // Обработчики категорий
   document.querySelectorAll('.token-category-card').forEach(card => {

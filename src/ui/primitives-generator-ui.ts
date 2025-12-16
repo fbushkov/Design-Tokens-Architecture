@@ -46,41 +46,29 @@ interface GeneratedPrimitives {
 }
 
 // ============================================
-// PRODUCT MANAGEMENT
+// SINGLE PRODUCT CONFIGURATION
 // ============================================
 
-interface Product {
+interface ProductConfig {
   id: string;
   name: string;
   brandColors: Map<string, string>;  // color name -> hex
   additionalColors: Map<string, string>;
 }
 
-interface ProductState {
-  currentProductId: string;
-  products: Map<string, Product>;
-}
-
-export const productState: ProductState = {
-  currentProductId: 'feroom',
-  products: new Map([
-    ['feroom', { 
-      id: 'feroom', 
-      name: 'FEroom', 
-      brandColors: new Map([['brand', '#3B82F6'], ['accent', '#8B5CF6']]),
-      additionalColors: new Map()
-    }],
-    ['majordom', { 
-      id: 'majordom', 
-      name: 'MajorDom', 
-      brandColors: new Map([['brand', '#10B981'], ['accent', '#F59E0B']]),
-      additionalColors: new Map()
-    }],
-  ])
+// Single product config - edit this for your product
+export const productConfig: ProductConfig = {
+  id: 'product',
+  name: 'Design System',
+  brandColors: new Map([
+    ['brand', '#3B82F6'],
+    ['accent', '#8B5CF6']
+  ]),
+  additionalColors: new Map()
 };
 
-// Shared system colors (for all products)
-const sharedSystemColors: Map<string, string> = new Map([
+// System colors (always included)
+const systemColors: Map<string, string> = new Map([
   ['neutral', '#6B7280'],
   ['success', '#22C55E'],
   ['warning', '#F59E0B'],
@@ -88,76 +76,21 @@ const sharedSystemColors: Map<string, string> = new Map([
   ['info', '#0EA5E9'],
 ]);
 
-export function getCurrentProduct(): Product | undefined {
-  return productState.products.get(productState.currentProductId);
+// For backwards compatibility - always returns product config
+export function getCurrentProduct(): ProductConfig {
+  return productConfig;
 }
 
-export function setCurrentProduct(productId: string): void {
-  if (productState.products.has(productId) || productId === '__shared__') {
-    productState.currentProductId = productId;
-    updateProductUI();
-    
-    // Dispatch event for Token Manager to refresh
-    window.dispatchEvent(new CustomEvent('product-changed', { detail: { productId } }));
-  }
-}
-
-export function addProduct(name: string): Product {
-  const id = name.toLowerCase().replace(/\s+/g, '-');
-  const product: Product = {
-    id,
-    name,
-    brandColors: new Map([['brand', '#6366F1']]),
-    additionalColors: new Map()
-  };
-  productState.products.set(id, product);
-  updateProductSelector();
-  return product;
-}
-
-function updateProductSelector(): void {
-  const select = document.getElementById('product-select') as HTMLSelectElement;
-  if (!select) return;
-  
-  // Keep shared option
-  select.innerHTML = '<option value="__shared__">🌐 Общие (все продукты)</option>';
-  
-  // Add all products
-  productState.products.forEach((product, id) => {
-    const option = document.createElement('option');
-    option.value = id;
-    option.textContent = product.name;
-    if (id === productState.currentProductId) {
-      option.selected = true;
-    }
-    select.appendChild(option);
-  });
-}
-
+// Simplified UI update for single product
 function updateProductUI(): void {
-  const product = getCurrentProduct();
-  const productName = product?.name || 'Общие';
-  
-  // Update brand scope indicator
-  const indicator = document.getElementById('current-product-name');
-  if (indicator) {
-    indicator.textContent = productName;
-  }
+  const product = productConfig;
   
   // Update brand colors grid
-  if (product) {
-    updateBrandColorsGrid(product);
-    updateAdditionalColorsGrid(product);
-  }
-  
-  // Show/hide product-specific sections
-  const productSections = document.querySelectorAll('[data-scope="product"]');
-  productSections.forEach(section => {
-    (section as HTMLElement).style.display = productState.currentProductId === '__shared__' ? 'none' : 'block';
-  });
+  updateBrandColorsGrid(product);
+  updateAdditionalColorsGrid(product);
 }
 
-function updateBrandColorsGrid(product: Product): void {
+function updateBrandColorsGrid(product: ProductConfig): void {
   const grid = document.getElementById('brand-colors-grid');
   if (!grid) return;
   
@@ -169,7 +102,7 @@ function updateBrandColorsGrid(product: Product): void {
   });
 }
 
-function updateAdditionalColorsGrid(product: Product): void {
+function updateAdditionalColorsGrid(product: ProductConfig): void {
   const grid = document.getElementById('additional-colors-grid');
   if (!grid) return;
   
@@ -229,177 +162,18 @@ function createColorCardElement(name: string, hex: string, category: ColorCatego
 }
 
 function saveColorToProduct(name: string, hex: string, category: ColorCategory): void {
-  const product = getCurrentProduct();
-  if (!product) return;
-  
   if (category === 'brand') {
-    product.brandColors.set(name, hex);
+    productConfig.brandColors.set(name, hex);
   } else if (category === 'additional') {
-    product.additionalColors.set(name, hex);
+    productConfig.additionalColors.set(name, hex);
   }
 }
 
 function removeColorFromProduct(name: string, category: ColorCategory): void {
-  const product = getCurrentProduct();
-  if (!product) return;
-  
   if (category === 'brand') {
-    product.brandColors.delete(name);
+    productConfig.brandColors.delete(name);
   } else if (category === 'additional') {
-    product.additionalColors.delete(name);
-  }
-}
-
-function setupProductSelector(): void {
-  // Product select dropdown
-  const productSelect = document.getElementById('product-select') as HTMLSelectElement;
-  if (productSelect) {
-    productSelect.addEventListener('change', () => {
-      setCurrentProduct(productSelect.value);
-    });
-  }
-  
-  // Product settings button - opens modal
-  const btnProductSettings = document.getElementById('btn-product-settings');
-  if (btnProductSettings) {
-    btnProductSettings.addEventListener('click', () => {
-      openProductModal();
-    });
-  }
-  
-  // Modal close button
-  const btnModalClose = document.getElementById('btn-modal-close');
-  if (btnModalClose) {
-    btnModalClose.addEventListener('click', () => {
-      closeProductModal();
-    });
-  }
-  
-  // Click overlay to close
-  const modalOverlay = document.getElementById('product-modal');
-  if (modalOverlay) {
-    modalOverlay.addEventListener('click', (e) => {
-      if (e.target === modalOverlay) {
-        closeProductModal();
-      }
-    });
-  }
-  
-  // Add product button in modal
-  const btnAddProductModal = document.getElementById('btn-add-product-modal');
-  if (btnAddProductModal) {
-    btnAddProductModal.addEventListener('click', () => {
-      const productName = prompt('Введите название продукта:');
-      if (productName && productName.trim()) {
-        const product = addProduct(productName.trim());
-        setCurrentProduct(product.id);
-        renderProductList();
-        showNotification(`✅ Продукт "${productName}" добавлен`);
-      }
-    });
-  }
-  
-  // Initialize selector with current products
-  updateProductSelector();
-  
-  // Initialize UI for current product
-  updateProductUI();
-}
-
-function openProductModal(): void {
-  const modal = document.getElementById('product-modal');
-  if (modal) {
-    modal.style.display = 'flex';
-    renderProductList();
-  }
-}
-
-function closeProductModal(): void {
-  const modal = document.getElementById('product-modal');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-}
-
-function renderProductList(): void {
-  const container = document.getElementById('product-list');
-  if (!container) return;
-  
-  let html = '';
-  productState.products.forEach((product, id) => {
-    html += `
-      <div class="product-item" data-product-id="${id}">
-        <div style="flex: 1;">
-          <div class="product-item-name">${product.name}</div>
-          <div class="product-item-id">${id}</div>
-        </div>
-        <div class="product-item-actions">
-          <button class="btn-edit" data-product-id="${id}" title="Переименовать">✏️</button>
-          <button class="btn-delete" data-product-id="${id}" title="Удалить">🗑</button>
-        </div>
-      </div>
-    `;
-  });
-  
-  container.innerHTML = html;
-  
-  // Setup edit buttons
-  container.querySelectorAll('.btn-edit').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const productId = btn.getAttribute('data-product-id');
-      if (productId) {
-        renameProduct(productId);
-      }
-    });
-  });
-  
-  // Setup delete buttons
-  container.querySelectorAll('.btn-delete').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const productId = btn.getAttribute('data-product-id');
-      if (productId) {
-        deleteProduct(productId);
-      }
-    });
-  });
-}
-
-function renameProduct(productId: string): void {
-  const product = productState.products.get(productId);
-  if (!product) return;
-  
-  const newName = prompt('Новое название продукта:', product.name);
-  if (newName && newName.trim() && newName !== product.name) {
-    product.name = newName.trim();
-    updateProductSelector();
-    renderProductList();
-    showNotification(`✅ Продукт переименован в "${newName}"`);
-  }
-}
-
-function deleteProduct(productId: string): void {
-  if (productState.products.size <= 1) {
-    showNotification('❌ Нельзя удалить последний продукт', true);
-    return;
-  }
-  
-  const product = productState.products.get(productId);
-  if (!product) return;
-  
-  if (confirm(`Удалить продукт "${product.name}"?`)) {
-    productState.products.delete(productId);
-    
-    // Switch to another product if current was deleted
-    if (productState.currentProductId === productId) {
-      const firstProductId = productState.products.keys().next().value;
-      if (firstProductId) {
-        setCurrentProduct(firstProductId);
-      }
-    }
-    
-    updateProductSelector();
-    renderProductList();
-    showNotification(`🗑 Продукт "${product.name}" удален`);
+    productConfig.additionalColors.delete(name);
   }
 }
 
@@ -963,8 +737,8 @@ export function initPrimitivesGenerator(): void {
   // Setup theme management
   setupThemeManagement();
   
-  // Setup product selector
-  setupProductSelector();
+  // Initialize UI for single product
+  updateProductUI();
   
   // Shadow opacity display
   const shadowOpacity = document.getElementById('shadow-opacity') as HTMLInputElement;
@@ -1054,50 +828,47 @@ function setupGenerateButtons(): void {
 }
 
 function generateColors(): void {
-  const product = getCurrentProduct();
-  const isSharedMode = productState.currentProductId === '__shared__';
+  const product = productConfig;
   
-  // Collect system colors (always from shared)
-  const systemColors: Array<{name: string, hex: string, category: ColorCategory}> = [];
+  // Collect system colors
+  const systemColorsArr: Array<{name: string, hex: string, category: ColorCategory}> = [];
   document.querySelectorAll('#system-colors-grid .color-card').forEach(card => {
     const name = card.getAttribute('data-color-name');
     const hexInput = card.querySelector('.color-hex') as HTMLInputElement;
     if (name && hexInput?.value) {
-      systemColors.push({ name, hex: hexInput.value, category: 'system' });
-      // Update shared system colors
-      sharedSystemColors.set(name, hexInput.value);
+      systemColorsArr.push({ name, hex: hexInput.value, category: 'system' });
+      systemColors.set(name, hexInput.value);
     }
   });
   
-  // Collect product-specific colors (only if product selected)
+  // Collect product colors
   const productColors: Array<{name: string, hex: string, category: ColorCategory}> = [];
-  if (!isSharedMode && product) {
-    // Brand colors
-    document.querySelectorAll('#brand-colors-grid .color-card').forEach(card => {
-      const name = card.getAttribute('data-color-name');
-      const hexInput = card.querySelector('.color-hex') as HTMLInputElement;
-      if (name && hexInput?.value) {
-        productColors.push({ name, hex: hexInput.value, category: 'brand' });
-        product.brandColors.set(name, hexInput.value);
-      }
-    });
-    
-    // Additional colors
-    document.querySelectorAll('#additional-colors-grid .color-card').forEach(card => {
-      const name = card.getAttribute('data-color-name');
-      const hexInput = card.querySelector('.color-hex') as HTMLInputElement;
-      if (name && hexInput?.value) {
-        productColors.push({ name, hex: hexInput.value, category: 'additional' });
-        product.additionalColors.set(name, hexInput.value);
-      }
-    });
-  }
+  
+  // Brand colors
+  document.querySelectorAll('#brand-colors-grid .color-card').forEach(card => {
+    const name = card.getAttribute('data-color-name');
+    const hexInput = card.querySelector('.color-hex') as HTMLInputElement;
+    if (name && hexInput?.value) {
+      productColors.push({ name, hex: hexInput.value, category: 'brand' });
+      product.brandColors.set(name, hexInput.value);
+    }
+  });
+  
+  // Additional colors
+  document.querySelectorAll('#additional-colors-grid .color-card').forEach(card => {
+    const name = card.getAttribute('data-color-name');
+    const hexInput = card.querySelector('.color-hex') as HTMLInputElement;
+    if (name && hexInput?.value) {
+      productColors.push({ name, hex: hexInput.value, category: 'additional' });
+      product.additionalColors.set(name, hexInput.value);
+    }
+  });
   
   generatedPalettes = [];
   
-  // Generate system color palettes (shared)
+  // Generate system color palettes
   const systemPalettes: ColorPaletteData[] = [];
-  for (const color of systemColors) {
+  for (const color of systemColorsArr) {
     const palette = generateColorPalette(color.name, color.hex);
     systemPalettes.push(palette);
     generatedPalettes.push(palette);
@@ -1133,11 +904,8 @@ function generateColors(): void {
     preview.style.display = 'block';
   }
   
-  // Add to Token Manager with proper scope
-  addColorPalettesToTokenManager(systemPalettes, 'shared');
-  if (productPalettes.length > 0) {
-    addColorPalettesToTokenManager(productPalettes, 'product');
-  }
+  // Add all palettes to Token Manager
+  addColorPalettesToTokenManager([...systemPalettes, ...productPalettes], 'product');
 }
 
 function generateTypographyTokens(): void {
@@ -1321,8 +1089,8 @@ function setupThemeManagement(): void {
     });
   }
   
-  // Render initial theme tabs
-  renderThemeTabs();
+  // Render initial custom themes list
+  renderCustomThemes();
 }
 
 // ============================================
@@ -1539,106 +1307,74 @@ function setupThemeModalListeners(modal: HTMLElement, editThemeId?: string): voi
       showNotification(`✅ Тема "${name}" создана`);
     }
     
-    renderThemeTabs();
+    renderCustomThemes();
     closeModal();
   });
 }
 
 // ============================================
-// THEME TABS RENDERING
+// CUSTOM THEMES RENDERING (for Primitives tab)
 // ============================================
 
-function renderThemeTabs(): void {
-  const themeTabs = document.querySelector('.theme-tabs');
-  if (!themeTabs) return;
+export function renderCustomThemes(): void {
+  const container = document.getElementById('custom-themes-container');
+  if (!container) return;
   
-  // Clear existing tabs except the add button
-  const addButton = document.getElementById('btn-add-theme');
-  themeTabs.innerHTML = '';
+  const customThemes = colorState.themes.themes.filter(t => !t.isSystem);
   
-  // Render theme tabs
-  for (const theme of colorState.themes.themes) {
-    // For each theme, show modes as tabs
-    if (theme.hasLightMode) {
-      const lightTab = createThemeTabElement(theme, 'light');
-      themeTabs.appendChild(lightTab);
-    }
-    if (theme.hasDarkMode) {
-      const darkTab = createThemeTabElement(theme, 'dark');
-      themeTabs.appendChild(darkTab);
-    }
+  if (customThemes.length === 0) {
+    container.innerHTML = `
+      <div class="empty-themes-hint">
+        Нет кастомных тем. Нажмите "+ Тема" чтобы добавить.
+      </div>
+    `;
+    return;
   }
   
-  // Add the "+ Тема" button back
-  const newAddButton = document.createElement('button');
-  newAddButton.id = 'btn-add-theme';
-  newAddButton.className = 'theme-tab add-theme-tab';
-  newAddButton.textContent = '+ Тема';
-  newAddButton.addEventListener('click', () => openThemeModal());
-  themeTabs.appendChild(newAddButton);
+  container.innerHTML = customThemes.map(theme => `
+    <div class="custom-theme-card" data-theme-id="${theme.id}">
+      <div class="theme-card-color" style="background: ${theme.brandColor}"></div>
+      <div class="theme-card-info">
+        <div class="theme-card-name">${theme.name}</div>
+        <div class="theme-card-modes">
+          ${theme.hasLightMode ? '<span class="mode-badge">☀️ Light</span>' : ''}
+          ${theme.hasDarkMode ? '<span class="mode-badge">🌙 Dark</span>' : ''}
+        </div>
+      </div>
+      <div class="theme-card-actions">
+        <button class="btn-icon btn-edit-theme" data-theme-id="${theme.id}" title="Редактировать">✏️</button>
+        <button class="btn-icon btn-delete-theme" data-theme-id="${theme.id}" title="Удалить">🗑</button>
+      </div>
+    </div>
+  `).join('');
   
-  // Set first tab as active if none selected
-  const firstTab = themeTabs.querySelector('.theme-tab:not(.add-theme-tab)');
-  if (firstTab && !themeTabs.querySelector('.theme-tab.active')) {
-    firstTab.classList.add('active');
-    const mode = firstTab.getAttribute('data-mode') || 'light';
-    colorState.themes.activeTheme = mode;
-  }
-}
-
-function createThemeTabElement(theme: ThemeConfig, mode: 'light' | 'dark'): HTMLElement {
-  const tab = document.createElement('button');
-  const modeName = theme.id === 'default' ? mode : `${theme.id}-${mode}`;
-  
-  tab.className = 'theme-tab';
-  if (colorState.themes.activeTheme === modeName) {
-    tab.classList.add('active');
-  }
-  
-  tab.setAttribute('data-theme', theme.id);
-  tab.setAttribute('data-mode', modeName);
-  
-  // Icon and label
-  const icon = mode === 'light' ? '☀️' : '🌙';
-  const label = theme.id === 'default' 
-    ? (mode === 'light' ? 'Light' : 'Dark')
-    : `${theme.name} ${mode === 'light' ? 'Light' : 'Dark'}`;
-  
-  tab.innerHTML = `
-    <span class="theme-tab-icon">${icon}</span>
-    <span class="theme-tab-label">${label}</span>
-    ${!theme.isSystem ? `<button class="theme-tab-edit" data-theme-id="${theme.id}" title="Редактировать">✏️</button>` : ''}
-  `;
-  
-  // Color indicator
-  if (theme.brandColor) {
-    const indicator = document.createElement('span');
-    indicator.className = 'theme-color-indicator';
-    indicator.style.backgroundColor = theme.brandColor;
-    tab.insertBefore(indicator, tab.firstChild);
-  }
-  
-  // Tab click - select theme
-  tab.addEventListener('click', (e) => {
-    // Don't trigger if edit button clicked
-    if ((e.target as HTMLElement).classList.contains('theme-tab-edit')) return;
-    
-    document.querySelectorAll('.theme-tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    colorState.themes.activeTheme = modeName;
-    showNotification(`🎨 Тема "${label}" выбрана`);
+  // Setup edit buttons
+  container.querySelectorAll('.btn-edit-theme').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const themeId = btn.getAttribute('data-theme-id');
+      if (themeId) openThemeModal(themeId);
+    });
   });
   
-  // Edit button click
-  const editBtn = tab.querySelector('.theme-tab-edit');
-  if (editBtn) {
-    editBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      openThemeModal(theme.id);
+  // Setup delete buttons
+  container.querySelectorAll('.btn-delete-theme').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const themeId = btn.getAttribute('data-theme-id');
+      if (themeId) {
+        const theme = getThemeById(themeId);
+        if (theme && confirm(`Удалить тему "${theme.name}"?`)) {
+          deleteTheme(themeId);
+          renderCustomThemes();
+          showNotification(`🗑 Тема "${theme.name}" удалена`);
+        }
+      }
     });
-  }
-  
-  return tab;
+  });
+}
+
+// Legacy function - kept for backwards compatibility
+function renderThemeTabs(): void {
+  renderCustomThemes();
 }
 
 function generateColorName(prefix: string): string {

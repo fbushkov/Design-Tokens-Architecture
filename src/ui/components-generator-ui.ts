@@ -6,7 +6,7 @@
 
 import { getState, createToken } from '../types/token-manager-state';
 import { TokenDefinition } from '../types/token-manager';
-import { productState, getCurrentProduct } from './primitives-generator-ui';
+import { getCurrentProduct } from './primitives-generator-ui';
 import { tokensState, hasPrimitives, updateTokensTabState } from './tokens-generator-ui';
 
 // ============================================
@@ -239,10 +239,6 @@ export function generateComponentTokens(): boolean {
   }
   
   const currentProduct = getCurrentProduct();
-  if (!currentProduct) {
-    showNotification('❌ Выберите продукт', true);
-    return false;
-  }
   
   const components = Array.from(componentsState.selectedComponents);
   let createdCount = 0;

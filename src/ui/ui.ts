@@ -259,11 +259,6 @@ function refreshTokenEditor(): void {
 initTokenManager();
 refreshTokenManager();
 
-// Listen for product changes to refresh Token Manager
-window.addEventListener('product-changed', () => {
-  refreshTokenManager();
-});
-
 // Setup Token Manager events
 if (elements.tokenManagerContainer) {
   initTokenManagerEvents(elements.tokenManagerContainer, refreshTokenManager);
