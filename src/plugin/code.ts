@@ -68,6 +68,8 @@ interface PluginMessage {
   type: string;
   payload?: unknown;
   data?: unknown;
+  primitives?: Array<{ name: string; value: number }>;
+  tokens?: Array<{ id: string; aliasTo: string }>;
 }
 
 // Show the plugin UI with resize support
@@ -2718,9 +2720,10 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
     primitivesCollection = figma.variables.createVariableCollection('Primitives');
   }
   
-  let tokensCollection = collections.find(c => c.name === 'Tokens');
-  if (!tokensCollection) {
-    tokensCollection = figma.variables.createVariableCollection('Tokens');
+  // Typography collection (NOT Tokens!) - for semantic typography with device modes
+  let typographyCollection = collections.find(c => c.name === 'Typography');
+  if (!typographyCollection) {
+    typographyCollection = figma.variables.createVariableCollection('Typography');
   }
   
   // Создаём или обновляем режимы если есть breakpoints
@@ -2728,7 +2731,7 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
   
   if (payload.breakpoints && payload.breakpoints.length > 0) {
     // Получаем существующие режимы
-    const existingModes = tokensCollection.modes;
+    const existingModes = typographyCollection.modes;
     
     for (let i = 0; i < payload.breakpoints.length; i++) {
       const bp = payload.breakpoints[i];
@@ -2740,13 +2743,13 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
         modeIds.set(bp.name, existingMode.modeId);
       } else if (i === 0) {
         // Первый брейкпоинт - переименовываем default mode
-        tokensCollection.renameMode(tokensCollection.defaultModeId, bp.label);
-        modeIds.set(bp.name, tokensCollection.defaultModeId);
+        typographyCollection.renameMode(typographyCollection.defaultModeId, bp.label);
+        modeIds.set(bp.name, typographyCollection.defaultModeId);
         result.modes++;
       } else {
         // Добавляем новый режим
         try {
-          const newModeId = tokensCollection.addMode(bp.label);
+          const newModeId = typographyCollection.addMode(bp.label);
           modeIds.set(bp.name, newModeId);
           result.modes++;
         } catch (error) {
@@ -2757,7 +2760,7 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
     }
   } else {
     // Без брейкпоинтов - используем default mode
-    modeIds.set('default', tokensCollection.defaultModeId);
+    modeIds.set('default', typographyCollection.defaultModeId);
   }
   
   // Получаем все существующие Variables
@@ -2786,11 +2789,11 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
       // =============== fontSize ===============
       const fontSizeVarName = `${tokenPath}/fontSize`;
       let fontSizeVar = existingVariables.find(v => 
-        v.name === fontSizeVarName && v.variableCollectionId === tokensCollection!.id
+        v.name === fontSizeVarName && v.variableCollectionId === typographyCollection!.id
       );
       
       if (!fontSizeVar) {
-        fontSizeVar = figma.variables.createVariable(fontSizeVarName, tokensCollection!, 'FLOAT');
+        fontSizeVar = figma.variables.createVariable(fontSizeVarName, typographyCollection!, 'FLOAT');
         result.created++;
       }
       fontSizeVar.description = `${token.description || token.name} - Font size`;
@@ -2816,7 +2819,7 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
         const fontSizePrimitive = primitiveVarMap.get(fontSizePrimitiveName);
         if (fontSizePrimitive) {
           const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: fontSizePrimitive.id };
-          fontSizeVar.setValueForMode(tokensCollection!.defaultModeId, alias);
+          fontSizeVar.setValueForMode(typographyCollection!.defaultModeId, alias);
           result.aliased++;
         }
       }
@@ -2824,11 +2827,11 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
       // =============== lineHeight ===============
       const lineHeightVarName = `${tokenPath}/lineHeight`;
       let lineHeightVar = existingVariables.find(v => 
-        v.name === lineHeightVarName && v.variableCollectionId === tokensCollection!.id
+        v.name === lineHeightVarName && v.variableCollectionId === typographyCollection!.id
       );
       
       if (!lineHeightVar) {
-        lineHeightVar = figma.variables.createVariable(lineHeightVarName, tokensCollection!, 'FLOAT');
+        lineHeightVar = figma.variables.createVariable(lineHeightVarName, typographyCollection!, 'FLOAT');
         result.created++;
       }
       lineHeightVar.description = `${token.description || token.name} - Line height`;
@@ -2852,7 +2855,7 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
         const lineHeightPrimitive = primitiveVarMap.get(lineHeightPrimitiveName);
         if (lineHeightPrimitive) {
           const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: lineHeightPrimitive.id };
-          lineHeightVar.setValueForMode(tokensCollection!.defaultModeId, alias);
+          lineHeightVar.setValueForMode(typographyCollection!.defaultModeId, alias);
           result.aliased++;
         }
       }
@@ -2860,11 +2863,11 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
       // =============== letterSpacing ===============
       const letterSpacingVarName = `${tokenPath}/letterSpacing`;
       let letterSpacingVar = existingVariables.find(v => 
-        v.name === letterSpacingVarName && v.variableCollectionId === tokensCollection!.id
+        v.name === letterSpacingVarName && v.variableCollectionId === typographyCollection!.id
       );
       
       if (!letterSpacingVar) {
-        letterSpacingVar = figma.variables.createVariable(letterSpacingVarName, tokensCollection!, 'FLOAT');
+        letterSpacingVar = figma.variables.createVariable(letterSpacingVarName, typographyCollection!, 'FLOAT');
         result.created++;
       }
       letterSpacingVar.description = `${token.description || token.name} - Letter spacing`;
@@ -2885,7 +2888,7 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
           }
         } else {
           const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: letterSpacingPrimitive.id };
-          letterSpacingVar.setValueForMode(tokensCollection!.defaultModeId, alias);
+          letterSpacingVar.setValueForMode(typographyCollection!.defaultModeId, alias);
           result.aliased++;
         }
       }
@@ -2897,11 +2900,11 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
       if (fontWeightPrimitive) {
         const fontWeightVarName = `${tokenPath}/fontWeight`;
         let fontWeightVar = existingVariables.find(v => 
-          v.name === fontWeightVarName && v.variableCollectionId === tokensCollection!.id
+          v.name === fontWeightVarName && v.variableCollectionId === typographyCollection!.id
         );
         
         if (!fontWeightVar) {
-          fontWeightVar = figma.variables.createVariable(fontWeightVarName, tokensCollection!, 'FLOAT');
+          fontWeightVar = figma.variables.createVariable(fontWeightVarName, typographyCollection!, 'FLOAT');
           result.created++;
         }
         fontWeightVar.description = `${token.description || token.name} - Font weight`;
@@ -2918,7 +2921,7 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
           }
         } else {
           const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: fontWeightPrimitive.id };
-          fontWeightVar.setValueForMode(tokensCollection!.defaultModeId, alias);
+          fontWeightVar.setValueForMode(typographyCollection!.defaultModeId, alias);
           result.aliased++;
         }
       }
@@ -2934,6 +2937,145 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
 
 // ============================================
 // SPACING VARIABLES
+// ============================================
+
+// ============================================
+// GAP PRIMITIVES & SEMANTIC
+// ============================================
+
+async function createGapPrimitives(primitives: Array<{ name: string; value: number }>): Promise<{ created: number; updated: number; errors: string[] }> {
+  const result = { created: 0, updated: 0, errors: [] as string[] };
+  
+  // Get or create Primitives collection
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  let primitivesCollection = collections.find(c => c.name === 'Primitives');
+  
+  if (!primitivesCollection) {
+    primitivesCollection = figma.variables.createVariableCollection('Primitives');
+  }
+  
+  // Get existing variables
+  const existingVariables = await figma.variables.getLocalVariablesAsync();
+  
+  for (const prim of primitives) {
+    try {
+      const varName = `gap/${prim.name}`;
+      
+      // Check if exists
+      let existingVar = existingVariables.find(v => 
+        v.name === varName && v.variableCollectionId === primitivesCollection!.id
+      );
+      
+      if (existingVar) {
+        // Update value
+        existingVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        result.updated++;
+      } else {
+        // Create new
+        const newVar = figma.variables.createVariable(varName, primitivesCollection, 'FLOAT');
+        newVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        newVar.description = `${prim.value}px`;
+        result.created++;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания gap/${prim.name}: ${errorMessage}`);
+    }
+  }
+  
+  return result;
+}
+
+interface GapSemanticData {
+  tokens: Array<{
+    id: string;      // "gap.inline.icon"
+    aliasTo: string; // "gap.4"
+  }>;
+}
+
+async function createGapSemanticCollection(data: GapSemanticData): Promise<{ created: number; aliased: number; errors: string[] }> {
+  const result = { created: 0, aliased: 0, errors: [] as string[] };
+  
+  // Get all collections
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  
+  // Find Primitives collection
+  const primitivesCollection = collections.find(c => c.name === 'Primitives');
+  if (!primitivesCollection) {
+    result.errors.push('Коллекция Primitives не найдена. Сначала создайте примитивы.');
+    return result;
+  }
+  
+  // Find or create Gap collection
+  let gapCollection = collections.find(c => c.name === 'Gap');
+  if (!gapCollection) {
+    gapCollection = figma.variables.createVariableCollection('Gap');
+  }
+  
+  // Get all existing variables
+  const allVariables = await figma.variables.getLocalVariablesAsync('FLOAT');
+  
+  // Create map of primitive variables
+  const primitiveVarMap = new Map<string, Variable>();
+  allVariables.forEach(v => {
+    if (v.variableCollectionId === primitivesCollection.id) {
+      // v.name is "gap/16", extract "16"
+      const match = v.name.match(/gap\/(\d+)/);
+      if (match) {
+        primitiveVarMap.set(match[1], v);
+      }
+    }
+  });
+  
+  // Existing semantic variables in this collection
+  const existingGapVars = allVariables.filter(v => v.variableCollectionId === gapCollection!.id);
+  const existingVarMap = new Map<string, Variable>();
+  existingGapVars.forEach(v => existingVarMap.set(v.name, v));
+  
+  // Create/update semantic tokens
+  for (const token of data.tokens) {
+    try {
+      // Convert id: "gap.inline.icon" -> "gap/inline/icon"
+      const varName = token.id.replace(/\./g, '/');
+      
+      // Parse aliasTo: "gap.4" -> "4"
+      const aliasMatch = token.aliasTo.match(/gap\.(\d+)/);
+      const primitiveKey = aliasMatch ? aliasMatch[1] : null;
+      
+      if (!primitiveKey) {
+        result.errors.push(`Неверный формат алиаса: ${token.aliasTo}`);
+        continue;
+      }
+      
+      const primitive = primitiveVarMap.get(primitiveKey);
+      if (!primitive) {
+        result.errors.push(`Примитив gap/${primitiveKey} не найден для токена ${token.id}`);
+        continue;
+      }
+      
+      // Get or create variable
+      let variable = existingVarMap.get(varName);
+      if (!variable) {
+        variable = figma.variables.createVariable(varName, gapCollection!, 'FLOAT');
+        result.created++;
+      }
+      
+      // Set alias
+      const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: primitive.id };
+      variable.setValueForMode(gapCollection!.defaultModeId, alias);
+      result.aliased++;
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания ${token.id}: ${errorMessage}`);
+    }
+  }
+  
+  return result;
+}
+
+// ============================================
+// SPACING PRIMITIVES & SEMANTIC
 // ============================================
 
 interface SpacingSemanticPayload {
@@ -3502,6 +3644,54 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         } else {
           const modeInfo = result.modes > 0 ? `, ${result.modes} режимов` : '';
           figma.notify(`✅ Variables: ${result.created} создано, ${result.aliased} алиасов${modeInfo}`);
+        }
+        break;
+      }
+
+      // ========================================
+      // GAP HANDLERS
+      // ========================================
+
+      case 'create-gap-primitives': {
+        const primitives = msg.primitives as Array<{ name: string; value: number }>;
+        
+        figma.notify(`⏳ Создание ${primitives.length} примитивов gap...`);
+        
+        const result = await createGapPrimitives(primitives);
+        
+        figma.ui.postMessage({
+          type: 'gap-primitives-created',
+          count: result.created + result.updated
+        });
+        
+        figma.notify(`✅ Gap примитивы: ${result.created} создано, ${result.updated} обновлено`);
+        break;
+      }
+
+      case 'create-gap-semantic': {
+        const tokens = msg.tokens as Array<{ id: string; aliasTo: string }>;
+        
+        figma.notify(`⏳ Создание ${tokens.length} семантических токенов gap...`);
+        
+        try {
+          const result = await createGapSemanticCollection({ tokens });
+          
+          figma.ui.postMessage({
+            type: 'gap-semantic-created',
+            count: result.created
+          });
+          
+          if (result.errors.length > 0) {
+            figma.notify(`⚠️ Gap: ${result.created} создано, ${result.aliased} алиасов, ${result.errors.length} ошибок`);
+          } else {
+            figma.notify(`✅ Gap: ${result.created} создано, ${result.aliased} алиасов`);
+          }
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'gap-error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
         break;
       }

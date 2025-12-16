@@ -3567,6 +3567,7 @@
       <button class="sub-tab" data-subtab="prim-colors">🎨 Цвета</button>
       <button class="sub-tab" data-subtab="prim-typography">📝 Типографика</button>
       <button class="sub-tab" data-subtab="prim-spacing">📐 Spacing</button>
+      <button class="sub-tab" data-subtab="prim-gap">↔️ Gap</button>
       <button class="sub-tab" data-subtab="prim-radius">⬜ Радиусы</button>
       <button class="sub-tab" data-subtab="prim-shadows">🌑 Тени</button>
       <button class="sub-tab" data-subtab="prim-borders">🔲 Границы</button>
@@ -4385,6 +4386,103 @@
           </div>
           
           <div id="spacing-export-status" class="export-status" style="display: none; margin-top: 12px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gap -->
+    <div id="prim-gap" class="sub-tab-content">
+      <!-- Gap Sub-navigation (like Typography/Spacing) -->
+      <div class="typography-nav">
+        <button class="typo-tab active" data-gap-tab="gap-primitives">Примитивы</button>
+        <button class="typo-tab" data-gap-tab="gap-semantic">Семантика</button>
+        <button class="typo-tab" data-gap-tab="gap-export">Экспорт</button>
+      </div>
+
+      <!-- Primitives Section -->
+      <div id="gap-primitives" class="typo-tab-content active">
+        <div class="section">
+          <div class="section-title">
+            Базовые значения (gap.X)
+            <span class="badge" id="gap-primitives-count">18/18</span>
+          </div>
+          <p class="section-desc" style="margin-bottom: 12px; color: var(--color-text-secondary); font-size: 11px;">
+            Кликните для включения/выключения. Эти значения создаются в коллекции Primitives.
+          </p>
+          <div id="gap-primitives-grid" class="spacing-primitives-grid">
+            <!-- Dynamic -->
+          </div>
+        </div>
+
+        <div class="section">
+          <button class="btn btn-primary" id="btn-generate-gap-primitives">
+            ✨ Сгенерировать примитивы gap
+          </button>
+        </div>
+      </div>
+
+      <!-- Semantic Section -->
+      <div id="gap-semantic" class="typo-tab-content">
+        <div class="info-box info-box-sm">
+          <strong>Семантические токены Gap</strong> — контекстное применение для flex/grid layouts (action.group, form.field, grid.cards и т.д.)
+        </div>
+
+        <div class="section">
+          <div class="section-title">Категории</div>
+          <div id="gap-category-tabs" class="spacing-category-tabs">
+            <!-- Dynamic -->
+          </div>
+        </div>
+        
+        <div class="section">
+          <div class="section-title">
+            Семантические токены
+            <span class="badge" id="gap-semantic-count">97</span>
+          </div>
+          <p class="section-desc" style="margin-bottom: 12px; color: var(--color-text-secondary); font-size: 11px;">
+            Токены со ссылками на примитивы gap для контекстного использования.
+          </p>
+          <div id="gap-semantic-list">
+            <!-- Dynamic -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Export Section -->
+      <div id="gap-export" class="typo-tab-content">
+        <div class="section">
+          <div class="section-title">Архитектура</div>
+          <div class="architecture-preview">
+            <div class="arch-level">
+              <div class="arch-level-title">Primitives (коллекция)</div>
+              <div class="arch-level-example">gap.0 = 0px, gap.4 = 4px, gap.8 = 8px...</div>
+            </div>
+            <div class="arch-arrow">↓ алиасы</div>
+            <div class="arch-level">
+              <div class="arch-level-title">Gap (коллекция)</div>
+              <div class="arch-level-example">
+                gap.action.group → {gap.8}<br>
+                gap.grid.default → {gap.16}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Экспорт в Figma</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn btn-primary" id="export-gap-primitives">
+              ↔️ Примитивы → Primitives
+            </button>
+            <button class="btn btn-secondary" id="export-gap-semantic">
+              🎯 Семантика → Gap
+            </button>
+            <button class="btn btn-secondary" id="export-gap-all">
+              ✨ Экспортировать всё
+            </button>
+          </div>
+          
+          <div id="gap-export-status" class="export-status" style="display: none; margin-top: 12px;"></div>
         </div>
       </div>
     </div>

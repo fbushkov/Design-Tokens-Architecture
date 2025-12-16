@@ -38,6 +38,10 @@ import {
 } from './spacing-generator-ui';
 
 import {
+  initGapUI,
+} from './gap-generator-ui';
+
+import {
   getState,
   getTokens,
   saveState,
@@ -390,6 +394,9 @@ initTypographyUI();
 
 // Initialize Spacing UI (2-tier with device modes)
 initSpacingUI();
+
+// Initialize Gap UI (2-tier for flex/grid gaps)
+initGapUI();
 
 // Listen for token-generated event to refresh Token Manager
 document.addEventListener('tokens-generated', () => {

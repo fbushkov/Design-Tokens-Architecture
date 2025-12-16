@@ -5,6 +5,7 @@
 
 import { createToken, getTokens } from '../types/token-manager-state';
 import { TMCollectionType, TMTokenType } from '../types/token-manager';
+import { initGapUI } from './gap-generator-ui';
 
 // ============================================
 // TYPES
@@ -750,6 +751,11 @@ export function initPrimitivesGenerator(): void {
       if (targetId) {
         const target = document.getElementById(targetId);
         if (target) target.classList.add('active');
+        
+        // Re-initialize Gap UI when switching to Gap tab
+        if (targetId === 'prim-gap') {
+          setTimeout(() => initGapUI(), 50);
+        }
       }
     });
   });
