@@ -1,9 +1,9 @@
 /**
  * Gap Generator UI
- * 2-tier architecture for flex/grid gap values
+ * 2-tier architecture with device modes (like Spacing)
  * 
  * Level 1: Primitives (gap.0, gap.4...) → Primitives collection
- * Level 2: Semantic (gap.inline.icon, gap.action.group) → Gap collection
+ * Level 2: Semantic (gap.inline.icon) → Gap collection with Desktop/Tablet/Mobile modes
  */
 
 import {
@@ -30,25 +30,18 @@ let activeGapTab: 'primitives' | 'semantic' | 'export' = 'primitives';
 // ============================================
 
 export function initGapUI(): void {
-  console.log('initGapUI called');
-  
-  // Always reload state
+  // Load state (in-memory only for Figma)
   loadGapState();
-  console.log('Gap state loaded, primitives:', gapState.primitives.length);
   
   const container = document.getElementById('prim-gap');
-  console.log('Gap container found:', !!container);
+  if (!container) return;
   
-  if (!container) {
-    return;
-  }
-  
-  // Render content FIRST
+  // Render content
   renderGapPrimitives();
   renderGapCategoryTabs();
   renderGapSemanticTokens();
   
-  // Setup tab switching using event delegation on container
+  // Setup tab switching using event delegation
   container.onclick = (e) => {
     const target = e.target as HTMLElement;
     
@@ -57,7 +50,6 @@ export function initGapUI(): void {
     if (tabBtn) {
       e.preventDefault();
       const tabId = tabBtn.getAttribute('data-gap-tab');
-      console.log('Tab clicked:', tabId);
       if (tabId) {
         const tab = tabId.replace('gap-', '') as 'primitives' | 'semantic' | 'export';
         setActiveGapTab(tab);
@@ -66,17 +58,15 @@ export function initGapUI(): void {
     }
     
     // Primitive item click
-    const primItem = target.closest('.spacing-primitive-item[data-gap-primitive]') as HTMLElement;
+    const primItem = target.closest('.spacing-prim-item[data-gap-primitive]') as HTMLElement;
     if (primItem) {
       const name = primItem.getAttribute('data-gap-primitive');
-      if (name) {
-        toggleGapPrimitive(name);
-      }
+      if (name) toggleGapPrimitive(name);
       return;
     }
     
     // Category tab click
-    const catTab = target.closest('.spacing-category-tab[data-gap-category]') as HTMLElement;
+    const catTab = target.closest('.category-tab[data-gap-category]') as HTMLElement;
     if (catTab) {
       const catId = catTab.getAttribute('data-gap-category') as GapCategory;
       if (catId) {
@@ -102,8 +92,6 @@ export function initGapUI(): void {
       return;
     }
   };
-  
-  console.log('Gap UI initialized');
 }
 
 // ============================================
@@ -113,18 +101,17 @@ export function initGapUI(): void {
 function setActiveGapTab(tab: 'primitives' | 'semantic' | 'export'): void {
   activeGapTab = tab;
   
-  // Get the Gap container to scope our selectors
   const container = document.getElementById('prim-gap');
   if (!container) return;
   
-  // Update tab buttons (only within Gap container)
+  // Update tab buttons
   const tabs = container.querySelectorAll('.typo-tab[data-gap-tab]');
   tabs.forEach(t => {
     const tabId = t.getAttribute('data-gap-tab');
     t.classList.toggle('active', tabId === `gap-${tab}`);
   });
   
-  // Update content panels (only within Gap container)
+  // Update content panels
   const contents = container.querySelectorAll('.typo-tab-content');
   contents.forEach(c => c.classList.remove('active'));
   
@@ -138,7 +125,6 @@ function setActiveGapTab(tab: 'primitives' | 'semantic' | 'export'): void {
 
 function loadGapState(): void {
   // localStorage is disabled in Figma plugin iframes - always use defaults
-  // State is kept in memory during session only
   gapState = createDefaultGapState();
 }
 
@@ -153,19 +139,16 @@ function saveGapState(): void {
 
 function renderGapPrimitives(): void {
   const grid = document.getElementById('gap-primitives-grid');
-  console.log('renderGapPrimitives, grid found:', !!grid);
   if (!grid) return;
   
-  const html = gapState.primitives.map(prim => `
-    <div class="spacing-primitive-item ${prim.enabled ? 'active' : ''}" 
+  grid.innerHTML = gapState.primitives.map(prim => `
+    <div class="spacing-prim-item ${prim.enabled ? 'enabled' : ''}" 
          data-gap-primitive="${prim.name}"
          title="gap.${prim.name} = ${prim.value}px">
-      <span class="spacing-primitive-value">${prim.value}</span>
+      <span class="prim-value">${prim.value}</span>
+      <span class="prim-name">gap.${prim.name}</span>
     </div>
   `).join('');
-  
-  console.log('Generated HTML length:', html.length);
-  grid.innerHTML = html;
   
   updateGapPrimitivesCount();
 }
@@ -176,7 +159,6 @@ function toggleGapPrimitive(name: string): void {
     prim.enabled = !prim.enabled;
     saveGapState();
     renderGapPrimitives();
-    // Update dropdowns in semantic section
     renderGapSemanticTokens();
   }
 }
@@ -198,16 +180,22 @@ function renderGapCategoryTabs(): void {
   const container = document.getElementById('gap-category-tabs');
   if (!container) return;
   
-  container.innerHTML = GAP_CATEGORIES.map(cat => `
-    <button class="spacing-category-tab ${cat.id === activeGapCategory ? 'active' : ''}"
-            data-gap-category="${cat.id}">
-      ${cat.icon} ${cat.label}
-    </button>
-  `).join('');
+  const categories = Object.keys(GAP_CATEGORIES) as GapCategory[];
+  
+  container.innerHTML = categories.map(cat => {
+    const info = GAP_CATEGORIES[cat];
+    const count = getGapTokensByCategory(gapState.semanticTokens, cat).length;
+    return `
+      <button class="category-tab ${cat === activeGapCategory ? 'active' : ''}" 
+              data-gap-category="${cat}" title="${info.description}">
+        ${info.icon} ${info.label} <span class="count">(${count})</span>
+      </button>
+    `;
+  }).join('');
 }
 
 // ============================================
-// RENDER SEMANTIC TOKENS
+// RENDER SEMANTIC TOKENS (with device modes)
 // ============================================
 
 function renderGapSemanticTokens(): void {
@@ -215,70 +203,80 @@ function renderGapSemanticTokens(): void {
   if (!container) return;
   
   const tokens = getGapTokensByCategory(gapState.semanticTokens, activeGapCategory);
-  const enabledPrimitives = getEnabledGapPrimitives(gapState.primitives);
+  const categoryInfo = GAP_CATEGORIES[activeGapCategory];
+  
+  // Update total count
+  const totalCounter = document.getElementById('gap-semantic-count');
+  if (totalCounter) totalCounter.textContent = `${gapState.semanticTokens.length}`;
   
   if (tokens.length === 0) {
-    container.innerHTML = '<div class="empty-state">Нет токенов в этой категории</div>';
+    container.innerHTML = `
+      <div class="empty-state">
+        <p>Нет токенов в категории "${categoryInfo.label}"</p>
+      </div>
+    `;
     return;
   }
   
-  // Build options for dropdown
-  const options = enabledPrimitives.map(p => 
-    `<option value="gap.${p.name}">gap.${p.name} (${p.value}px)</option>`
-  ).join('');
+  // Get enabled primitives for select options
+  const primOptions = gapState.primitives
+    .filter(p => p.enabled)
+    .map(p => `<option value="${p.name}">${p.value}px (gap.${p.name})</option>`)
+    .join('');
   
   container.innerHTML = `
-    <table class="semantic-table">
-      <thead>
-        <tr>
-          <th>Токен</th>
-          <th>Значение</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${tokens.map(token => `
-          <tr>
-            <td class="token-name">${token.id}</td>
-            <td>
-              <select class="gap-alias-select" data-gap-token-id="${token.id}">
-                ${options}
-              </select>
-            </td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
+    <div class="semantic-table">
+      <div class="semantic-table-header">
+        <div class="col-path">Путь токена</div>
+        <div class="col-device">Desktop</div>
+        <div class="col-device">Tablet</div>
+        <div class="col-device">Mobile</div>
+      </div>
+      ${tokens.map(token => `
+        <div class="semantic-token-row" data-token-id="${token.id}">
+          <div class="col-path">
+            <span class="token-path-display">${token.path}</span>
+          </div>
+          <div class="col-device">
+            <select class="device-select" data-field="desktop" data-token-id="${token.id}">
+              ${primOptions.replace(`value="${token.desktop}"`, `value="${token.desktop}" selected`)}
+            </select>
+          </div>
+          <div class="col-device">
+            <select class="device-select" data-field="tablet" data-token-id="${token.id}">
+              ${primOptions.replace(`value="${token.tablet}"`, `value="${token.tablet}" selected`)}
+            </select>
+          </div>
+          <div class="col-device">
+            <select class="device-select" data-field="mobile" data-token-id="${token.id}">
+              ${primOptions.replace(`value="${token.mobile}"`, `value="${token.mobile}" selected`)}
+            </select>
+          </div>
+        </div>
+      `).join('')}
+    </div>
   `;
   
-  // Set current values and add change handlers
-  container.querySelectorAll('.gap-alias-select').forEach(select => {
-    const tokenId = select.getAttribute('data-gap-token-id');
-    const token = gapState.semanticTokens.find(t => t.id === tokenId);
-    if (token) {
-      (select as HTMLSelectElement).value = token.aliasTo;
-    }
-    
+  // Add change handlers for selects
+  container.querySelectorAll('.device-select').forEach(select => {
     select.addEventListener('change', (e) => {
-      const newValue = (e.target as HTMLSelectElement).value;
-      updateGapTokenAlias(tokenId!, newValue);
+      const sel = e.target as HTMLSelectElement;
+      const tokenId = sel.getAttribute('data-token-id');
+      const field = sel.getAttribute('data-field') as 'desktop' | 'tablet' | 'mobile';
+      const value = sel.value;
+      
+      if (tokenId && field) {
+        updateGapTokenDevice(tokenId, field, value);
+      }
     });
   });
-  
-  updateGapSemanticCount();
 }
 
-function updateGapTokenAlias(tokenId: string, newAlias: string): void {
+function updateGapTokenDevice(tokenId: string, field: 'desktop' | 'tablet' | 'mobile', value: string): void {
   const token = gapState.semanticTokens.find(t => t.id === tokenId);
   if (token) {
-    token.aliasTo = newAlias;
+    token[field] = value;
     saveGapState();
-  }
-}
-
-function updateGapSemanticCount(): void {
-  const countEl = document.getElementById('gap-semantic-count');
-  if (countEl) {
-    countEl.textContent = String(gapState.semanticTokens.length);
   }
 }
 
@@ -308,7 +306,10 @@ function exportGapSemanticToFigma(): void {
       type: 'create-gap-semantic',
       tokens: gapState.semanticTokens.map(t => ({
         id: t.id,
-        aliasTo: t.aliasTo,
+        path: t.path,
+        desktop: t.desktop,
+        tablet: t.tablet,
+        mobile: t.mobile,
       })),
     }
   }, '*');

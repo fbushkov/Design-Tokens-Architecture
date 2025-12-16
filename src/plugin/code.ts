@@ -69,7 +69,13 @@ interface PluginMessage {
   payload?: unknown;
   data?: unknown;
   primitives?: Array<{ name: string; value: number }>;
-  tokens?: Array<{ id: string; aliasTo: string }>;
+  tokens?: Array<{ 
+    id: string; 
+    path: string;
+    desktop: string; 
+    tablet: string; 
+    mobile: string; 
+  }>;
 }
 
 // Show the plugin UI with resize support
@@ -2988,8 +2994,11 @@ async function createGapPrimitives(primitives: Array<{ name: string; value: numb
 
 interface GapSemanticData {
   tokens: Array<{
-    id: string;      // "gap.inline.icon"
-    aliasTo: string; // "gap.4"
+    id: string;       // "g-1"
+    path: string;     // "gap.inline.icon"
+    desktop: string;  // "4" (primitive name)
+    tablet: string;   // "4"
+    mobile: string;   // "4"
   }>;
 }
 
@@ -3012,10 +3021,36 @@ async function createGapSemanticCollection(data: GapSemanticData): Promise<{ cre
     gapCollection = figma.variables.createVariableCollection('Gap');
   }
   
+  // Setup modes: Desktop, Tablet, Mobile
+  const modeNames = ['Desktop', 'Tablet', 'Mobile'];
+  const modeIds: { [key: string]: string } = {};
+  
+  // Get existing modes
+  const existingModes = gapCollection.modes;
+  
+  // Rename first mode to Desktop
+  if (existingModes.length > 0) {
+    gapCollection.renameMode(existingModes[0].modeId, 'Desktop');
+    modeIds['Desktop'] = existingModes[0].modeId;
+  }
+  
+  // Add Tablet and Mobile modes if they don't exist
+  for (let i = 1; i < modeNames.length; i++) {
+    const modeName = modeNames[i];
+    const existingMode = gapCollection.modes.find(m => m.name === modeName);
+    
+    if (existingMode) {
+      modeIds[modeName] = existingMode.modeId;
+    } else {
+      const newModeId = gapCollection.addMode(modeName);
+      modeIds[modeName] = newModeId;
+    }
+  }
+  
   // Get all existing variables
   const allVariables = await figma.variables.getLocalVariablesAsync('FLOAT');
   
-  // Create map of primitive variables
+  // Create map of primitive variables (gap/0, gap/4, gap/8...)
   const primitiveVarMap = new Map<string, Variable>();
   allVariables.forEach(v => {
     if (v.variableCollectionId === primitivesCollection.id) {
@@ -3027,31 +3062,16 @@ async function createGapSemanticCollection(data: GapSemanticData): Promise<{ cre
     }
   });
   
-  // Existing semantic variables in this collection
+  // Existing semantic variables in Gap collection
   const existingGapVars = allVariables.filter(v => v.variableCollectionId === gapCollection!.id);
   const existingVarMap = new Map<string, Variable>();
   existingGapVars.forEach(v => existingVarMap.set(v.name, v));
   
-  // Create/update semantic tokens
+  // Create/update semantic tokens with device modes
   for (const token of data.tokens) {
     try {
-      // Convert id: "gap.inline.icon" -> "gap/inline/icon"
-      const varName = token.id.replace(/\./g, '/');
-      
-      // Parse aliasTo: "gap.4" -> "4"
-      const aliasMatch = token.aliasTo.match(/gap\.(\d+)/);
-      const primitiveKey = aliasMatch ? aliasMatch[1] : null;
-      
-      if (!primitiveKey) {
-        result.errors.push(`Неверный формат алиаса: ${token.aliasTo}`);
-        continue;
-      }
-      
-      const primitive = primitiveVarMap.get(primitiveKey);
-      if (!primitive) {
-        result.errors.push(`Примитив gap/${primitiveKey} не найден для токена ${token.id}`);
-        continue;
-      }
+      // Convert path: "gap.inline.icon" -> "gap/inline/icon"
+      const varName = token.path.replace(/\./g, '/');
       
       // Get or create variable
       let variable = existingVarMap.get(varName);
@@ -3060,14 +3080,33 @@ async function createGapSemanticCollection(data: GapSemanticData): Promise<{ cre
         result.created++;
       }
       
-      // Set alias
-      const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: primitive.id };
-      variable.setValueForMode(gapCollection!.defaultModeId, alias);
-      result.aliased++;
+      // Set alias for Desktop mode
+      const desktopPrimitive = primitiveVarMap.get(token.desktop);
+      if (desktopPrimitive && modeIds['Desktop']) {
+        const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: desktopPrimitive.id };
+        variable.setValueForMode(modeIds['Desktop'], alias);
+        result.aliased++;
+      }
+      
+      // Set alias for Tablet mode
+      const tabletPrimitive = primitiveVarMap.get(token.tablet);
+      if (tabletPrimitive && modeIds['Tablet']) {
+        const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: tabletPrimitive.id };
+        variable.setValueForMode(modeIds['Tablet'], alias);
+        result.aliased++;
+      }
+      
+      // Set alias for Mobile mode
+      const mobilePrimitive = primitiveVarMap.get(token.mobile);
+      if (mobilePrimitive && modeIds['Mobile']) {
+        const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: mobilePrimitive.id };
+        variable.setValueForMode(modeIds['Mobile'], alias);
+        result.aliased++;
+      }
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      result.errors.push(`Ошибка создания ${token.id}: ${errorMessage}`);
+      result.errors.push(`Ошибка создания ${token.path}: ${errorMessage}`);
     }
   }
   
@@ -3669,7 +3708,13 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       }
 
       case 'create-gap-semantic': {
-        const tokens = msg.tokens as Array<{ id: string; aliasTo: string }>;
+        const tokens = msg.tokens as Array<{ 
+          id: string; 
+          path: string;
+          desktop: string; 
+          tablet: string; 
+          mobile: string; 
+        }>;
         
         figma.notify(`⏳ Создание ${tokens.length} семантических токенов gap...`);
         

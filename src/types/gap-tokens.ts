@@ -1,9 +1,9 @@
 /**
  * Gap Tokens Type Definitions
- * 2-tier architecture for flex/grid gap values
+ * 2-tier architecture with device modes (like Spacing)
  * 
  * Level 1: Primitives (gap.0, gap.4, gap.8...) - in Primitives collection
- * Level 2: Semantic (gap.inline.icon, gap.action.group) - in Gap collection
+ * Level 2: Semantic (gap.inline.icon, gap.action.group) - in Gap collection with Desktop/Tablet/Mobile modes
  */
 
 // ============================================
@@ -38,16 +38,8 @@ export const DEFAULT_GAP_PRIMITIVES: GapPrimitive[] = [
 ];
 
 // ============================================
-// SEMANTIC TOKENS
+// SEMANTIC TOKENS (with device modes)
 // ============================================
-
-export interface GapSemanticToken {
-  id: string;           // "gap.inline.icon"
-  category: GapCategory;
-  name: string;         // "icon"
-  path: string[];       // ["inline", "icon"]
-  aliasTo: string;      // "gap.4"
-}
 
 export type GapCategory = 
   | 'inline'
@@ -64,21 +56,37 @@ export type GapCategory =
   | 'stack'
   | 'data';
 
-export const GAP_CATEGORIES: { id: GapCategory; label: string; icon: string }[] = [
-  { id: 'inline', label: 'Инлайн', icon: '📍' },
-  { id: 'action', label: 'Действия', icon: '🔘' },
-  { id: 'form', label: 'Формы', icon: '📝' },
-  { id: 'card', label: 'Карточки', icon: '🃏' },
-  { id: 'list', label: 'Списки', icon: '📋' },
-  { id: 'navigation', label: 'Навигация', icon: '🧭' },
-  { id: 'table', label: 'Таблицы', icon: '📊' },
-  { id: 'modal', label: 'Модалки', icon: '🪟' },
-  { id: 'alert', label: 'Уведомления', icon: '🔔' },
-  { id: 'content', label: 'Контент', icon: '📄' },
-  { id: 'grid', label: 'Сетки', icon: '⊞' },
-  { id: 'stack', label: 'Стеки', icon: '📚' },
-  { id: 'data', label: 'Данные', icon: '📈' },
-];
+export const GAP_CATEGORIES: Record<GapCategory, { label: string; icon: string; description: string }> = {
+  inline: { label: 'Инлайн', icon: '📍', description: 'Иконки, бейджи, теги' },
+  action: { label: 'Действия', icon: '🔘', description: 'Кнопки, тулбары' },
+  form: { label: 'Формы', icon: '📝', description: 'Поля, группы полей' },
+  card: { label: 'Карточки', icon: '🃏', description: 'Header, body, footer' },
+  list: { label: 'Списки', icon: '📋', description: 'Элементы списков' },
+  navigation: { label: 'Навигация', icon: '🧭', description: 'Табы, меню, хлебные крошки' },
+  table: { label: 'Таблицы', icon: '📊', description: 'Ячейки, строки' },
+  modal: { label: 'Модалки', icon: '🪟', description: 'Диалоги, попапы' },
+  alert: { label: 'Уведомления', icon: '🔔', description: 'Алерты, тосты, баннеры' },
+  content: { label: 'Контент', icon: '📄', description: 'Секции, блоки, абзацы' },
+  grid: { label: 'Сетки', icon: '⊞', description: 'Grid layouts' },
+  stack: { label: 'Стеки', icon: '📚', description: 'Vertical stacks' },
+  data: { label: 'Данные', icon: '📈', description: 'Метрики, графики' },
+};
+
+export interface GapSemanticToken {
+  id: string;
+  path: string;           // "gap.inline.icon"
+  category: GapCategory;
+  description?: string;
+  // Device-specific references to primitives (primitive name like "4" -> {gap.4})
+  desktop: string;
+  tablet: string;
+  mobile: string;
+}
+
+export interface GapState {
+  primitives: GapPrimitive[];
+  semanticTokens: GapSemanticToken[];
+}
 
 // ============================================
 // DEFAULT SEMANTIC TOKENS
@@ -88,164 +96,159 @@ export const DEFAULT_GAP_SEMANTIC_TOKENS: GapSemanticToken[] = [
   // ----------------------------------------
   // INLINE ELEMENTS
   // ----------------------------------------
-  { id: 'gap.inline.icon', category: 'inline', name: 'icon', path: ['inline', 'icon'], aliasTo: 'gap.4' },
-  { id: 'gap.inline.text', category: 'inline', name: 'text', path: ['inline', 'text'], aliasTo: 'gap.4' },
-  { id: 'gap.inline.badge', category: 'inline', name: 'badge', path: ['inline', 'badge'], aliasTo: 'gap.6' },
-  { id: 'gap.inline.tag', category: 'inline', name: 'tag', path: ['inline', 'tag'], aliasTo: 'gap.8' },
-  { id: 'gap.inline.action', category: 'inline', name: 'action', path: ['inline', 'action'], aliasTo: 'gap.8' },
+  { id: 'g-1', path: 'gap.inline.icon', category: 'inline', desktop: '4', tablet: '4', mobile: '4' },
+  { id: 'g-2', path: 'gap.inline.text', category: 'inline', desktop: '4', tablet: '4', mobile: '4' },
+  { id: 'g-3', path: 'gap.inline.badge', category: 'inline', desktop: '6', tablet: '6', mobile: '4' },
+  { id: 'g-4', path: 'gap.inline.tag', category: 'inline', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-5', path: 'gap.inline.action', category: 'inline', desktop: '8', tablet: '8', mobile: '6' },
 
   // ----------------------------------------
   // ACTIONS (Buttons, Toolbars)
   // ----------------------------------------
-  { id: 'gap.action.group', category: 'action', name: 'group', path: ['action', 'group'], aliasTo: 'gap.8' },
-  { id: 'gap.action.groupCompact', category: 'action', name: 'groupCompact', path: ['action', 'groupCompact'], aliasTo: 'gap.4' },
-  { id: 'gap.action.groupSpacious', category: 'action', name: 'groupSpacious', path: ['action', 'groupSpacious'], aliasTo: 'gap.12' },
-  { id: 'gap.action.toolbar', category: 'action', name: 'toolbar', path: ['action', 'toolbar'], aliasTo: 'gap.4' },
-  { id: 'gap.action.toolbarSection', category: 'action', name: 'toolbarSection', path: ['action', 'toolbarSection'], aliasTo: 'gap.12' },
-  { id: 'gap.action.buttonContent', category: 'action', name: 'buttonContent', path: ['action', 'buttonContent'], aliasTo: 'gap.8' },
-  { id: 'gap.action.buttonContentCompact', category: 'action', name: 'buttonContentCompact', path: ['action', 'buttonContentCompact'], aliasTo: 'gap.6' },
+  { id: 'g-10', path: 'gap.action.group', category: 'action', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-11', path: 'gap.action.groupCompact', category: 'action', desktop: '4', tablet: '4', mobile: '4' },
+  { id: 'g-12', path: 'gap.action.groupSpacious', category: 'action', desktop: '12', tablet: '12', mobile: '8' },
+  { id: 'g-13', path: 'gap.action.toolbar', category: 'action', desktop: '4', tablet: '4', mobile: '4' },
+  { id: 'g-14', path: 'gap.action.toolbarSection', category: 'action', desktop: '12', tablet: '12', mobile: '8' },
+  { id: 'g-15', path: 'gap.action.buttonContent', category: 'action', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-16', path: 'gap.action.buttonContentCompact', category: 'action', desktop: '6', tablet: '6', mobile: '4' },
 
   // ----------------------------------------
   // FORMS
   // ----------------------------------------
-  { id: 'gap.form.field', category: 'form', name: 'field', path: ['form', 'field'], aliasTo: 'gap.16' },
-  { id: 'gap.form.fieldCompact', category: 'form', name: 'fieldCompact', path: ['form', 'fieldCompact'], aliasTo: 'gap.12' },
-  { id: 'gap.form.fieldSpacious', category: 'form', name: 'fieldSpacious', path: ['form', 'fieldSpacious'], aliasTo: 'gap.20' },
-  { id: 'gap.form.group', category: 'form', name: 'group', path: ['form', 'group'], aliasTo: 'gap.24' },
-  { id: 'gap.form.section', category: 'form', name: 'section', path: ['form', 'section'], aliasTo: 'gap.32' },
-  { id: 'gap.form.inline', category: 'form', name: 'inline', path: ['form', 'inline'], aliasTo: 'gap.12' },
-  { id: 'gap.form.inlineCompact', category: 'form', name: 'inlineCompact', path: ['form', 'inlineCompact'], aliasTo: 'gap.8' },
-  { id: 'gap.form.labelGroup', category: 'form', name: 'labelGroup', path: ['form', 'labelGroup'], aliasTo: 'gap.4' },
-  { id: 'gap.form.radioGroup', category: 'form', name: 'radioGroup', path: ['form', 'radioGroup'], aliasTo: 'gap.12' },
-  { id: 'gap.form.checkboxGroup', category: 'form', name: 'checkboxGroup', path: ['form', 'checkboxGroup'], aliasTo: 'gap.12' },
-  { id: 'gap.form.actions', category: 'form', name: 'actions', path: ['form', 'actions'], aliasTo: 'gap.12' },
-  { id: 'gap.form.actionsCompact', category: 'form', name: 'actionsCompact', path: ['form', 'actionsCompact'], aliasTo: 'gap.8' },
+  { id: 'g-20', path: 'gap.form.field', category: 'form', desktop: '16', tablet: '16', mobile: '12' },
+  { id: 'g-21', path: 'gap.form.fieldCompact', category: 'form', desktop: '12', tablet: '12', mobile: '8' },
+  { id: 'g-22', path: 'gap.form.fieldSpacious', category: 'form', desktop: '20', tablet: '20', mobile: '16' },
+  { id: 'g-23', path: 'gap.form.group', category: 'form', desktop: '24', tablet: '24', mobile: '20' },
+  { id: 'g-24', path: 'gap.form.section', category: 'form', desktop: '32', tablet: '32', mobile: '24' },
+  { id: 'g-25', path: 'gap.form.inline', category: 'form', desktop: '12', tablet: '12', mobile: '8' },
+  { id: 'g-26', path: 'gap.form.inlineCompact', category: 'form', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-27', path: 'gap.form.labelGroup', category: 'form', desktop: '4', tablet: '4', mobile: '4' },
+  { id: 'g-28', path: 'gap.form.radioGroup', category: 'form', desktop: '12', tablet: '12', mobile: '10' },
+  { id: 'g-29', path: 'gap.form.checkboxGroup', category: 'form', desktop: '12', tablet: '12', mobile: '10' },
+  { id: 'g-30', path: 'gap.form.actions', category: 'form', desktop: '12', tablet: '12', mobile: '8' },
+  { id: 'g-31', path: 'gap.form.actionsCompact', category: 'form', desktop: '8', tablet: '8', mobile: '6' },
 
   // ----------------------------------------
   // CARDS
   // ----------------------------------------
-  { id: 'gap.card.header', category: 'card', name: 'header', path: ['card', 'header'], aliasTo: 'gap.8' },
-  { id: 'gap.card.body', category: 'card', name: 'body', path: ['card', 'body'], aliasTo: 'gap.12' },
-  { id: 'gap.card.footer', category: 'card', name: 'footer', path: ['card', 'footer'], aliasTo: 'gap.12' },
-  { id: 'gap.card.sections', category: 'card', name: 'sections', path: ['card', 'sections'], aliasTo: 'gap.16' },
-  { id: 'gap.card.meta', category: 'card', name: 'meta', path: ['card', 'meta'], aliasTo: 'gap.8' },
-  { id: 'gap.card.actions', category: 'card', name: 'actions', path: ['card', 'actions'], aliasTo: 'gap.8' },
-  { id: 'gap.card.tags', category: 'card', name: 'tags', path: ['card', 'tags'], aliasTo: 'gap.6' },
+  { id: 'g-40', path: 'gap.card.header', category: 'card', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-41', path: 'gap.card.body', category: 'card', desktop: '12', tablet: '12', mobile: '10' },
+  { id: 'g-42', path: 'gap.card.footer', category: 'card', desktop: '12', tablet: '12', mobile: '8' },
+  { id: 'g-43', path: 'gap.card.sections', category: 'card', desktop: '16', tablet: '16', mobile: '12' },
+  { id: 'g-44', path: 'gap.card.meta', category: 'card', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-45', path: 'gap.card.actions', category: 'card', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-46', path: 'gap.card.tags', category: 'card', desktop: '6', tablet: '6', mobile: '4' },
 
   // ----------------------------------------
   // LISTS
   // ----------------------------------------
-  { id: 'gap.list.items', category: 'list', name: 'items', path: ['list', 'items'], aliasTo: 'gap.0' },
-  { id: 'gap.list.itemsSpaced', category: 'list', name: 'itemsSpaced', path: ['list', 'itemsSpaced'], aliasTo: 'gap.4' },
-  { id: 'gap.list.itemsLoose', category: 'list', name: 'itemsLoose', path: ['list', 'itemsLoose'], aliasTo: 'gap.8' },
-  { id: 'gap.list.itemContent', category: 'list', name: 'itemContent', path: ['list', 'itemContent'], aliasTo: 'gap.12' },
-  { id: 'gap.list.itemContentCompact', category: 'list', name: 'itemContentCompact', path: ['list', 'itemContentCompact'], aliasTo: 'gap.8' },
-  { id: 'gap.list.itemMeta', category: 'list', name: 'itemMeta', path: ['list', 'itemMeta'], aliasTo: 'gap.8' },
-  { id: 'gap.list.itemActions', category: 'list', name: 'itemActions', path: ['list', 'itemActions'], aliasTo: 'gap.4' },
-  { id: 'gap.list.groups', category: 'list', name: 'groups', path: ['list', 'groups'], aliasTo: 'gap.16' },
+  { id: 'g-50', path: 'gap.list.items', category: 'list', desktop: '0', tablet: '0', mobile: '0' },
+  { id: 'g-51', path: 'gap.list.itemsSpaced', category: 'list', desktop: '4', tablet: '4', mobile: '4' },
+  { id: 'g-52', path: 'gap.list.itemsLoose', category: 'list', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-53', path: 'gap.list.itemContent', category: 'list', desktop: '12', tablet: '12', mobile: '10' },
+  { id: 'g-54', path: 'gap.list.itemContentCompact', category: 'list', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-55', path: 'gap.list.itemMeta', category: 'list', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-56', path: 'gap.list.itemActions', category: 'list', desktop: '4', tablet: '4', mobile: '4' },
+  { id: 'g-57', path: 'gap.list.groups', category: 'list', desktop: '16', tablet: '16', mobile: '12' },
 
   // ----------------------------------------
   // NAVIGATION
   // ----------------------------------------
-  { id: 'gap.navigation.items', category: 'navigation', name: 'items', path: ['navigation', 'items'], aliasTo: 'gap.4' },
-  { id: 'gap.navigation.itemsCompact', category: 'navigation', name: 'itemsCompact', path: ['navigation', 'itemsCompact'], aliasTo: 'gap.2' },
-  { id: 'gap.navigation.itemsSpacious', category: 'navigation', name: 'itemsSpacious', path: ['navigation', 'itemsSpacious'], aliasTo: 'gap.8' },
-  { id: 'gap.navigation.tabs', category: 'navigation', name: 'tabs', path: ['navigation', 'tabs'], aliasTo: 'gap.0' },
-  { id: 'gap.navigation.tabsSpaced', category: 'navigation', name: 'tabsSpaced', path: ['navigation', 'tabsSpaced'], aliasTo: 'gap.4' },
-  { id: 'gap.navigation.breadcrumb', category: 'navigation', name: 'breadcrumb', path: ['navigation', 'breadcrumb'], aliasTo: 'gap.8' },
-  { id: 'gap.navigation.breadcrumbSeparator', category: 'navigation', name: 'breadcrumbSeparator', path: ['navigation', 'breadcrumbSeparator'], aliasTo: 'gap.8' },
-  { id: 'gap.navigation.pagination', category: 'navigation', name: 'pagination', path: ['navigation', 'pagination'], aliasTo: 'gap.4' },
-  { id: 'gap.navigation.menuSections', category: 'navigation', name: 'menuSections', path: ['navigation', 'menuSections'], aliasTo: 'gap.8' },
+  { id: 'g-60', path: 'gap.navigation.items', category: 'navigation', desktop: '4', tablet: '4', mobile: '4' },
+  { id: 'g-61', path: 'gap.navigation.itemsCompact', category: 'navigation', desktop: '2', tablet: '2', mobile: '2' },
+  { id: 'g-62', path: 'gap.navigation.itemsSpacious', category: 'navigation', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-63', path: 'gap.navigation.tabs', category: 'navigation', desktop: '0', tablet: '0', mobile: '0' },
+  { id: 'g-64', path: 'gap.navigation.tabsSpaced', category: 'navigation', desktop: '4', tablet: '4', mobile: '4' },
+  { id: 'g-65', path: 'gap.navigation.breadcrumb', category: 'navigation', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-66', path: 'gap.navigation.breadcrumbSeparator', category: 'navigation', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-67', path: 'gap.navigation.pagination', category: 'navigation', desktop: '4', tablet: '4', mobile: '4' },
+  { id: 'g-68', path: 'gap.navigation.menuSections', category: 'navigation', desktop: '8', tablet: '8', mobile: '6' },
 
   // ----------------------------------------
   // TABLES
   // ----------------------------------------
-  { id: 'gap.table.headerCells', category: 'table', name: 'headerCells', path: ['table', 'headerCells'], aliasTo: 'gap.0' },
-  { id: 'gap.table.rows', category: 'table', name: 'rows', path: ['table', 'rows'], aliasTo: 'gap.0' },
-  { id: 'gap.table.rowsStriped', category: 'table', name: 'rowsStriped', path: ['table', 'rowsStriped'], aliasTo: 'gap.0' },
-  { id: 'gap.table.cellContent', category: 'table', name: 'cellContent', path: ['table', 'cellContent'], aliasTo: 'gap.8' },
-  { id: 'gap.table.cellActions', category: 'table', name: 'cellActions', path: ['table', 'cellActions'], aliasTo: 'gap.4' },
-  { id: 'gap.table.toolbar', category: 'table', name: 'toolbar', path: ['table', 'toolbar'], aliasTo: 'gap.12' },
-  { id: 'gap.table.toolbarActions', category: 'table', name: 'toolbarActions', path: ['table', 'toolbarActions'], aliasTo: 'gap.8' },
-  { id: 'gap.table.pagination', category: 'table', name: 'pagination', path: ['table', 'pagination'], aliasTo: 'gap.16' },
+  { id: 'g-70', path: 'gap.table.headerCells', category: 'table', desktop: '0', tablet: '0', mobile: '0' },
+  { id: 'g-71', path: 'gap.table.rows', category: 'table', desktop: '0', tablet: '0', mobile: '0' },
+  { id: 'g-72', path: 'gap.table.rowsStriped', category: 'table', desktop: '0', tablet: '0', mobile: '0' },
+  { id: 'g-73', path: 'gap.table.cellContent', category: 'table', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-74', path: 'gap.table.cellActions', category: 'table', desktop: '4', tablet: '4', mobile: '4' },
+  { id: 'g-75', path: 'gap.table.toolbar', category: 'table', desktop: '12', tablet: '12', mobile: '8' },
+  { id: 'g-76', path: 'gap.table.toolbarActions', category: 'table', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-77', path: 'gap.table.pagination', category: 'table', desktop: '16', tablet: '16', mobile: '12' },
 
   // ----------------------------------------
   // MODALS
   // ----------------------------------------
-  { id: 'gap.modal.header', category: 'modal', name: 'header', path: ['modal', 'header'], aliasTo: 'gap.8' },
-  { id: 'gap.modal.body', category: 'modal', name: 'body', path: ['modal', 'body'], aliasTo: 'gap.16' },
-  { id: 'gap.modal.footer', category: 'modal', name: 'footer', path: ['modal', 'footer'], aliasTo: 'gap.12' },
-  { id: 'gap.modal.sections', category: 'modal', name: 'sections', path: ['modal', 'sections'], aliasTo: 'gap.24' },
-  { id: 'gap.modal.actions', category: 'modal', name: 'actions', path: ['modal', 'actions'], aliasTo: 'gap.12' },
-  { id: 'gap.modal.actionsCompact', category: 'modal', name: 'actionsCompact', path: ['modal', 'actionsCompact'], aliasTo: 'gap.8' },
+  { id: 'g-80', path: 'gap.modal.header', category: 'modal', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-81', path: 'gap.modal.body', category: 'modal', desktop: '16', tablet: '16', mobile: '12' },
+  { id: 'g-82', path: 'gap.modal.footer', category: 'modal', desktop: '12', tablet: '12', mobile: '8' },
+  { id: 'g-83', path: 'gap.modal.sections', category: 'modal', desktop: '24', tablet: '24', mobile: '20' },
+  { id: 'g-84', path: 'gap.modal.actions', category: 'modal', desktop: '12', tablet: '12', mobile: '8' },
+  { id: 'g-85', path: 'gap.modal.actionsCompact', category: 'modal', desktop: '8', tablet: '8', mobile: '6' },
 
   // ----------------------------------------
   // ALERTS & NOTIFICATIONS
   // ----------------------------------------
-  { id: 'gap.alert.content', category: 'alert', name: 'content', path: ['alert', 'content'], aliasTo: 'gap.8' },
-  { id: 'gap.alert.actions', category: 'alert', name: 'actions', path: ['alert', 'actions'], aliasTo: 'gap.12' },
-  { id: 'gap.toast.content', category: 'alert', name: 'toast.content', path: ['toast', 'content'], aliasTo: 'gap.8' },
-  { id: 'gap.toast.actions', category: 'alert', name: 'toast.actions', path: ['toast', 'actions'], aliasTo: 'gap.8' },
-  { id: 'gap.banner.content', category: 'alert', name: 'banner.content', path: ['banner', 'content'], aliasTo: 'gap.12' },
-  { id: 'gap.banner.actions', category: 'alert', name: 'banner.actions', path: ['banner', 'actions'], aliasTo: 'gap.16' },
+  { id: 'g-90', path: 'gap.alert.content', category: 'alert', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-91', path: 'gap.alert.actions', category: 'alert', desktop: '12', tablet: '12', mobile: '8' },
+  { id: 'g-92', path: 'gap.toast.content', category: 'alert', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-93', path: 'gap.toast.actions', category: 'alert', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-94', path: 'gap.banner.content', category: 'alert', desktop: '12', tablet: '12', mobile: '10' },
+  { id: 'g-95', path: 'gap.banner.actions', category: 'alert', desktop: '16', tablet: '16', mobile: '12' },
 
   // ----------------------------------------
   // CONTENT
   // ----------------------------------------
-  { id: 'gap.content.sections', category: 'content', name: 'sections', path: ['content', 'sections'], aliasTo: 'gap.48' },
-  { id: 'gap.content.sectionsCompact', category: 'content', name: 'sectionsCompact', path: ['content', 'sectionsCompact'], aliasTo: 'gap.32' },
-  { id: 'gap.content.blocks', category: 'content', name: 'blocks', path: ['content', 'blocks'], aliasTo: 'gap.24' },
-  { id: 'gap.content.blocksCompact', category: 'content', name: 'blocksCompact', path: ['content', 'blocksCompact'], aliasTo: 'gap.16' },
-  { id: 'gap.content.paragraphs', category: 'content', name: 'paragraphs', path: ['content', 'paragraphs'], aliasTo: 'gap.16' },
-  { id: 'gap.content.list', category: 'content', name: 'list', path: ['content', 'list'], aliasTo: 'gap.8' },
-  { id: 'gap.content.listCompact', category: 'content', name: 'listCompact', path: ['content', 'listCompact'], aliasTo: 'gap.4' },
-  { id: 'gap.content.headingToContent', category: 'content', name: 'headingToContent', path: ['content', 'headingToContent'], aliasTo: 'gap.16' },
-  { id: 'gap.content.contentToHeading', category: 'content', name: 'contentToHeading', path: ['content', 'contentToHeading'], aliasTo: 'gap.32' },
+  { id: 'g-100', path: 'gap.content.sections', category: 'content', desktop: '48', tablet: '40', mobile: '32' },
+  { id: 'g-101', path: 'gap.content.sectionsCompact', category: 'content', desktop: '32', tablet: '28', mobile: '24' },
+  { id: 'g-102', path: 'gap.content.blocks', category: 'content', desktop: '24', tablet: '20', mobile: '16' },
+  { id: 'g-103', path: 'gap.content.blocksCompact', category: 'content', desktop: '16', tablet: '16', mobile: '12' },
+  { id: 'g-104', path: 'gap.content.paragraphs', category: 'content', desktop: '16', tablet: '16', mobile: '12' },
+  { id: 'g-105', path: 'gap.content.list', category: 'content', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-106', path: 'gap.content.listCompact', category: 'content', desktop: '4', tablet: '4', mobile: '4' },
+  { id: 'g-107', path: 'gap.content.headingToContent', category: 'content', desktop: '16', tablet: '16', mobile: '12' },
+  { id: 'g-108', path: 'gap.content.contentToHeading', category: 'content', desktop: '32', tablet: '28', mobile: '24' },
 
   // ----------------------------------------
   // GRID (Flex/Grid layouts)
   // ----------------------------------------
-  { id: 'gap.grid.tight', category: 'grid', name: 'tight', path: ['grid', 'tight'], aliasTo: 'gap.8' },
-  { id: 'gap.grid.default', category: 'grid', name: 'default', path: ['grid', 'default'], aliasTo: 'gap.16' },
-  { id: 'gap.grid.relaxed', category: 'grid', name: 'relaxed', path: ['grid', 'relaxed'], aliasTo: 'gap.24' },
-  { id: 'gap.grid.loose', category: 'grid', name: 'loose', path: ['grid', 'loose'], aliasTo: 'gap.32' },
-  { id: 'gap.grid.extraLoose', category: 'grid', name: 'extraLoose', path: ['grid', 'extraLoose'], aliasTo: 'gap.48' },
-  { id: 'gap.grid.cards', category: 'grid', name: 'cards', path: ['grid', 'cards'], aliasTo: 'gap.16' },
-  { id: 'gap.grid.cardsCompact', category: 'grid', name: 'cardsCompact', path: ['grid', 'cardsCompact'], aliasTo: 'gap.12' },
-  { id: 'gap.grid.cardsSpacious', category: 'grid', name: 'cardsSpacious', path: ['grid', 'cardsSpacious'], aliasTo: 'gap.24' },
-  { id: 'gap.grid.tiles', category: 'grid', name: 'tiles', path: ['grid', 'tiles'], aliasTo: 'gap.8' },
-  { id: 'gap.grid.gallery', category: 'grid', name: 'gallery', path: ['grid', 'gallery'], aliasTo: 'gap.4' },
-  { id: 'gap.grid.masonry', category: 'grid', name: 'masonry', path: ['grid', 'masonry'], aliasTo: 'gap.16' },
+  { id: 'g-110', path: 'gap.grid.tight', category: 'grid', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-111', path: 'gap.grid.default', category: 'grid', desktop: '16', tablet: '16', mobile: '12' },
+  { id: 'g-112', path: 'gap.grid.relaxed', category: 'grid', desktop: '24', tablet: '20', mobile: '16' },
+  { id: 'g-113', path: 'gap.grid.loose', category: 'grid', desktop: '32', tablet: '28', mobile: '24' },
+  { id: 'g-114', path: 'gap.grid.extraLoose', category: 'grid', desktop: '48', tablet: '40', mobile: '32' },
+  { id: 'g-115', path: 'gap.grid.cards', category: 'grid', desktop: '16', tablet: '16', mobile: '12' },
+  { id: 'g-116', path: 'gap.grid.cardsCompact', category: 'grid', desktop: '12', tablet: '12', mobile: '8' },
+  { id: 'g-117', path: 'gap.grid.cardsSpacious', category: 'grid', desktop: '24', tablet: '20', mobile: '16' },
+  { id: 'g-118', path: 'gap.grid.tiles', category: 'grid', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-119', path: 'gap.grid.gallery', category: 'grid', desktop: '4', tablet: '4', mobile: '4' },
+  { id: 'g-120', path: 'gap.grid.masonry', category: 'grid', desktop: '16', tablet: '16', mobile: '12' },
 
   // ----------------------------------------
   // STACK (Vertical groups)
   // ----------------------------------------
-  { id: 'gap.stack.none', category: 'stack', name: 'none', path: ['stack', 'none'], aliasTo: 'gap.0' },
-  { id: 'gap.stack.tight', category: 'stack', name: 'tight', path: ['stack', 'tight'], aliasTo: 'gap.4' },
-  { id: 'gap.stack.default', category: 'stack', name: 'default', path: ['stack', 'default'], aliasTo: 'gap.8' },
-  { id: 'gap.stack.relaxed', category: 'stack', name: 'relaxed', path: ['stack', 'relaxed'], aliasTo: 'gap.12' },
-  { id: 'gap.stack.loose', category: 'stack', name: 'loose', path: ['stack', 'loose'], aliasTo: 'gap.16' },
-  { id: 'gap.stack.extraLoose', category: 'stack', name: 'extraLoose', path: ['stack', 'extraLoose'], aliasTo: 'gap.24' },
+  { id: 'g-130', path: 'gap.stack.none', category: 'stack', desktop: '0', tablet: '0', mobile: '0' },
+  { id: 'g-131', path: 'gap.stack.tight', category: 'stack', desktop: '4', tablet: '4', mobile: '4' },
+  { id: 'g-132', path: 'gap.stack.default', category: 'stack', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-133', path: 'gap.stack.relaxed', category: 'stack', desktop: '12', tablet: '12', mobile: '10' },
+  { id: 'g-134', path: 'gap.stack.loose', category: 'stack', desktop: '16', tablet: '16', mobile: '12' },
+  { id: 'g-135', path: 'gap.stack.extraLoose', category: 'stack', desktop: '24', tablet: '20', mobile: '16' },
 
   // ----------------------------------------
   // DATA (Metrics, Charts)
   // ----------------------------------------
-  { id: 'gap.data.metric', category: 'data', name: 'metric', path: ['data', 'metric'], aliasTo: 'gap.4' },
-  { id: 'gap.data.metricGroup', category: 'data', name: 'metricGroup', path: ['data', 'metricGroup'], aliasTo: 'gap.24' },
-  { id: 'gap.data.stat', category: 'data', name: 'stat', path: ['data', 'stat'], aliasTo: 'gap.8' },
-  { id: 'gap.data.statGroup', category: 'data', name: 'statGroup', path: ['data', 'statGroup'], aliasTo: 'gap.32' },
-  { id: 'gap.data.chart.legend', category: 'data', name: 'chart.legend', path: ['data', 'chart', 'legend'], aliasTo: 'gap.12' },
-  { id: 'gap.data.chart.labels', category: 'data', name: 'chart.labels', path: ['data', 'chart', 'labels'], aliasTo: 'gap.8' },
+  { id: 'g-140', path: 'gap.data.metric', category: 'data', desktop: '4', tablet: '4', mobile: '4' },
+  { id: 'g-141', path: 'gap.data.metricGroup', category: 'data', desktop: '24', tablet: '20', mobile: '16' },
+  { id: 'g-142', path: 'gap.data.stat', category: 'data', desktop: '8', tablet: '8', mobile: '6' },
+  { id: 'g-143', path: 'gap.data.statGroup', category: 'data', desktop: '32', tablet: '28', mobile: '24' },
+  { id: 'g-144', path: 'gap.data.chartLegend', category: 'data', desktop: '12', tablet: '12', mobile: '10' },
+  { id: 'g-145', path: 'gap.data.chartLabels', category: 'data', desktop: '8', tablet: '8', mobile: '6' },
 ];
 
 // ============================================
 // STATE
 // ============================================
-
-export interface GapState {
-  primitives: GapPrimitive[];
-  semanticTokens: GapSemanticToken[];
-}
 
 export function createDefaultGapState(): GapState {
   return {
@@ -257,10 +260,6 @@ export function createDefaultGapState(): GapState {
 // ============================================
 // HELPERS
 // ============================================
-
-export function generateGapTokenId(category: GapCategory, ...pathParts: string[]): string {
-  return `gap.${category}.${pathParts.join('.')}`;
-}
 
 export function getGapTokensByCategory(tokens: GapSemanticToken[], category: GapCategory): GapSemanticToken[] {
   return tokens.filter(t => t.category === category);
