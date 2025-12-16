@@ -1,117 +1,50 @@
 /**
  * Plugin UI Script
- * Color palette generation and Figma integration
+ * Main entry point for the Design Tokens Manager UI
  */
 
-// ============================================
-// COLOR GENERATOR (inline for sandbox)
-// ============================================
+import {
+  renderTokenManager,
+  initTokenManagerEvents,
+  initTokenManager,
+} from './token-manager-ui';
 
-interface RGBAColor {
-  r: number;
-  g: number;
-  b: number;
-  a: number;
-}
+import {
+  renderTokenEditor,
+  initTokenEditorEvents,
+} from './token-editor-ui';
 
-interface ColorValueData {
-  hex: string;
-  rgba: RGBAColor;
-}
+import {
+  initPrimitivesGenerator,
+  getGeneratedPalettes,
+} from './primitives-generator-ui';
 
-interface GeneratedColorToken {
-  $type: 'color';
-  $value: ColorValueData;
-  $description?: string;
-}
+import {
+  initTokensTab,
+} from './tokens-generator-ui';
 
-const OPACITY_SCALE = [25, 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375, 400, 425, 450, 475, 500, 525, 550, 575, 600, 625, 650, 675, 700, 725, 750, 775, 800, 825, 850, 875, 900, 925, 950, 975] as const;
-type OpacityStep = typeof OPACITY_SCALE[number];
+import {
+  initComponentsTab,
+} from './components-generator-ui';
 
-function parseHexToRgba(hex: string): RGBAColor {
-  const cleanHex = hex.replace('#', '');
-  const fullHex = cleanHex.length === 3 
-    ? cleanHex.split('').map(c => c + c).join('')
-    : cleanHex;
-  
-  return {
-    r: parseInt(fullHex.substring(0, 2), 16) / 255,
-    g: parseInt(fullHex.substring(2, 4), 16) / 255,
-    b: parseInt(fullHex.substring(4, 6), 16) / 255,
-    a: 1
-  };
-}
+import {
+  getState,
+  getTokens,
+  saveState,
+} from '../types/token-manager-state';
 
-function formatRgbaToHex(rgba: RGBAColor): string {
-  const toHex = (n: number): string => {
-    const hex = Math.round(Math.min(1, Math.max(0, n)) * 255).toString(16);
-    return hex.length === 1 ? '0' + hex : hex;
-  };
-  
-  const hex = `#${toHex(rgba.r)}${toHex(rgba.g)}${toHex(rgba.b)}`;
-  return rgba.a < 1 ? hex + toHex(rgba.a) : hex;
-}
+import { TMColorValue } from '../types/token-manager';
 
-function blendColors(background: RGBAColor, foreground: RGBAColor, alpha: number): RGBAColor {
-  return {
-    r: foreground.r * alpha + background.r * (1 - alpha),
-    g: foreground.g * alpha + background.g * (1 - alpha),
-    b: foreground.b * alpha + background.b * (1 - alpha),
-    a: 1
-  };
-}
-
-// Color scale: 25-475 = lighter shades, 500 = base, 525-975 = darker shades
-// Total: 38 steps (19 light + 500 + 19 dark, but we skip 500 since it's base)
-interface ColorPaletteData {
-  name: string;
-  shades: Record<number, { hex: string; rgba: RGBAColor }>;
-}
-
-function generatePalette(name: string, hex: string): ColorPaletteData {
-  const baseRgba = parseHexToRgba(hex);
-  const white: RGBAColor = { r: 1, g: 1, b: 1, a: 1 };
-  const black: RGBAColor = { r: 0, g: 0, b: 0, a: 1 };
-  
-  const palette: ColorPaletteData = {
-    name,
-    shades: {}
-  };
-
-  // Generate all shades from 25 to 975
-  // 25-475: lighter (blend with white, 25 = most white, 475 = almost base)
-  // 500: base color
-  // 525-975: darker (blend with black, 525 = almost base, 975 = most black)
-  
-  for (const step of OPACITY_SCALE) {
-    let rgba: RGBAColor;
-    
-    if (step < 500) {
-      // Lighter shades: blend base with white
-      // step 25 = 95% white, step 475 = 5% white
-      const whiteAmount = (500 - step) / 500; // 0.95 at 25, 0.05 at 475
-      rgba = blendColors(baseRgba, white, whiteAmount);
-    } else if (step === 500) {
-      // Base color
-      rgba = { ...baseRgba };
-    } else {
-      // Darker shades: blend base with black
-      // step 525 = 5% black, step 975 = 95% black
-      const blackAmount = (step - 500) / 500; // 0.05 at 525, 0.95 at 975
-      rgba = blendColors(baseRgba, black, blackAmount);
-    }
-    
-    palette.shades[step] = { hex: formatRgbaToHex(rgba).toUpperCase(), rgba };
-  }
-
-  return palette;
-}
+import {
+  exportTokens,
+  exportToFigmaVariables,
+  ExportFormat,
+} from '../utils/export-utils';
 
 // ============================================
 // STATE
 // ============================================
 
-let generatedPalettes: ColorPaletteData[] = [];
 let exportOutput = '';
 
 // ============================================
@@ -124,23 +57,7 @@ const elements = {
   tabs: document.querySelectorAll('.tab') as NodeListOf<HTMLButtonElement>,
   tabContents: document.querySelectorAll('.tab-content') as NodeListOf<HTMLDivElement>,
   
-  // Color inputs
-  colorBrand: $('color-brand') as HTMLInputElement,
-  colorBrandHex: $('color-brand-hex') as HTMLInputElement,
-  colorAccent: $('color-accent') as HTMLInputElement,
-  colorAccentHex: $('color-accent-hex') as HTMLInputElement,
-  colorNeutral: $('color-neutral') as HTMLInputElement,
-  colorNeutralHex: $('color-neutral-hex') as HTMLInputElement,
-  colorSuccess: $('color-success') as HTMLInputElement,
-  colorSuccessHex: $('color-success-hex') as HTMLInputElement,
-  colorWarning: $('color-warning') as HTMLInputElement,
-  colorWarningHex: $('color-warning-hex') as HTMLInputElement,
-  colorError: $('color-error') as HTMLInputElement,
-  colorErrorHex: $('color-error-hex') as HTMLInputElement,
-  
   // Buttons
-  btnGenerate: $('btn-generate') as HTMLButtonElement,
-  btnCreateVariables: $('btn-create-variables') as HTMLButtonElement,
   btnExport: $('btn-export') as HTMLButtonElement,
   btnCopy: $('btn-copy') as HTMLButtonElement,
   btnDownload: $('btn-download') as HTMLButtonElement,
@@ -148,16 +65,11 @@ const elements = {
   btnValidate: $('btn-validate') as HTMLButtonElement,
   
   // Other
-  palettePreview: $('palette-preview') as HTMLDivElement,
-  paletteContainer: $('palette-container') as HTMLDivElement,
   exportFormat: $('export-format') as HTMLSelectElement,
   exportOutput: $('export-output') as HTMLDivElement,
   importInput: $('import-input') as HTMLTextAreaElement,
-  tokenTree: $('token-tree') as HTMLDivElement,
-  statPrimitives: $('stat-primitives') as HTMLDivElement,
-  statSemantic: $('stat-semantic') as HTMLDivElement,
-  statComposite: $('stat-composite') as HTMLDivElement,
   notification: $('notification') as HTMLDivElement,
+  tokenManagerContainer: $('token-manager-container') as HTMLDivElement,
 };
 
 // ============================================
@@ -175,191 +87,27 @@ function postMessage(type: string, payload?: unknown): void {
   parent.postMessage({ pluginMessage: { type, payload } }, '*');
 }
 
-function syncColorInputs(colorInput: HTMLInputElement, hexInput: HTMLInputElement): void {
-  colorInput.addEventListener('input', () => {
-    hexInput.value = colorInput.value.toUpperCase();
-  });
-  
-  hexInput.addEventListener('input', () => {
-    const hex = hexInput.value;
-    if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
-      colorInput.value = hex;
-    }
-  });
-}
-
-// ============================================
-// PALETTE RENDERING
-// ============================================
-
-function renderPalette(palette: ColorPaletteData): string {
-  // Show shades in a single row (25-975)
-  const colorDivs = OPACITY_SCALE.map(step => {
-    const shade = palette.shades[step];
-    const isMid = step === 500;
-    return `<div class="palette-color${isMid ? ' palette-base-mark' : ''}" 
-          style="background-color: ${shade.hex}" 
-          data-info="${step}: ${shade.hex}" 
-          title="${step}: ${shade.hex}"></div>`;
-  }).join('');
-
-  return `
-    <div class="palette-section">
-      <div class="palette-header">
-        <div class="palette-title">
-          <div class="palette-base" style="background-color: ${palette.shades[500].hex}"></div>
-          ${palette.name}
-        </div>
-        <span style="font-size: 10px; color: var(--color-text-secondary)">500: ${palette.shades[500].hex}</span>
-      </div>
-      <div class="palette-row">
-        <div class="palette-row-label">25 → 975</div>
-        <div class="palette-colors">${colorDivs}</div>
-      </div>
-    </div>
-  `;
-}
-
-function renderAllPalettes(): void {
-  if (generatedPalettes.length === 0) {
-    elements.palettePreview.style.display = 'none';
-    return;
+// Helper function to switch tabs programmatically
+function switchToTab(tabId: string): void {
+  const tab = document.querySelector(`[data-tab="${tabId}"]`) as HTMLElement;
+  if (tab && !tab.classList.contains('disabled')) {
+    tab.click();
   }
-
-  elements.palettePreview.style.display = 'block';
-  elements.paletteContainer.innerHTML = generatedPalettes.map(renderPalette).join('');
-  
-  // Update stats
-  const primCount = generatedPalettes.length * OPACITY_SCALE.length;
-  elements.statPrimitives.textContent = primCount.toString();
-  elements.statSemantic.textContent = (generatedPalettes.length * 15).toString();
-  elements.statComposite.textContent = '24';
-}
-
-function renderTokenTree(): void {
-  if (generatedPalettes.length === 0) {
-    elements.tokenTree.innerHTML = '<p style="color: var(--color-text-secondary);">Сначала сгенерируйте палитру</p>';
-    return;
-  }
-
-  let html = '';
-  
-  for (const palette of generatedPalettes) {
-    html += `
-      <div class="token-group">
-        <div class="token-group-header">
-          <div class="token-color" style="background-color: ${palette.shades[500].hex}"></div>
-          ${palette.name}
-        </div>
-        <div class="token-group-content">
-    `;
-    
-    // Show a few samples
-    const samples = [25, 100, 300, 500, 700, 900, 975];
-    for (const step of samples) {
-      html += `
-        <div class="token-item">
-          <div class="token-color" style="background-color: ${palette.shades[step].hex}"></div>
-          <span class="token-name">${palette.name}-${step}</span>
-          <span class="token-value">${palette.shades[step].hex}</span>
-        </div>
-      `;
-    }
-    
-    html += `</div></div>`;
-  }
-  
-  elements.tokenTree.innerHTML = html;
-}
-
-// ============================================
-// EXPORT FUNCTIONS
-// ============================================
-
-function generateJSON(): object {
-  const primitives: Record<string, unknown> = {};
-  
-  for (const palette of generatedPalettes) {
-    primitives[palette.name] = {};
-    
-    for (const step of OPACITY_SCALE) {
-      (primitives[palette.name] as any)[step] = {
-        $type: 'color',
-        $value: palette.shades[step]
-      };
-    }
-  }
-  
-  return {
-    $version: '1.0.0',
-    $name: 'Generated Design Tokens',
-    primitives: { colors: primitives },
-    semantic: {},
-    composite: {}
-  };
-}
-
-function generateCSS(): string {
-  const lines = [':root {', '  /* Generated Design Tokens */'];
-  
-  for (const palette of generatedPalettes) {
-    lines.push(``, `  /* ${palette.name} */`);
-    
-    for (const step of OPACITY_SCALE) {
-      lines.push(`  --color-${palette.name}-${step}: ${palette.shades[step].hex};`);
-    }
-  }
-  
-  lines.push('}');
-  return lines.join('\n');
-}
-
-function generateSCSS(): string {
-  const lines = ['// Generated Design Tokens'];
-  
-  for (const palette of generatedPalettes) {
-    lines.push(``, `// ${palette.name}`);
-    
-    lines.push(`$color-${palette.name}: (`);
-    for (const step of OPACITY_SCALE) {
-      lines.push(`  ${step}: ${palette.shades[step].hex},`);
-    }
-    lines.push(`);`);
-  }
-  
-  return lines.join('\n');
-}
-
-function generateFigmaVariables(): object {
-  const variables: Array<{name: string; value: RGBAColor; description: string}> = [];
-  
-  for (const palette of generatedPalettes) {
-    for (const step of OPACITY_SCALE) {
-      const description = step < 500 
-        ? `${palette.name} lightened ${Math.round((500 - step) / 5)}%`
-        : step === 500 
-          ? `${palette.name} base color`
-          : `${palette.name} darkened ${Math.round((step - 500) / 5)}%`;
-      
-      // Group all colors under colors/ folder with color name prefix
-      variables.push({
-        name: `colors/${palette.name}/${palette.name}-${step}`,
-        value: palette.shades[step].rgba,
-        description
-      });
-    }
-  }
-  
-  return { collection: 'Primitives', variables };
 }
 
 // ============================================
 // EVENT HANDLERS
 // ============================================
 
-// Tabs
+// Main Tabs
 elements.tabs.forEach(tab => {
-  tab.addEventListener('click', () => {
+  tab.addEventListener('click', (e) => {
+    // Prevent click if disabled
+    if (tab.classList.contains('disabled')) {
+      e.preventDefault();
+      return;
+    }
+    
     const targetId = tab.dataset.tab;
     elements.tabs.forEach(t => t.classList.remove('active'));
     elements.tabContents.forEach(c => c.classList.remove('active'));
@@ -369,131 +117,103 @@ elements.tabs.forEach(tab => {
       if (target) target.classList.add('active');
     }
     
-    if (targetId === 'preview') {
-      renderTokenTree();
+    // Refresh Token Manager when switching to it
+    if (targetId === 'token-manager') {
+      refreshTokenManager();
     }
   });
 });
 
-// Sync color inputs
-syncColorInputs(elements.colorBrand, elements.colorBrandHex);
-syncColorInputs(elements.colorAccent, elements.colorAccentHex);
-syncColorInputs(elements.colorNeutral, elements.colorNeutralHex);
-syncColorInputs(elements.colorSuccess, elements.colorSuccessHex);
-syncColorInputs(elements.colorWarning, elements.colorWarningHex);
-syncColorInputs(elements.colorError, elements.colorErrorHex);
-
-// Generate palette
-elements.btnGenerate.addEventListener('click', () => {
-  generatedPalettes = [
-    generatePalette('brand', elements.colorBrandHex.value),
-    generatePalette('accent', elements.colorAccentHex.value),
-    generatePalette('neutral', elements.colorNeutralHex.value),
-    generatePalette('success', elements.colorSuccessHex.value),
-    generatePalette('warning', elements.colorWarningHex.value),
-    generatePalette('error', elements.colorErrorHex.value),
-  ];
-  
-  renderAllPalettes();
-  showNotification('✨ Палитра сгенерирована!');
-});
-
-// Create Figma Variables
-elements.btnCreateVariables.addEventListener('click', () => {
-  if (generatedPalettes.length === 0) {
-    showNotification('Сначала сгенерируйте палитру', true);
-    return;
-  }
-  
-  const figmaData = generateFigmaVariables();
-  postMessage('create-color-variables', figmaData);
-  showNotification('📤 Создаю Variables в Figma...');
-});
-
 // Export
-elements.btnExport.addEventListener('click', () => {
-  if (generatedPalettes.length === 0) {
-    showNotification('Сначала сгенерируйте палитру', true);
-    return;
-  }
-  
-  const format = elements.exportFormat.value;
-  
-  switch (format) {
-    case 'json':
-      exportOutput = JSON.stringify(generateJSON(), null, 2);
-      break;
-    case 'css':
-      exportOutput = generateCSS();
-      break;
-    case 'scss':
-      exportOutput = generateSCSS();
-      break;
-    case 'figma':
-      exportOutput = JSON.stringify(generateFigmaVariables(), null, 2);
-      break;
-  }
-  
-  elements.exportOutput.textContent = exportOutput;
-  showNotification('📦 Экспорт готов!');
-});
+if (elements.btnExport) {
+  elements.btnExport.addEventListener('click', () => {
+    const tokens = getTokens();
+    if (tokens.length === 0) {
+      showNotification('Сначала сгенерируйте токены', true);
+      return;
+    }
+    
+    const format = elements.exportFormat.value as ExportFormat;
+    
+    if (format === 'figma') {
+      const figmaVars = exportToFigmaVariables();
+      exportOutput = JSON.stringify(figmaVars, null, 2);
+    } else {
+      const result = exportTokens(format);
+      if (typeof result === 'string') {
+        exportOutput = result;
+      }
+    }
+    
+    elements.exportOutput.textContent = exportOutput;
+    showNotification('📦 Экспорт готов!');
+  });
+}
 
 // Copy
-elements.btnCopy.addEventListener('click', async () => {
-  if (!exportOutput) {
-    showNotification('Сначала экспортируйте', true);
-    return;
-  }
-  
-  try {
-    await navigator.clipboard.writeText(exportOutput);
-    showNotification('📋 Скопировано!');
-  } catch {
-    showNotification('Ошибка копирования', true);
-  }
-});
+if (elements.btnCopy) {
+  elements.btnCopy.addEventListener('click', async () => {
+    if (!exportOutput) {
+      showNotification('Сначала экспортируйте', true);
+      return;
+    }
+    
+    try {
+      await navigator.clipboard.writeText(exportOutput);
+      showNotification('📋 Скопировано!');
+    } catch {
+      showNotification('Ошибка копирования', true);
+    }
+  });
+}
 
 // Download
-elements.btnDownload.addEventListener('click', () => {
-  if (!exportOutput) {
-    showNotification('Сначала экспортируйте', true);
-    return;
-  }
-  
-  const format = elements.exportFormat.value;
-  const ext: Record<string, string> = { json: 'json', css: 'css', scss: 'scss', figma: 'json' };
-  const filename = `design-tokens.${ext[format]}`;
-  
-  const blob = new Blob([exportOutput], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-  
-  showNotification('💾 Файл скачан!');
-});
+if (elements.btnDownload) {
+  elements.btnDownload.addEventListener('click', () => {
+    if (!exportOutput) {
+      showNotification('Сначала экспортируйте', true);
+      return;
+    }
+    
+    const format = elements.exportFormat.value;
+    const ext: Record<string, string> = { json: 'json', css: 'css', scss: 'scss', figma: 'json', storybook: 'json', tailwind: 'js' };
+    const filename = `design-tokens.${ext[format] || 'json'}`;
+    
+    const blob = new Blob([exportOutput], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    showNotification('💾 Файл скачан!');
+  });
+}
 
 // Import
-elements.btnValidate.addEventListener('click', () => {
-  try {
-    JSON.parse(elements.importInput.value);
-    showNotification('✓ JSON валиден');
-  } catch (e) {
-    showNotification('✗ Невалидный JSON', true);
-  }
-});
+if (elements.btnValidate) {
+  elements.btnValidate.addEventListener('click', () => {
+    try {
+      JSON.parse(elements.importInput.value);
+      showNotification('✓ JSON валиден');
+    } catch (e) {
+      showNotification('✗ Невалидный JSON', true);
+    }
+  });
+}
 
-elements.btnImport.addEventListener('click', () => {
-  try {
-    const data = JSON.parse(elements.importInput.value);
-    postMessage('import-tokens', { tokens: data });
-    showNotification('📤 Импортирую...');
-  } catch {
-    showNotification('✗ Невалидный JSON', true);
-  }
-});
+if (elements.btnImport) {
+  elements.btnImport.addEventListener('click', () => {
+    try {
+      const data = JSON.parse(elements.importInput.value);
+      postMessage('import-tokens', { tokens: data });
+      showNotification('📤 Импортирую...');
+    } catch {
+      showNotification('✗ Невалидный JSON', true);
+    }
+  });
+}
 
 // ============================================
 // PLUGIN MESSAGES
@@ -509,6 +229,7 @@ window.onmessage = (event: MessageEvent) => {
       break;
     case 'tokens-imported':
       showNotification('✅ Токены импортированы!');
+      refreshTokenManager();
       break;
     case 'error':
       showNotification('❌ ' + msg.payload.error, true);
@@ -516,4 +237,156 @@ window.onmessage = (event: MessageEvent) => {
   }
 };
 
-console.log('UI loaded');
+// ============================================
+// TOKEN MANAGER INITIALIZATION
+// ============================================
+
+function refreshTokenManager(): void {
+  if (elements.tokenManagerContainer) {
+    elements.tokenManagerContainer.innerHTML = renderTokenManager();
+  }
+}
+
+function refreshTokenEditor(): void {
+  const editorContainer = document.getElementById('token-editor-container');
+  if (editorContainer) {
+    editorContainer.innerHTML = renderTokenEditor();
+  }
+}
+
+// Initialize Token Manager
+initTokenManager();
+refreshTokenManager();
+
+// Listen for product changes to refresh Token Manager
+window.addEventListener('product-changed', () => {
+  refreshTokenManager();
+});
+
+// Setup Token Manager events
+if (elements.tokenManagerContainer) {
+  initTokenManagerEvents(elements.tokenManagerContainer, refreshTokenManager);
+  
+  // Custom events from Token Manager
+  elements.tokenManagerContainer.addEventListener('sync-figma', () => {
+    const figmaVariables = exportToFigmaVariables();
+    
+    // Filter only COLOR variables for create-color-variables
+    const colorVariables = figmaVariables.filter(v => 
+      v.value && typeof v.value === 'object' && 'r' in v.value
+    );
+    
+    // Group by collection
+    const collections = colorVariables.reduce((acc, v) => {
+      if (!acc[v.collection]) acc[v.collection] = [];
+      acc[v.collection].push(v);
+      return acc;
+    }, {} as Record<string, typeof colorVariables>);
+    
+    // Send each collection to Figma
+    for (const [collection, variables] of Object.entries(collections)) {
+      postMessage('create-color-variables', { 
+        collection, 
+        variables: variables.map(v => ({
+          name: v.name,
+          value: v.value,
+          description: v.description,
+        }))
+      });
+    }
+    
+    showNotification(`📤 Синхронизирую ${colorVariables.length} цветовых переменных с Figma...`);
+  });
+  
+  elements.tokenManagerContainer.addEventListener('export-json', () => {
+    const state = getState();
+    const format = state.settings.exportFormat || 'json';
+    
+    // For figma format, handle specially
+    if (format === 'figma') {
+      const figmaVars = exportToFigmaVariables();
+      const exportResult = JSON.stringify(figmaVars, null, 2);
+      elements.exportOutput.textContent = exportResult;
+      exportOutput = exportResult;
+    } else {
+      const exportResult = exportTokens(format as ExportFormat);
+      if (typeof exportResult === 'string') {
+        elements.exportOutput.textContent = exportResult;
+        exportOutput = exportResult;
+      }
+    }
+    
+    // Switch to export tab
+    elements.tabs.forEach(t => t.classList.remove('active'));
+    elements.tabContents.forEach(c => c.classList.remove('active'));
+    document.querySelector('[data-tab="export"]')?.classList.add('active');
+    $('export')?.classList.add('active');
+    
+    const formatName = format.toUpperCase();
+    showNotification(`📦 ${formatName} сгенерирован!`);
+  });
+  
+  elements.tokenManagerContainer.addEventListener('add-token', () => {
+    // Trigger new token dialog via editor
+    const editorContainer = document.getElementById('token-editor-container');
+    if (editorContainer) {
+      editorContainer.dispatchEvent(new CustomEvent('create-new-token'));
+    }
+  });
+  
+  elements.tokenManagerContainer.addEventListener('token-selected', (() => {
+    // Refresh editor when token is selected
+    refreshTokenEditor();
+    
+    // Also refresh manager to update selection state
+    refreshTokenManager();
+  }) as EventListener);
+}
+
+// Initialize Token Editor
+const tokenEditorContainer = document.getElementById('token-editor-container');
+if (tokenEditorContainer) {
+  tokenEditorContainer.innerHTML = renderTokenEditor();
+  initTokenEditorEvents(tokenEditorContainer, () => {
+    refreshTokenManager();
+    refreshTokenEditor();
+  });
+}
+
+// ============================================
+// PRIMITIVES GENERATOR INITIALIZATION
+// ============================================
+
+// Initialize primitives generator (handles sub-tabs and generation)
+initPrimitivesGenerator();
+
+// Initialize Tokens tab (semantic tokens with themes)
+initTokensTab();
+
+// Initialize Components tab (component tokens)
+initComponentsTab();
+
+// Listen for token-generated event to refresh Token Manager
+document.addEventListener('tokens-generated', () => {
+  refreshTokenManager();
+});
+
+// Listen for tokens-updated event (from Tokens and Components generators)
+window.addEventListener('tokens-updated', () => {
+  refreshTokenManager();
+});
+
+// Handle goto-tab links (navigation from warning boxes)
+document.addEventListener('click', (e) => {
+  const target = e.target as HTMLElement;
+  if (target.classList.contains('goto-tab') || target.closest('.goto-tab')) {
+    e.preventDefault();
+    const link = target.classList.contains('goto-tab') ? target : target.closest('.goto-tab') as HTMLElement;
+    const tabId = link?.getAttribute('data-target');
+    if (tabId) {
+      switchToTab(tabId);
+    }
+  }
+});
+
+console.log('🎨 Design Tokens Manager initialized');

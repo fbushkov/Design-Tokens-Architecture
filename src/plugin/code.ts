@@ -69,12 +69,15 @@ interface PluginMessage {
   payload?: unknown;
 }
 
-// Show the plugin UI
+// Show the plugin UI with resize support
 figma.showUI(__html__, { 
-  width: 480, 
-  height: 640,
-  themeColors: true 
+  width: 560, 
+  height: 680,
+  themeColors: true
 });
+
+// Enable window resizing
+figma.ui.resize(560, 680);
 
 // ============================================
 // UTILITY FUNCTIONS
@@ -1918,6 +1921,16 @@ async function createBaseTokens(): Promise<void> {
 
 figma.ui.onmessage = async (msg: PluginMessage) => {
   try {
+    // Handle resize message
+    if (msg.type === 'resize') {
+      const payload = msg.payload as { width: number; height: number };
+      figma.ui.resize(
+        Math.max(400, Math.min(1200, payload.width)),
+        Math.max(400, Math.min(900, payload.height))
+      );
+      return;
+    }
+
     switch (msg.type) {
       case 'create-color-variables': {
         const payload = msg.payload as { 
