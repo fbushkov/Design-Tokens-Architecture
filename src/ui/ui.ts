@@ -29,6 +29,10 @@ import {
 } from './components-generator-ui';
 
 import {
+  initTypographyUI,
+} from './typography-generator-ui';
+
+import {
   getState,
   getTokens,
   saveState,
@@ -364,6 +368,9 @@ initTokensTab();
 
 // Initialize Components tab (component tokens)
 initComponentsTab();
+
+// Initialize Typography UI
+initTypographyUI();
 
 // Listen for token-generated event to refresh Token Manager
 document.addEventListener('tokens-generated', () => {

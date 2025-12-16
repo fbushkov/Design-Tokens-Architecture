@@ -2358,6 +2358,134 @@ async function createBaseTokens(): Promise<void> {
 }
 
 // ============================================
+// CREATE TYPOGRAPHY VARIABLES (extended)
+// ============================================
+
+async function createTypographyVariables(
+  variables: Array<{ 
+    name: string; 
+    value: number | string; 
+    type: 'NUMBER' | 'STRING';
+    collection: string;
+  }>
+): Promise<void> {
+  const collections = await getLocalVariableCollections();
+  
+  // Create or get Primitives collection
+  let primitivesCollection = collections.find(c => c.name === 'Primitives');
+  if (!primitivesCollection) {
+    primitivesCollection = await createVariableCollection('Primitives');
+  }
+  
+  const existingVariables = await getLocalVariables();
+  
+  // Process each typography variable
+  for (const varData of variables) {
+    // Determine variable type for Figma
+    const figmaType: VariableResolvedDataType = varData.type === 'STRING' ? 'STRING' : 'FLOAT';
+    
+    // Check if variable already exists
+    let variable = existingVariables.find(v => 
+      v.name === varData.name && v.variableCollectionId === primitivesCollection!.id
+    );
+    
+    if (!variable) {
+      variable = await createVariable(varData.name, primitivesCollection, figmaType);
+    }
+    
+    // Set value
+    variable.setValueForMode(primitivesCollection.defaultModeId, varData.value);
+  }
+  
+  // Also create extended typography scale if not already done
+  await createExtendedTypographyPrimitives(primitivesCollection);
+}
+
+async function createExtendedTypographyPrimitives(
+  collection: VariableCollection
+): Promise<void> {
+  const existingVariables = await getLocalVariables();
+  
+  // Extended Font Size Scale (px values)
+  const fontSizeScale: Record<string, number> = {
+    '10': 10, '11': 11, '12': 12, '13': 13, '14': 14, '15': 15,
+    '16': 16, '18': 18, '20': 20, '24': 24, '28': 28, '32': 32,
+    '36': 36, '40': 40, '48': 48, '56': 56, '64': 64, '72': 72, '96': 96,
+  };
+  
+  for (const [name, value] of Object.entries(fontSizeScale)) {
+    const varName = `font/size/${name}`;
+    let variable = existingVariables.find(v => 
+      v.name === varName && v.variableCollectionId === collection.id
+    );
+    
+    if (!variable) {
+      variable = await createVariable(varName, collection, 'FLOAT');
+      variable.setValueForMode(collection.defaultModeId, value);
+      variable.description = `${value}px font size`;
+    }
+  }
+  
+  // Line Height Scale (as percentages for Figma)
+  const lineHeightScale: Record<string, number> = {
+    '100': 100, '110': 110, '120': 120, '125': 125, '130': 130,
+    '140': 140, '150': 150, '160': 160, '170': 170, '180': 180, '200': 200,
+  };
+  
+  for (const [name, value] of Object.entries(lineHeightScale)) {
+    const varName = `font/lineHeight/${name}`;
+    let variable = existingVariables.find(v => 
+      v.name === varName && v.variableCollectionId === collection.id
+    );
+    
+    if (!variable) {
+      variable = await createVariable(varName, collection, 'FLOAT');
+      variable.setValueForMode(collection.defaultModeId, value);
+      variable.description = `${value}% line height`;
+    }
+  }
+  
+  // Font Weight Scale
+  const fontWeightScale: Record<string, number> = {
+    '100': 100, '200': 200, '300': 300, '400': 400, '500': 500,
+    '600': 600, '700': 700, '800': 800, '900': 900,
+  };
+  
+  for (const [name, value] of Object.entries(fontWeightScale)) {
+    const varName = `font/weight/${name}`;
+    let variable = existingVariables.find(v => 
+      v.name === varName && v.variableCollectionId === collection.id
+    );
+    
+    if (!variable) {
+      variable = await createVariable(varName, collection, 'FLOAT');
+      variable.setValueForMode(collection.defaultModeId, value);
+      variable.description = `Font weight ${value}`;
+    }
+  }
+  
+  // Letter Spacing Scale (as percentages for Figma: -0.05em = -5%)
+  const letterSpacingScale: Record<string, number> = {
+    'n050': -5, 'n025': -2.5, 'n020': -2, 'n015': -1.5, 'n010': -1,
+    '000': 0,
+    '010': 1, '015': 1.5, '020': 2, '025': 2.5, '050': 5, '075': 7.5, '100': 10, '150': 15,
+  };
+  
+  for (const [name, value] of Object.entries(letterSpacingScale)) {
+    const varName = `font/letterSpacing/${name}`;
+    let variable = existingVariables.find(v => 
+      v.name === varName && v.variableCollectionId === collection.id
+    );
+    
+    if (!variable) {
+      variable = await createVariable(varName, collection, 'FLOAT');
+      variable.setValueForMode(collection.defaultModeId, value);
+      variable.description = `${value}% letter spacing`;
+    }
+  }
+}
+
+// ============================================
 // MESSAGE HANDLING
 // ============================================
 
@@ -2493,6 +2621,26 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
             payload: { tokens, direction }
           });
         }
+        break;
+      }
+
+      case 'create-typography-variables': {
+        const payload = msg.payload as { 
+          variables: Array<{ 
+            name: string; 
+            value: number | string; 
+            type: 'NUMBER' | 'STRING';
+            collection: string;
+          }>;
+        };
+        
+        await createTypographyVariables(payload.variables);
+        
+        figma.ui.postMessage({
+          type: 'variables-created',
+          payload: { success: true }
+        });
+        figma.notify('✅ Typography Variables созданы!');
         break;
       }
 
