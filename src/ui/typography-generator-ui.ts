@@ -229,13 +229,18 @@ export function initTypographyUI(): void {
 }
 
 function initTypographyTabs(): void {
-  const tabs = document.querySelectorAll('.typo-tab');
-  const contents = document.querySelectorAll('.typo-tab-content');
+  // Only select Typography tabs (with data-typo-tab attribute)
+  const tabs = document.querySelectorAll('.typo-tab[data-typo-tab]');
+  const container = document.getElementById('prim-typography');
+  if (!container) return;
+  
+  const contents = container.querySelectorAll('.typo-tab-content');
   
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const targetId = tab.getAttribute('data-typo-tab');
       
+      // Only toggle Typography tabs
       tabs.forEach(t => t.classList.remove('active'));
       contents.forEach(c => c.classList.remove('active'));
       

@@ -82,21 +82,23 @@ export function initSpacingUI(): void {
 function setActiveTab(tab: 'primitives' | 'semantic' | 'export'): void {
   activeTab = tab;
   
-  // Update tab buttons (typo-tab class)
-  const tabs = document.querySelectorAll('.typo-tab[data-spacing-tab]');
+  // Get the Spacing container to scope our selectors
+  const container = document.getElementById('prim-spacing');
+  if (!container) return;
+  
+  // Update tab buttons (only within Spacing container)
+  const tabs = container.querySelectorAll('.typo-tab[data-spacing-tab]');
   tabs.forEach(t => {
     const tabId = t.getAttribute('data-spacing-tab');
     t.classList.toggle('active', tabId === `spacing-${tab}`);
   });
   
-  // Update content panels (typo-tab-content class)
-  const primitivesPanel = document.getElementById('spacing-primitives');
-  const semanticPanel = document.getElementById('spacing-semantic');
-  const exportPanel = document.getElementById('spacing-export');
+  // Update content panels (only within Spacing container)
+  const contents = container.querySelectorAll('.typo-tab-content');
+  contents.forEach(c => c.classList.remove('active'));
   
-  if (primitivesPanel) primitivesPanel.classList.toggle('active', tab === 'primitives');
-  if (semanticPanel) semanticPanel.classList.toggle('active', tab === 'semantic');
-  if (exportPanel) exportPanel.classList.toggle('active', tab === 'export');
+  const activePanel = document.getElementById(`spacing-${tab}`);
+  if (activePanel) activePanel.classList.add('active');
 }
 
 // ============================================
