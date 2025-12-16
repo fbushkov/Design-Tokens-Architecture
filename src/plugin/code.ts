@@ -1701,6 +1701,197 @@ async function createColorVariablesWithStructure(
     // ============================================
     { name: 'divider/line/line-default', source: 'stroke/subtle/subtle' },
     { name: 'divider/line/line-strong', source: 'stroke/default/default' },
+    
+    // ============================================
+    // DROPDOWN / MENU COMPONENT
+    // ============================================
+    { name: 'dropdown/container/container-surface', source: 'surface/elevated/elevated' },
+    { name: 'dropdown/container/container-stroke', source: 'stroke/subtle/subtle' },
+    { name: 'dropdown/item/item-surface', source: 'surface/card/card' },
+    { name: 'dropdown/item/item-surface-hover', source: 'bg/interactive/interactive-primary-hover' },
+    { name: 'dropdown/item/item-surface-selected', source: 'bg/interactive/interactive-primary-selected' },
+    { name: 'dropdown/item/item-surface-disabled', source: 'bg/interactive/interactive-primary-disabled' },
+    { name: 'dropdown/item/item-content', source: 'content/primary/primary' },
+    { name: 'dropdown/item/item-content-hover', source: 'content/primary/primary-hover' },
+    { name: 'dropdown/item/item-content-disabled', source: 'content/disabled/disabled' },
+    { name: 'dropdown/item/item-icon', source: 'content/secondary/secondary' },
+    { name: 'dropdown/divider/divider-line', source: 'stroke/subtle/subtle' },
+    { name: 'dropdown/header/header-content', source: 'content/tertiary/tertiary' },
+    
+    // ============================================
+    // BREADCRUMB COMPONENT
+    // ============================================
+    { name: 'breadcrumb/item/item-content', source: 'nav/breadcrumb/breadcrumb-text' },
+    { name: 'breadcrumb/item/item-content-hover', source: 'nav/breadcrumb/breadcrumb-text-hover' },
+    { name: 'breadcrumb/item/item-content-current', source: 'nav/breadcrumb/breadcrumb-text-current' },
+    { name: 'breadcrumb/separator/separator-icon', source: 'nav/breadcrumb/breadcrumb-separator' },
+    { name: 'breadcrumb/icon/icon-home', source: 'content/secondary/secondary' },
+    
+    // ============================================
+    // CHIP / TAG COMPONENT
+    // ============================================
+    { name: 'chip/neutral/neutral-surface', source: 'badge/neutral/neutral-surface' },
+    { name: 'chip/neutral/neutral-content', source: 'badge/neutral/neutral-content' },
+    { name: 'chip/neutral/neutral-stroke', source: 'stroke/default/default' },
+    { name: 'chip/brand/brand-surface', source: 'badge/brand/brand-surface' },
+    { name: 'chip/brand/brand-content', source: 'badge/brand/brand-content' },
+    { name: 'chip/brand/brand-stroke', source: 'border/brand/brand' },
+    { name: 'chip/success/success-surface', source: 'badge/success/success-surface' },
+    { name: 'chip/success/success-content', source: 'badge/success/success-content' },
+    { name: 'chip/success/success-stroke', source: 'border/success/success' },
+    { name: 'chip/warning/warning-surface', source: 'badge/warning/warning-surface' },
+    { name: 'chip/warning/warning-content', source: 'badge/warning/warning-content' },
+    { name: 'chip/warning/warning-stroke', source: 'border/warning/warning' },
+    { name: 'chip/error/error-surface', source: 'badge/error/error-surface' },
+    { name: 'chip/error/error-content', source: 'badge/error/error-content' },
+    { name: 'chip/error/error-stroke', source: 'border/error/error' },
+    { name: 'chip/close/close-icon', source: 'content/secondary/secondary' },
+    { name: 'chip/close/close-icon-hover', source: 'content/primary/primary' },
+    
+    // ============================================
+    // STEPPER COMPONENT
+    // ============================================
+    { name: 'stepper/step/step-surface-completed', source: 'action/primary/primary' },
+    { name: 'stepper/step/step-surface-active', source: 'action/primary/primary' },
+    { name: 'stepper/step/step-surface-inactive', source: 'bg/interactive/interactive-primary' },
+    { name: 'stepper/step/step-stroke-completed', source: 'action/primary/primary' },
+    { name: 'stepper/step/step-stroke-active', source: 'action/primary/primary' },
+    { name: 'stepper/step/step-stroke-inactive', source: 'stroke/default/default' },
+    { name: 'stepper/step/step-content-completed', source: 'content/on-action-primary/on-action-primary' },
+    { name: 'stepper/step/step-content-active', source: 'content/on-action-primary/on-action-primary' },
+    { name: 'stepper/step/step-content-inactive', source: 'content/secondary/secondary' },
+    { name: 'stepper/connector/connector-completed', source: 'action/primary/primary' },
+    { name: 'stepper/connector/connector-incomplete', source: 'stroke/default/default' },
+    { name: 'stepper/label/label-completed', source: 'content/primary/primary' },
+    { name: 'stepper/label/label-active', source: 'content/brand/brand' },
+    { name: 'stepper/label/label-inactive', source: 'content/secondary/secondary' },
+    
+    // ============================================
+    // ACCORDION COMPONENT
+    // ============================================
+    { name: 'accordion/header/header-surface', source: 'surface/card/card' },
+    { name: 'accordion/header/header-surface-hover', source: 'surface/card/card-hover' },
+    { name: 'accordion/header/header-surface-expanded', source: 'surface/card/card' },
+    { name: 'accordion/header/header-content', source: 'content/primary/primary' },
+    { name: 'accordion/header/header-icon', source: 'content/secondary/secondary' },
+    { name: 'accordion/body/body-surface', source: 'surface/card/card' },
+    { name: 'accordion/body/body-content', source: 'content/secondary/secondary' },
+    { name: 'accordion/divider/divider-line', source: 'stroke/subtle/subtle' },
+    
+    // ============================================
+    // SLIDER / RANGE COMPONENT
+    // ============================================
+    { name: 'slider/track/track-surface', source: 'progress/track/track' },
+    { name: 'slider/track/track-fill', source: 'action/primary/primary' },
+    { name: 'slider/thumb/thumb-surface', source: 'surface/elevated/elevated' },
+    { name: 'slider/thumb/thumb-surface-hover', source: 'surface/elevated/elevated' },
+    { name: 'slider/thumb/thumb-surface-active', source: 'action/primary/primary' },
+    { name: 'slider/thumb/thumb-stroke', source: 'action/primary/primary' },
+    { name: 'slider/mark/mark-surface', source: 'stroke/default/default' },
+    { name: 'slider/label/label-content', source: 'content/secondary/secondary' },
+    
+    // ============================================
+    // DATE PICKER COMPONENT
+    // ============================================
+    { name: 'datepicker/container/container-surface', source: 'surface/elevated/elevated' },
+    { name: 'datepicker/container/container-stroke', source: 'stroke/subtle/subtle' },
+    { name: 'datepicker/header/header-content', source: 'content/primary/primary' },
+    { name: 'datepicker/nav/nav-icon', source: 'content/secondary/secondary' },
+    { name: 'datepicker/nav/nav-icon-hover', source: 'content/primary/primary' },
+    { name: 'datepicker/day/day-surface', source: 'surface/card/card' },
+    { name: 'datepicker/day/day-surface-hover', source: 'bg/interactive/interactive-primary-hover' },
+    { name: 'datepicker/day/day-surface-selected', source: 'action/primary/primary' },
+    { name: 'datepicker/day/day-surface-today', source: 'bg/brand/brand-subtle' },
+    { name: 'datepicker/day/day-surface-range', source: 'bg/brand/brand-subtle' },
+    { name: 'datepicker/day/day-surface-disabled', source: 'bg/interactive/interactive-primary-disabled' },
+    { name: 'datepicker/day/day-content', source: 'content/primary/primary' },
+    { name: 'datepicker/day/day-content-selected', source: 'content/on-action-primary/on-action-primary' },
+    { name: 'datepicker/day/day-content-today', source: 'content/brand/brand' },
+    { name: 'datepicker/day/day-content-disabled', source: 'content/disabled/disabled' },
+    { name: 'datepicker/day/day-content-outside', source: 'content/tertiary/tertiary' },
+    { name: 'datepicker/weekday/weekday-content', source: 'content/tertiary/tertiary' },
+    
+    // ============================================
+    // POPOVER COMPONENT
+    // ============================================
+    { name: 'popover/container/container-surface', source: 'surface/elevated/elevated' },
+    { name: 'popover/container/container-stroke', source: 'stroke/subtle/subtle' },
+    { name: 'popover/header/header-content', source: 'content/primary/primary' },
+    { name: 'popover/body/body-content', source: 'content/secondary/secondary' },
+    { name: 'popover/close/close-icon', source: 'content/secondary/secondary' },
+    { name: 'popover/arrow/arrow-surface', source: 'surface/elevated/elevated' },
+    
+    // ============================================
+    // SNACKBAR / TOAST COMPONENT
+    // ============================================
+    { name: 'snackbar/container/container-surface', source: 'surface/inverse/inverse' },
+    { name: 'snackbar/container/container-stroke', source: 'stroke/subtle/subtle' },
+    { name: 'snackbar/text/text-content', source: 'content/inverse/inverse' },
+    { name: 'snackbar/action/action-content', source: 'text/brand/brand' },
+    { name: 'snackbar/close/close-icon', source: 'content/inverse/inverse' },
+    { name: 'snackbar/success/success-surface', source: 'feedback/success-surface/success-surface' },
+    { name: 'snackbar/success/success-content', source: 'feedback/success-content/success-content' },
+    { name: 'snackbar/success/success-icon', source: 'feedback/success-content/success-content' },
+    { name: 'snackbar/error/error-surface', source: 'feedback/error-surface/error-surface' },
+    { name: 'snackbar/error/error-content', source: 'feedback/error-content/error-content' },
+    { name: 'snackbar/error/error-icon', source: 'feedback/error-content/error-content' },
+    { name: 'snackbar/warning/warning-surface', source: 'feedback/warning-surface/warning-surface' },
+    { name: 'snackbar/warning/warning-content', source: 'feedback/warning-content/warning-content' },
+    { name: 'snackbar/warning/warning-icon', source: 'feedback/warning-content/warning-content' },
+    { name: 'snackbar/info/info-surface', source: 'feedback/info-surface/info-surface' },
+    { name: 'snackbar/info/info-content', source: 'feedback/info-content/info-content' },
+    { name: 'snackbar/info/info-icon', source: 'feedback/info-content/info-content' },
+    
+    // ============================================
+    // EMPTY STATE COMPONENT
+    // ============================================
+    { name: 'empty-state/icon/icon-default', source: 'content/tertiary/tertiary' },
+    { name: 'empty-state/title/title-content', source: 'content/primary/primary' },
+    { name: 'empty-state/description/description-content', source: 'content/secondary/secondary' },
+    
+    // ============================================
+    // FILE UPLOAD COMPONENT
+    // ============================================
+    { name: 'upload/container/container-surface', source: 'bg/interactive/interactive-primary' },
+    { name: 'upload/container/container-surface-hover', source: 'bg/interactive/interactive-primary-hover' },
+    { name: 'upload/container/container-surface-active', source: 'bg/brand/brand-subtle' },
+    { name: 'upload/container/container-stroke', source: 'stroke/default/default' },
+    { name: 'upload/container/container-stroke-hover', source: 'border/brand/brand' },
+    { name: 'upload/container/container-stroke-active', source: 'border/brand/brand' },
+    { name: 'upload/container/container-stroke-error', source: 'border/error/error' },
+    { name: 'upload/icon/icon-default', source: 'content/secondary/secondary' },
+    { name: 'upload/icon/icon-active', source: 'content/brand/brand' },
+    { name: 'upload/text/text-primary', source: 'content/primary/primary' },
+    { name: 'upload/text/text-secondary', source: 'content/secondary/secondary' },
+    { name: 'upload/file/file-surface', source: 'surface/card/card' },
+    { name: 'upload/file/file-stroke', source: 'stroke/subtle/subtle' },
+    { name: 'upload/file/file-icon', source: 'content/secondary/secondary' },
+    { name: 'upload/file/file-name', source: 'content/primary/primary' },
+    { name: 'upload/file/file-size', source: 'content/tertiary/tertiary' },
+    { name: 'upload/file/file-remove', source: 'content/secondary/secondary' },
+    { name: 'upload/progress/progress-track', source: 'progress/track/track' },
+    { name: 'upload/progress/progress-fill', source: 'progress/fill/fill-default' },
+    
+    // ============================================
+    // SIDEBAR / DRAWER COMPONENT
+    // ============================================
+    { name: 'sidebar/container/container-surface', source: 'bg/sidebar/sidebar-default' },
+    { name: 'sidebar/header/header-surface', source: 'bg/sidebar/sidebar-default' },
+    { name: 'sidebar/header/header-content', source: 'content/primary/primary' },
+    { name: 'sidebar/section/section-title', source: 'content/tertiary/tertiary' },
+    { name: 'sidebar/item/item-surface', source: 'nav/item/item-bg' },
+    { name: 'sidebar/item/item-surface-hover', source: 'nav/item/item-bg-hover' },
+    { name: 'sidebar/item/item-surface-active', source: 'nav/item/item-bg-active' },
+    { name: 'sidebar/item/item-content', source: 'nav/item/item-text' },
+    { name: 'sidebar/item/item-content-hover', source: 'nav/item/item-text-hover' },
+    { name: 'sidebar/item/item-content-active', source: 'nav/item/item-text-active' },
+    { name: 'sidebar/item/item-icon', source: 'nav/item/item-icon' },
+    { name: 'sidebar/item/item-icon-active', source: 'nav/item/item-icon-active' },
+    { name: 'sidebar/badge/badge-surface', source: 'badge/brand/brand-surface' },
+    { name: 'sidebar/badge/badge-content', source: 'badge/brand/brand-content' },
+    { name: 'sidebar/divider/divider-line', source: 'divider/subtle/subtle' },
+    { name: 'sidebar/footer/footer-surface', source: 'bg/sidebar/sidebar-default' },
+    { name: 'sidebar/footer/footer-content', source: 'content/secondary/secondary' },
   ];
   
   const allVariables = await getLocalVariables();

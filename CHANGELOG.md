@@ -1,5 +1,43 @@
 # 📝 Changelog - Design Tokens Plugin
 
+## [2024-12-16] - Расширенные компоненты
+
+### ✅ Добавлено
+
+#### Новые компонентные токены (12 новых компонентов)
+- **dropdown/** - Выпадающие меню (11 токенов)
+  - container, item (hover, selected, disabled), icon, divider, header
+- **breadcrumb/** - Хлебные крошки (5 токенов)
+  - item (hover, current), separator, home icon
+- **chip/** - Чипы/теги (17 токенов)
+  - neutral, brand, success, warning, error варианты
+  - surface, content, stroke, close icon для каждого
+- **stepper/** - Степперы/визарды (14 токенов)
+  - step (completed, active, inactive), connector, label
+- **accordion/** - Аккордеоны (8 токенов)
+  - header (hover, expanded), body, icon, divider
+- **slider/** - Слайдеры (8 токенов)
+  - track (fill), thumb (hover, active, stroke), mark, label
+- **datepicker/** - Выбор даты (17 токенов)
+  - container, header, nav, day (hover, selected, today, range, disabled, outside), weekday
+- **popover/** - Всплывающие окна (6 токенов)
+  - container, header, body, close, arrow
+- **snackbar/** - Снэкбары/тосты (15 токенов)
+  - container, text, action, close
+  - success, error, warning, info варианты
+- **empty-state/** - Пустые состояния (3 токена)
+  - icon, title, description
+- **upload/** - Загрузка файлов (18 токенов)
+  - container (hover, active, stroke), icon, text, file, progress
+- **sidebar/** - Боковые панели (16 токенов)
+  - container, header, section, item (hover, active), badge, divider, footer
+
+#### Общая статистика компонентов
+- Всего компонентов: **31 тип**
+- Всего компонентных токенов: **~270**
+
+---
+
 ## [2024-12-16] - Темы и кастомные цвета
 
 ### ✅ Добавлено
