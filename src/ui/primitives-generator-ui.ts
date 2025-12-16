@@ -1089,6 +1089,14 @@ function setupThemeManagement(): void {
     });
   }
   
+  // Sync themes button - syncs all themes to Figma Variables
+  const btnSyncThemes = document.getElementById('btn-sync-themes');
+  if (btnSyncThemes) {
+    btnSyncThemes.addEventListener('click', () => {
+      syncThemesToFigma();
+    });
+  }
+  
   // Render initial custom themes list
   renderCustomThemes();
 }
@@ -1134,13 +1142,19 @@ function openThemeModal(editThemeId?: string): void {
         </div>
         
         <div class="form-group">
-          <label class="form-label">💜 Акцентный цвет (опционально)</label>
-          <div class="color-input-group">
+          <label class="form-label">
+            <input type="checkbox" id="theme-accent-enabled" 
+                   ${editTheme?.accentColor ? 'checked' : ''}>
+            💜 Акцентный цвет (опционально)
+          </label>
+          <div class="color-input-group" id="accent-color-group" 
+               style="display: ${editTheme?.accentColor ? 'flex' : 'none'}; margin-top: 8px;">
             <input type="color" class="color-picker" id="theme-accent-color" 
                    value="${editTheme?.accentColor || '#8B5CF6'}">
             <input type="text" class="form-input color-hex" id="theme-accent-hex" 
                    value="${editTheme?.accentColor || '#8B5CF6'}">
           </div>
+          <p class="form-hint">Если включен, создаст отдельную палитру accent для темы</p>
         </div>
         
         <div class="form-group">
@@ -1241,6 +1255,15 @@ function setupThemeModalListeners(modal: HTMLElement, editThemeId?: string): voi
   syncColorInputs('theme-accent-color', 'theme-accent-hex');
   syncColorInputs('theme-custom-tint-color', 'theme-custom-tint-hex');
   
+  // Show/hide accent color input
+  const accentEnabledCheckbox = modal.querySelector('#theme-accent-enabled') as HTMLInputElement;
+  const accentColorGroup = modal.querySelector('#accent-color-group') as HTMLElement;
+  if (accentEnabledCheckbox && accentColorGroup) {
+    accentEnabledCheckbox.addEventListener('change', () => {
+      accentColorGroup.style.display = accentEnabledCheckbox.checked ? 'flex' : 'none';
+    });
+  }
+  
   // Show/hide custom tint input
   modal.querySelectorAll('input[name="neutral-tint"]').forEach(radio => {
     radio.addEventListener('change', () => {
@@ -1266,6 +1289,7 @@ function setupThemeModalListeners(modal: HTMLElement, editThemeId?: string): voi
   modal.querySelector('#btn-theme-save')?.addEventListener('click', () => {
     const nameInput = modal.querySelector('#theme-name-input') as HTMLInputElement;
     const brandColorInput = modal.querySelector('#theme-brand-hex') as HTMLInputElement;
+    const accentEnabledCheck = modal.querySelector('#theme-accent-enabled') as HTMLInputElement;
     const accentColorInput = modal.querySelector('#theme-accent-hex') as HTMLInputElement;
     const neutralTintRadio = modal.querySelector('input[name="neutral-tint"]:checked') as HTMLInputElement;
     const customTintInput = modal.querySelector('#theme-custom-tint-hex') as HTMLInputElement;
@@ -1286,7 +1310,7 @@ function setupThemeModalListeners(modal: HTMLElement, editThemeId?: string): voi
     const themeConfig = {
       name,
       brandColor: brandColorInput?.value || '#22C55E',
-      accentColor: accentColorInput?.value || undefined,
+      accentColor: accentEnabledCheck?.checked ? (accentColorInput?.value || undefined) : undefined,
       neutralTint: (neutralTintRadio?.value as 'none' | 'warm' | 'cool' | 'custom') || 'none',
       customNeutralHex: neutralTintRadio?.value === 'custom' ? customTintInput?.value : undefined,
       hasLightMode: hasLightCheckbox?.checked ?? true,
@@ -1325,7 +1349,7 @@ export function renderCustomThemes(): void {
   if (customThemes.length === 0) {
     container.innerHTML = `
       <div class="empty-themes-hint">
-        Нет кастомных тем. Нажмите "+ Тема" чтобы добавить.
+        Нет дополнительных тем. Добавьте тему для создания цветовых вариаций.
       </div>
     `;
     return;
@@ -1336,9 +1360,11 @@ export function renderCustomThemes(): void {
       <div class="theme-card-color" style="background: ${theme.brandColor}"></div>
       <div class="theme-card-info">
         <div class="theme-card-name">${theme.name}</div>
-        <div class="theme-card-modes">
-          ${theme.hasLightMode ? '<span class="mode-badge">☀️ Light</span>' : ''}
-          ${theme.hasDarkMode ? '<span class="mode-badge">🌙 Dark</span>' : ''}
+        <div class="theme-card-details">
+          <span class="theme-card-hex">${theme.brandColor}</span>
+          <span class="theme-card-modes">
+            ${theme.hasLightMode ? '☀️' : ''}${theme.hasDarkMode ? '🌙' : ''}
+          </span>
         </div>
       </div>
       <div class="theme-card-actions">
@@ -1370,6 +1396,85 @@ export function renderCustomThemes(): void {
       }
     });
   });
+}
+
+// ============================================
+// SYNC THEMES TO FIGMA
+// ============================================
+
+function collectColorsForSync(): Array<{name: string, value: {r: number, g: number, b: number, a: number}, description: string}> {
+  const colors: Array<{name: string, value: {r: number, g: number, b: number, a: number}, description: string}> = [];
+  
+  // Collect from generated palettes
+  for (const palette of generatedPalettes) {
+    for (const [stepStr, shade] of Object.entries(palette.shades)) {
+      const step = parseInt(stepStr);
+      const colorInfo = colorState.colors.get(palette.name);
+      
+      // Check if shade is enabled
+      if (colorInfo?.enabledShades && !colorInfo.enabledShades.has(step)) {
+        continue;
+      }
+      
+      const variableName = `colors/${palette.name}/${palette.name}-${step}`;
+      colors.push({
+        name: variableName,
+        value: {
+          r: shade.rgba.r,
+          g: shade.rgba.g,
+          b: shade.rgba.b,
+          a: shade.rgba.a
+        },
+        description: `${palette.name} ${step}`
+      });
+    }
+  }
+  
+  return colors;
+}
+
+function syncThemesToFigma(): void {
+  const customThemes = colorState.themes.themes.filter(t => !t.isSystem);
+  
+  if (customThemes.length === 0) {
+    showNotification('⚠️ Нет тем для синхронизации. Сначала добавьте тему.', true);
+    return;
+  }
+  
+  // Generate colors first if not yet generated
+  if (generatedPalettes.length === 0) {
+    generateColors();
+  }
+  
+  // Get all colors for sync
+  const allColors = collectColorsForSync();
+  
+  if (allColors.length === 0) {
+    showNotification('⚠️ Сначала сгенерируйте цвета.', true);
+    return;
+  }
+  
+  // Add theme info to message
+  const themes = colorState.themes.themes.map(t => ({
+    id: t.id,
+    name: t.name,
+    brandColor: t.brandColor,
+    accentColor: t.accentColor,
+    neutralTint: t.neutralTint,
+    hasLightMode: t.hasLightMode,
+    hasDarkMode: t.hasDarkMode,
+    isSystem: t.isSystem
+  }));
+  
+  showNotification('🔄 Синхронизация тем в Figma Variables...');
+  
+  parent.postMessage({
+    pluginMessage: {
+      type: 'sync-to-figma',
+      variables: allColors,
+      themes: themes
+    }
+  }, '*');
 }
 
 // Legacy function - kept for backwards compatibility

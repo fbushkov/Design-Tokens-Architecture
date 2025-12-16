@@ -121,6 +121,48 @@ function colorValueToFigmaColor(color: ColorValue): RGBA {
   };
 }
 
+// Opacity scale for color generation (25 to 975, step 25)
+const OPACITY_SCALE = [25, 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375, 400, 425, 450, 475, 500, 525, 550, 575, 600, 625, 650, 675, 700, 725, 750, 775, 800, 825, 850, 875, 900, 925, 950, 975] as const;
+
+/**
+ * Generate full color scale from base HEX color
+ * Returns object with steps 25-975 and their RGB values (0-255 range)
+ */
+function generateColorScale(hex: string): Record<number, { r: number; g: number; b: number }> {
+  const baseRgba = hexToRgba(hex);
+  const white = { r: 1, g: 1, b: 1 };
+  const black = { r: 0, g: 0, b: 0 };
+  
+  const blendColors = (bg: { r: number; g: number; b: number }, fg: { r: number; g: number; b: number }, alpha: number) => ({
+    r: Math.round((fg.r * alpha + bg.r * (1 - alpha)) * 255),
+    g: Math.round((fg.g * alpha + bg.g * (1 - alpha)) * 255),
+    b: Math.round((fg.b * alpha + bg.b * (1 - alpha)) * 255)
+  });
+  
+  const result: Record<number, { r: number; g: number; b: number }> = {};
+  
+  for (const step of OPACITY_SCALE) {
+    if (step < 500) {
+      // Lighter shades: blend with white
+      const alpha = step / 500;
+      result[step] = blendColors(white, baseRgba, alpha);
+    } else if (step === 500) {
+      // Base color
+      result[step] = {
+        r: Math.round(baseRgba.r * 255),
+        g: Math.round(baseRgba.g * 255),
+        b: Math.round(baseRgba.b * 255)
+      };
+    } else {
+      // Darker shades: blend with black
+      const alpha = (1000 - step) / 500;
+      result[step] = blendColors(black, baseRgba, alpha);
+    }
+  }
+  
+  return result;
+}
+
 // ============================================
 // FIGMA VARIABLES MANAGEMENT
 // ============================================
@@ -1110,8 +1152,11 @@ interface ThemeConfig {
   id: string;
   name: string;
   brandColor: string;
+  accentColor?: string;
+  neutralTint?: string;
   hasLightMode: boolean;
   hasDarkMode: boolean;
+  isSystem?: boolean;
 }
 
 async function createColorVariablesWithStructure(
@@ -1129,6 +1174,27 @@ async function createColorVariablesWithStructure(
     hasDarkMode: true
   }];
   
+  // Ensure default theme exists and is first
+  const hasDefaultTheme = allThemes.some(t => t.id === 'default' || t.isSystem);
+  if (!hasDefaultTheme) {
+    // Add default theme at the beginning
+    allThemes.unshift({
+      id: 'default',
+      name: 'Default',
+      brandColor: '#3B82F6',
+      hasLightMode: true,
+      hasDarkMode: true,
+      isSystem: true
+    });
+  }
+  
+  // Sort themes: default/system first, then custom themes
+  allThemes.sort((a, b) => {
+    if (a.id === 'default' || a.isSystem) return -1;
+    if (b.id === 'default' || b.isSystem) return 1;
+    return 0;
+  });
+  
   // Create or get Primitives collection (default mode only)
   let primitivesCollection = collections.find(c => c.name === 'Primitives');
   if (!primitivesCollection) {
@@ -1144,8 +1210,17 @@ async function createColorVariablesWithStructure(
   // Build mode map for all themes
   const tokenModeIds: Map<string, string> = new Map();
   
+  // Check if collection already has custom modes (not just "Mode 1")
+  const existingModeNames = tokensCollection.modes.map(m => m.name);
+  const hasCustomModes = existingModeNames.some(name => 
+    name === 'light' || name === 'dark' || name.includes('-light') || name.includes('-dark')
+  );
+  
+  // Only use rename logic for brand new collection with default "Mode 1"
+  let isFirstMode = !hasCustomModes && tokensCollection.modes.length === 1;
+  
   // Ensure Tokens collection has modes for all themes
-  let isFirstMode = true;
+  // Process default theme first to ensure 'light' and 'dark' are created first
   for (const theme of allThemes) {
     if (theme.hasLightMode) {
       const modeName = theme.id === 'default' ? 'light' : `${theme.id}-light`;
@@ -1153,7 +1228,7 @@ async function createColorVariablesWithStructure(
       
       if (!modeId) {
         if (isFirstMode) {
-          // Rename default mode
+          // Rename default mode only for brand new collection
           tokensCollection.renameMode(tokensCollection.defaultModeId, modeName);
           modeId = tokensCollection.defaultModeId;
           isFirstMode = false;
@@ -1224,9 +1299,51 @@ async function createColorVariablesWithStructure(
     createdPrimitives.set(variableName, variable);
   }
   
+  // 1.1 Create Primitive Palettes for Custom Themes
+  // For each custom theme, generate a full color palette based on brandColor
+  // Naming convention: brand-{themeId}-theme (e.g., brand-green-theme)
+  for (const theme of allThemes) {
+    if (theme.id === 'default' || theme.isSystem) continue; // Skip default theme, uses 'brand'
+    
+    // Generate color scale from theme's brandColor
+    const themeColorPalette = generateColorScale(theme.brandColor);
+    const themePrimitiveName = `brand-${theme.id}-theme`;
+    
+    for (const [step, colorValue] of Object.entries(themeColorPalette)) {
+      const variableName = `colors/${themePrimitiveName}/${themePrimitiveName}-${step}`;
+      
+      let variable = existingVariables.find(v => 
+        v.name === variableName && 
+        v.variableCollectionId === primitivesCollection!.id
+      );
+      
+      if (!variable) {
+        variable = await createVariable(variableName, primitivesCollection, 'COLOR');
+      }
+      
+      const color: RGBA = {
+        r: colorValue.r / 255,
+        g: colorValue.g / 255,
+        b: colorValue.b / 255,
+        a: 1
+      };
+      
+      variable.setValueForMode(primitivesCollection.defaultModeId, color);
+      variable.description = `${theme.name} ${step} - custom theme color`;
+      
+      createdPrimitives.set(variableName, variable);
+    }
+  }
+  
   // Helper function to get primitive reference for a mapping
   // Now uses unified scale: colors/{color}/{step} (e.g., colors/brand/500, colors/neutral/25)
-  const getPrimitiveForMapping = (mapping: SemanticColorMapping, state: string, isDark: boolean): Variable | undefined => {
+  // For custom themes, 'brand' sourceColor is replaced with theme's color
+  const getPrimitiveForMapping = (
+    mapping: SemanticColorMapping, 
+    state: string, 
+    isDark: boolean,
+    themeColorOverride?: string // For custom themes, override 'brand' with theme's color name
+  ): Variable | undefined => {
     const mappings = isDark ? SEMANTIC_COLOR_MAPPINGS_DARK : SEMANTIC_COLOR_MAPPINGS;
     // Find mapping considering variant if present
     const actualMapping = mappings.find(m => 
@@ -1236,6 +1353,13 @@ async function createColorVariablesWithStructure(
     ) || mapping;
     
     let step = actualMapping.sourceStep;
+    
+    // Determine source color - replace 'brand' with theme color for custom themes
+    // Theme colors use naming: brand-{themeId}-theme (e.g., brand-green-theme)
+    let sourceColor = actualMapping.sourceColor;
+    if (themeColorOverride && sourceColor === 'brand') {
+      sourceColor = `brand-${themeColorOverride}-theme`;
+    }
     
     // Adjust step based on state
     // For light theme: hover = lighter (lower number), active = even lighter
@@ -1275,7 +1399,7 @@ async function createColorVariablesWithStructure(
     step = Math.round(step / 25) * 25;
     
     // Path: colors/{color}/{color}-{step} (e.g., colors/brand/brand-500)
-    const sourceVarName = `colors/${actualMapping.sourceColor}/${actualMapping.sourceColor}-${step}`;
+    const sourceVarName = `colors/${sourceColor}/${sourceColor}-${step}`;
     
     return createdPrimitives.get(sourceVarName);
   };
@@ -1305,20 +1429,6 @@ async function createColorVariablesWithStructure(
           : `${mapping.category}/${mapping.subcategory}/${mapping.subcategory}-${state}`;
       }
       
-      // Get primitives for light and dark modes
-      const lightPrimitive = getPrimitiveForMapping(mapping, state, false);
-      const darkMapping = SEMANTIC_COLOR_MAPPINGS_DARK.find(m => 
-        m.category === mapping.category && 
-        m.subcategory === mapping.subcategory &&
-        m.variant === mapping.variant
-      );
-      const darkPrimitive = darkMapping ? getPrimitiveForMapping(darkMapping, state, true) : lightPrimitive;
-      
-      if (!lightPrimitive) {
-        console.log(`Light primitive not found for: ${tokenName}`);
-        continue;
-      }
-      
       let tokenVar = refreshedVariables.find(v => 
         v.name === tokenName && 
         v.variableCollectionId === tokensCollection!.id
@@ -1329,11 +1439,19 @@ async function createColorVariablesWithStructure(
       }
       
       // Set values for all theme modes
+      // For custom themes, 'brand' is replaced with theme's color (e.g., 'green', 'blue')
       for (const theme of allThemes) {
+        // Determine theme color override - for non-default themes, use theme id as color name
+        const themeColorOverride = theme.id === 'default' ? undefined : theme.id;
+        
         if (theme.hasLightMode) {
           const modeName = theme.id === 'default' ? 'light' : `${theme.id}-light`;
           const modeId = tokenModeIds.get(modeName);
-          if (modeId) {
+          
+          // Get primitive with theme color override for 'brand' references
+          const lightPrimitive = getPrimitiveForMapping(mapping, state, false, themeColorOverride);
+          
+          if (modeId && lightPrimitive) {
             const lightAlias: VariableAlias = {
               type: 'VARIABLE_ALIAS',
               id: lightPrimitive.id
@@ -1345,6 +1463,16 @@ async function createColorVariablesWithStructure(
         if (theme.hasDarkMode) {
           const modeName = theme.id === 'default' ? 'dark' : `${theme.id}-dark`;
           const modeId = tokenModeIds.get(modeName);
+          
+          const darkMapping = SEMANTIC_COLOR_MAPPINGS_DARK.find(m => 
+            m.category === mapping.category && 
+            m.subcategory === mapping.subcategory &&
+            m.variant === mapping.variant
+          );
+          const darkPrimitive = darkMapping 
+            ? getPrimitiveForMapping(darkMapping, state, true, themeColorOverride) 
+            : getPrimitiveForMapping(mapping, state, true, themeColorOverride);
+          
           if (modeId && darkPrimitive) {
             const darkAlias: VariableAlias = {
               type: 'VARIABLE_ALIAS',
@@ -2053,6 +2181,35 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         await importTokensToFigma(tokens);
         figma.ui.postMessage({
           type: 'tokens-imported',
+          payload: { success: true }
+        });
+        break;
+      }
+
+      case 'sync-to-figma': {
+        // Sync themes to Figma Variables
+        // Data comes directly in msg, not in msg.payload
+        const syncMsg = msg as unknown as { 
+          type: string;
+          variables: Array<{ name: string; value: { r: number; g: number; b: number; a: number }; description: string }>;
+          themes: Array<{
+            id: string;
+            name: string;
+            brandColor: string;
+            accentColor?: string;
+            neutralTint?: string;
+            hasLightMode: boolean;
+            hasDarkMode: boolean;
+            isSystem?: boolean;
+          }>;
+        };
+        
+        await createColorVariablesWithStructure(syncMsg.variables, syncMsg.themes);
+        await createBaseTokens();
+        
+        figma.notify('✅ Темы синхронизированы в Figma Variables');
+        figma.ui.postMessage({
+          type: 'themes-synced',
           payload: { success: true }
         });
         break;
