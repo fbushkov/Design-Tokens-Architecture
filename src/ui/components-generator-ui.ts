@@ -259,16 +259,18 @@ export function generateComponentTokens(): boolean {
         const semanticToken = findSemanticToken(mapping.reference, currentProduct.id, theme.id);
         
         // Формируем path для токена компонента
-        // Структура: components/{theme}/{component}/{...path}
-        const tokenPathStr = `components/${theme.id}/${mapping.token}`;
+        // Структура: {component}/{...path} (без theme и productId)
+        // Пример: button/primary/background, input/border
+        const tokenPathStr = mapping.token;
         const tokenPathArr = tokenPathStr.split('/').slice(0, -1);
         const tokenName = mapping.token.split('/').pop() || mapping.token;
-        const fullPath = `${currentProduct.id}/${tokenPathStr}`;
+        // fullPath не включает productId или component prefix
+        const fullPath = tokenPathStr;
         
         // Проверяем, существует ли уже
         const state = getState();
         const existingToken = state.tokens.find(
-          t => t.fullPath === fullPath
+          t => t.fullPath === fullPath && t.collection === 'Components'
         );
         
         if (existingToken) {

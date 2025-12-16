@@ -272,8 +272,10 @@ if (elements.tokenManagerContainer) {
   elements.tokenManagerContainer.addEventListener('sync-figma', () => {
     const figmaVariables = exportToFigmaVariables();
     
-    // Filter only COLOR variables for create-color-variables
-    const colorVariables = figmaVariables.filter(v => 
+    // Filter only COLOR variables from Primitives collection
+    // Tokens and Components are auto-generated from mappings in code.ts
+    const primitiveColorVariables = figmaVariables.filter(v => 
+      v.collection === 'Primitives' &&
       v.value && typeof v.value === 'object' && 'r' in v.value
     );
     
@@ -286,27 +288,18 @@ if (elements.tokenManagerContainer) {
       hasDarkMode: t.hasDarkMode,
     }));
     
-    // Group by collection
-    const collections = colorVariables.reduce((acc, v) => {
-      if (!acc[v.collection]) acc[v.collection] = [];
-      acc[v.collection].push(v);
-      return acc;
-    }, {} as Record<string, typeof colorVariables>);
+    // Send only Primitives to Figma - Tokens and Components are auto-generated
+    postMessage('create-color-variables', { 
+      collection: 'Primitives', 
+      variables: primitiveColorVariables.map(v => ({
+        name: v.name,
+        value: v.value,
+        description: v.description,
+      })),
+      themes: themes,
+    });
     
-    // Send each collection to Figma with themes
-    for (const [collection, variables] of Object.entries(collections)) {
-      postMessage('create-color-variables', { 
-        collection, 
-        variables: variables.map(v => ({
-          name: v.name,
-          value: v.value,
-          description: v.description,
-        })),
-        themes: themes,
-      });
-    }
-    
-    showNotification(`📤 Синхронизирую ${colorVariables.length} цветовых переменных с Figma... (${themes.length} тем)`);
+    showNotification(`📤 Синхронизирую ${primitiveColorVariables.length} примитивов с Figma... (${themes.length} тем)`);
   });
   
   elements.tokenManagerContainer.addEventListener('export-json', () => {

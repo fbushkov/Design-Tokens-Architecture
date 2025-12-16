@@ -286,15 +286,17 @@ export function generateSemanticTokens(): boolean {
         const primitive = findPrimitiveByColorName(primitiveRef);
         
         // Формируем path для токена
-        // Структура: tokens/{theme}/{category}/{name}
-        const tokenPathStr = `tokens/${theme.id}/${mapping.token}`;
+        // Структура: {category}/{name} (без theme - темы через modes в Figma)
+        // Пример: action/primary, background/elevated, text/primary
+        const tokenPathStr = mapping.token;
         const tokenPathArr = tokenPathStr.split('/').slice(0, -1); // все кроме последнего элемента
         const tokenName = mapping.token.split('/').pop() || mapping.token;
-        const fullPath = `${currentProduct.id}/${tokenPathStr}`;
+        // fullPath не включает productId - это чистый путь токена
+        const fullPath = tokenPathStr;
         
         // Проверяем, существует ли уже
         const existingToken = state.tokens.find(
-          t => t.fullPath === fullPath
+          t => t.fullPath === fullPath && t.collection === 'Tokens'
         );
         
         if (existingToken) {
