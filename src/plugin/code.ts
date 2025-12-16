@@ -820,6 +820,44 @@ const SEMANTIC_COLOR_MAPPINGS: SemanticColorMapping[] = [
   { category: 'selection', subcategory: 'bg', states: ['default'], sourceColor: 'brand', sourceStep: 100 },
   { category: 'selection', subcategory: 'text', states: ['default'], sourceColor: 'brand', sourceStep: 900 },
   { category: 'selection', subcategory: 'highlight', states: ['default'], sourceColor: 'warning', sourceStep: 200 },
+  
+  // ============================================
+  // OVERLAY - Overlay and scrim colors (opacity-based)
+  // For modal backdrops, loading states, selections
+  // ============================================
+  // Scrim (dark overlay for modals)
+  { category: 'overlay', subcategory: 'scrim', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'overlay', subcategory: 'scrim', variant: 'light', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
+  { category: 'overlay', subcategory: 'scrim', variant: 'heavy', states: ['default'], sourceColor: 'neutral', sourceStep: 950 },
+  // Backdrop (blur-ready backgrounds)
+  { category: 'overlay', subcategory: 'backdrop', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'overlay', subcategory: 'backdrop', variant: 'light', states: ['default'], sourceColor: 'neutral', sourceStep: 50 },
+  { category: 'overlay', subcategory: 'backdrop', variant: 'blur', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  // Tint overlays (colored)
+  { category: 'overlay', subcategory: 'tint', variant: 'brand', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'overlay', subcategory: 'tint', variant: 'success', states: ['default'], sourceColor: 'success', sourceStep: 500 },
+  { category: 'overlay', subcategory: 'tint', variant: 'warning', states: ['default'], sourceColor: 'warning', sourceStep: 500 },
+  { category: 'overlay', subcategory: 'tint', variant: 'error', states: ['default'], sourceColor: 'error', sourceStep: 500 },
+  { category: 'overlay', subcategory: 'tint', variant: 'info', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  // Gradient overlays
+  { category: 'overlay', subcategory: 'gradient', variant: 'top', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'overlay', subcategory: 'gradient', variant: 'bottom', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'overlay', subcategory: 'gradient', variant: 'left', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'overlay', subcategory: 'gradient', variant: 'right', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  // Skeleton loading
+  { category: 'overlay', subcategory: 'skeleton', variant: 'base', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  { category: 'overlay', subcategory: 'skeleton', variant: 'shimmer', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
+  // Selection overlay
+  { category: 'overlay', subcategory: 'selection', variant: 'default', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'overlay', subcategory: 'selection', variant: 'subtle', states: ['default'], sourceColor: 'brand', sourceStep: 100 },
+  // Drag & Drop overlays
+  { category: 'overlay', subcategory: 'drop-zone', variant: 'default', states: ['default', 'active', 'valid', 'invalid'], sourceColor: 'brand', sourceStep: 100 },
+  { category: 'overlay', subcategory: 'drag-preview', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 50 },
+  // Image/media overlays
+  { category: 'overlay', subcategory: 'image', variant: 'darken', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'overlay', subcategory: 'image', variant: 'lighten', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  // Disabled overlay
+  { category: 'overlay', subcategory: 'disabled', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
 ];
 
 // ============================================
@@ -1145,6 +1183,44 @@ const SEMANTIC_COLOR_MAPPINGS_DARK: SemanticColorMapping[] = [
   { category: 'selection', subcategory: 'bg', states: ['default'], sourceColor: 'brand', sourceStep: 800 },
   { category: 'selection', subcategory: 'text', states: ['default'], sourceColor: 'brand', sourceStep: 100 },
   { category: 'selection', subcategory: 'highlight', states: ['default'], sourceColor: 'warning', sourceStep: 700 },
+  
+  // ============================================
+  // OVERLAY - Overlay and scrim colors (dark theme)
+  // For modal backdrops, loading states, selections
+  // ============================================
+  // Scrim (dark overlay for modals)
+  { category: 'overlay', subcategory: 'scrim', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 950 },
+  { category: 'overlay', subcategory: 'scrim', variant: 'light', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
+  { category: 'overlay', subcategory: 'scrim', variant: 'heavy', states: ['default'], sourceColor: 'neutral', sourceStep: 950 },
+  // Backdrop (blur-ready backgrounds)
+  { category: 'overlay', subcategory: 'backdrop', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 950 },
+  { category: 'overlay', subcategory: 'backdrop', variant: 'light', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'overlay', subcategory: 'backdrop', variant: 'blur', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
+  // Tint overlays (colored)
+  { category: 'overlay', subcategory: 'tint', variant: 'brand', states: ['default'], sourceColor: 'brand', sourceStep: 400 },
+  { category: 'overlay', subcategory: 'tint', variant: 'success', states: ['default'], sourceColor: 'success', sourceStep: 400 },
+  { category: 'overlay', subcategory: 'tint', variant: 'warning', states: ['default'], sourceColor: 'warning', sourceStep: 400 },
+  { category: 'overlay', subcategory: 'tint', variant: 'error', states: ['default'], sourceColor: 'error', sourceStep: 400 },
+  { category: 'overlay', subcategory: 'tint', variant: 'info', states: ['default'], sourceColor: 'brand', sourceStep: 400 },
+  // Gradient overlays
+  { category: 'overlay', subcategory: 'gradient', variant: 'top', states: ['default'], sourceColor: 'neutral', sourceStep: 950 },
+  { category: 'overlay', subcategory: 'gradient', variant: 'bottom', states: ['default'], sourceColor: 'neutral', sourceStep: 950 },
+  { category: 'overlay', subcategory: 'gradient', variant: 'left', states: ['default'], sourceColor: 'neutral', sourceStep: 950 },
+  { category: 'overlay', subcategory: 'gradient', variant: 'right', states: ['default'], sourceColor: 'neutral', sourceStep: 950 },
+  // Skeleton loading
+  { category: 'overlay', subcategory: 'skeleton', variant: 'base', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
+  { category: 'overlay', subcategory: 'skeleton', variant: 'shimmer', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
+  // Selection overlay
+  { category: 'overlay', subcategory: 'selection', variant: 'default', states: ['default'], sourceColor: 'brand', sourceStep: 400 },
+  { category: 'overlay', subcategory: 'selection', variant: 'subtle', states: ['default'], sourceColor: 'brand', sourceStep: 800 },
+  // Drag & Drop overlays
+  { category: 'overlay', subcategory: 'drop-zone', variant: 'default', states: ['default', 'active', 'valid', 'invalid'], sourceColor: 'brand', sourceStep: 800 },
+  { category: 'overlay', subcategory: 'drag-preview', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  // Image/media overlays
+  { category: 'overlay', subcategory: 'image', variant: 'darken', states: ['default'], sourceColor: 'neutral', sourceStep: 950 },
+  { category: 'overlay', subcategory: 'image', variant: 'lighten', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  // Disabled overlay
+  { category: 'overlay', subcategory: 'disabled', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
 ];
 
 // Theme configuration interface

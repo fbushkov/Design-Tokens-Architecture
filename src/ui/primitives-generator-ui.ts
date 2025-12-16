@@ -61,19 +61,27 @@ export const productConfig: ProductConfig = {
   id: 'product',
   name: 'Design System',
   brandColors: new Map([
-    ['brand', '#3B82F6'],
-    ['accent', '#8B5CF6']
+    ['brand', '#2781F3'],
+    ['accent', '#844DBB'],
   ]),
   additionalColors: new Map()
 };
 
-// System colors (always included)
+// System colors (always included, locked by default)
 const systemColors: Map<string, string> = new Map([
-  ['neutral', '#6B7280'],
-  ['success', '#22C55E'],
-  ['warning', '#F59E0B'],
-  ['error', '#EF4444'],
-  ['info', '#0EA5E9'],
+  ['neutral', '#999999'],
+  ['success', '#4DB35D'],
+  ['warning', '#D7B923'],
+  ['error', '#E9033A'],
+  ['info', '#3B82F6'],
+]);
+
+// Base colors (always included)
+const baseColors: Map<string, string> = new Map([
+  ['white', '#FFFFFF'],
+  ['black', '#000000'],
+  ['transparent-light', 'rgba(0,0,0,0.3)'],
+  ['transparent-dark', 'rgba(0,0,0,0.7)'],
 ]);
 
 // For backwards compatibility - always returns product config
@@ -192,7 +200,7 @@ const OPACITY_SCALE = [
 const SYSTEM_COLORS = ['neutral', 'success', 'warning', 'error', 'info'] as const;
 
 // Color categories
-type ColorCategory = 'system' | 'brand' | 'additional';
+type ColorCategory = 'system' | 'brand' | 'additional' | 'base';
 
 interface ColorConfig {
   name: string;
@@ -586,6 +594,35 @@ export function addColorPalettesToTokenManager(palettes: ColorPaletteData[], sco
   }
 }
 
+// Add base colors (white, black, transparent) as single tokens
+export function addBaseColorsToTokenManager(baseColorsArr: Array<{name: string, hex: string, category: ColorCategory}>): void {
+  for (const color of baseColorsArr) {
+    const isTransparent = color.name === 'transparent' || color.hex === 'transparent';
+    
+    createToken({
+      name: color.name,
+      path: ['colors', 'base'],
+      type: 'COLOR' as TMTokenType,
+      value: isTransparent 
+        ? { hex: '#00000000', rgba: { r: 0, g: 0, b: 0, a: 0 } }
+        : { hex: color.hex, rgba: hexToRgba(color.hex) },
+      collection: 'Primitives' as TMCollectionType,
+      description: isTransparent ? 'Fully transparent' : `Base ${color.name}`,
+    });
+  }
+}
+
+// Helper function to convert hex to rgba
+function hexToRgba(hex: string): { r: number, g: number, b: number, a: number } {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16) / 255,
+    g: parseInt(result[2], 16) / 255,
+    b: parseInt(result[3], 16) / 255,
+    a: 1
+  } : { r: 0, g: 0, b: 0, a: 1 };
+}
+
 export function addTypographyToTokenManager(typography: Record<string, any>): void {
   for (const [key, value] of Object.entries(typography)) {
     // Map typography properties to supported Figma types
@@ -841,6 +878,17 @@ function generateColors(): void {
     }
   });
   
+  // Collect base colors (white, black, transparent)
+  const baseColorsArr: Array<{name: string, hex: string, category: ColorCategory}> = [];
+  document.querySelectorAll('#base-colors-grid .color-card').forEach(card => {
+    const name = card.getAttribute('data-color-name');
+    const hexInput = card.querySelector('.color-hex') as HTMLInputElement;
+    if (name && hexInput?.value) {
+      baseColorsArr.push({ name, hex: hexInput.value, category: 'base' });
+      baseColors.set(name, hexInput.value);
+    }
+  });
+  
   // Collect product colors
   const productColors: Array<{name: string, hex: string, category: ColorCategory}> = [];
   
@@ -881,6 +929,16 @@ function generateColors(): void {
     });
   }
   
+  // Add base colors as single-value tokens (no palette generation)
+  for (const color of baseColorsArr) {
+    colorState.colors.set(color.name, {
+      name: color.name,
+      hex: color.hex,
+      category: 'base' as ColorCategory,
+      enabledShades: new Set([500]) // Single value for base colors
+    });
+  }
+  
   // Generate product color palettes
   const productPalettes: ColorPaletteData[] = [];
   for (const color of productColors) {
@@ -904,8 +962,11 @@ function generateColors(): void {
     preview.style.display = 'block';
   }
   
-  // Add all palettes to Token Manager
+  // Add all palettes to Token Manager (including base colors)
   addColorPalettesToTokenManager([...systemPalettes, ...productPalettes], 'product');
+  
+  // Add base colors as special tokens to Token Manager
+  addBaseColorsToTokenManager(baseColorsArr);
 }
 
 function generateTypographyTokens(): void {
@@ -1005,6 +1066,9 @@ function setupColorInputSync(): void {
     }
   });
   
+  // Setup lock buttons for system colors
+  setupColorLockButtons();
+  
   // Shadow color sync
   const shadowColor = document.getElementById('shadow-color') as HTMLInputElement;
   const shadowColorHex = document.getElementById('shadow-color-hex') as HTMLInputElement;
@@ -1018,6 +1082,36 @@ function setupColorInputSync(): void {
       }
     });
   }
+}
+
+function setupColorLockButtons(): void {
+  // Handle lock/unlock buttons for system colors
+  document.querySelectorAll('.btn-lock-color').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const card = btn.closest('.color-card');
+      if (!card) return;
+      
+      const isLocked = btn.classList.contains('active');
+      const colorPicker = card.querySelector('.color-picker') as HTMLInputElement;
+      const hexInput = card.querySelector('.color-hex') as HTMLInputElement;
+      
+      if (isLocked) {
+        // Unlock
+        btn.classList.remove('active');
+        btn.textContent = '🔓';
+        card.classList.remove('locked');
+        if (colorPicker) colorPicker.disabled = false;
+        if (hexInput) hexInput.disabled = false;
+      } else {
+        // Lock
+        btn.classList.add('active');
+        btn.textContent = '🔒';
+        card.classList.add('locked');
+        if (colorPicker) colorPicker.disabled = true;
+        if (hexInput) hexInput.disabled = true;
+      }
+    });
+  });
 }
 
 function setupColorButtons(): void {

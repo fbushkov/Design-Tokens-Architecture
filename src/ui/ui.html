@@ -1779,6 +1779,72 @@
       opacity: 1;
     }
 
+    /* Lock button styles */
+    .btn-lock-color {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      padding: 2px 6px;
+      opacity: 0.5;
+      transition: all 0.15s;
+      border-radius: var(--radius-sm);
+    }
+
+    .btn-lock-color:hover {
+      opacity: 0.8;
+      background: var(--color-bg-secondary);
+    }
+
+    .btn-lock-color.active {
+      opacity: 1;
+      color: var(--color-warning);
+    }
+
+    /* Locked color card */
+    .color-card.locked {
+      opacity: 0.85;
+      background: var(--color-bg-secondary);
+    }
+
+    .color-card.locked input:disabled {
+      background: var(--color-bg-tertiary);
+      color: var(--color-text-secondary);
+      cursor: not-allowed;
+    }
+
+    /* Transparent color preview */
+    .transparent-preview {
+      width: 32px;
+      height: 24px;
+      border-radius: var(--radius-sm);
+      background-image: 
+        linear-gradient(45deg, #ccc 25%, transparent 25%),
+        linear-gradient(-45deg, #ccc 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #ccc 75%),
+        linear-gradient(-45deg, transparent 75%, #ccc 75%);
+      background-size: 8px 8px;
+      background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+      border: 1px solid var(--color-border);
+      position: relative;
+    }
+
+    .transparent-preview.transparent-light::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: inherit;
+    }
+
+    .transparent-preview.transparent-dark::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: inherit;
+    }
+
     .btn-sm {
       padding: var(--spacing-xs) var(--spacing-sm);
       font-size: 11px;
@@ -2317,103 +2383,153 @@
 
     <!-- Colors -->
     <div id="prim-colors" class="sub-tab-content">
-      <!-- System Colors (Base) - SHARED -->
+      <!-- System Colors (Base) - SHARED & LOCKED -->
       <div class="color-section" data-scope="shared">
         <div class="section-title">
           Системные цвета
-          <span class="badge">базовые для всех продуктов</span>
+          <span class="badge">заблокированы</span>
         </div>
         
         <div class="color-grid" id="system-colors-grid">
-          <div class="color-card" data-color-name="neutral" data-category="system">
+          <div class="color-card locked" data-color-name="neutral" data-category="system">
             <div class="color-card-header">
               <label class="form-label">Neutral</label>
-              <button class="btn-icon btn-remove-color" title="Нельзя удалить системный">🔒</button>
+              <button class="btn-icon btn-lock-color active" data-color="neutral" title="Разблокировать для редактирования">🔒</button>
             </div>
             <div class="color-input-group">
-              <input type="color" class="color-picker" data-color="neutral" value="#6B7280">
-              <input type="text" class="form-input color-hex" data-color="neutral" value="#6B7280">
+              <input type="color" class="color-picker" data-color="neutral" value="#999999" disabled>
+              <input type="text" class="form-input color-hex" data-color="neutral" value="#999999" disabled>
             </div>
           </div>
 
-          <div class="color-card" data-color-name="success" data-category="system">
+          <div class="color-card locked" data-color-name="success" data-category="system">
             <div class="color-card-header">
               <label class="form-label">Success</label>
-              <button class="btn-icon btn-remove-color" title="Нельзя удалить системный">🔒</button>
+              <button class="btn-icon btn-lock-color active" data-color="success" title="Разблокировать для редактирования">🔒</button>
             </div>
             <div class="color-input-group">
-              <input type="color" class="color-picker" data-color="success" value="#22C55E">
-              <input type="text" class="form-input color-hex" data-color="success" value="#22C55E">
+              <input type="color" class="color-picker" data-color="success" value="#4DB35D" disabled>
+              <input type="text" class="form-input color-hex" data-color="success" value="#4DB35D" disabled>
             </div>
           </div>
 
-          <div class="color-card" data-color-name="warning" data-category="system">
+          <div class="color-card locked" data-color-name="warning" data-category="system">
             <div class="color-card-header">
               <label class="form-label">Warning</label>
-              <button class="btn-icon btn-remove-color" title="Нельзя удалить системный">🔒</button>
+              <button class="btn-icon btn-lock-color active" data-color="warning" title="Разблокировать для редактирования">🔒</button>
             </div>
             <div class="color-input-group">
-              <input type="color" class="color-picker" data-color="warning" value="#F59E0B">
-              <input type="text" class="form-input color-hex" data-color="warning" value="#F59E0B">
+              <input type="color" class="color-picker" data-color="warning" value="#D7B923" disabled>
+              <input type="text" class="form-input color-hex" data-color="warning" value="#D7B923" disabled>
             </div>
           </div>
 
-          <div class="color-card" data-color-name="error" data-category="system">
+          <div class="color-card locked" data-color-name="error" data-category="system">
             <div class="color-card-header">
               <label class="form-label">Error</label>
-              <button class="btn-icon btn-remove-color" title="Нельзя удалить системный">🔒</button>
+              <button class="btn-icon btn-lock-color active" data-color="error" title="Разблокировать для редактирования">🔒</button>
             </div>
             <div class="color-input-group">
-              <input type="color" class="color-picker" data-color="error" value="#EF4444">
-              <input type="text" class="form-input color-hex" data-color="error" value="#EF4444">
+              <input type="color" class="color-picker" data-color="error" value="#E9033A" disabled>
+              <input type="text" class="form-input color-hex" data-color="error" value="#E9033A" disabled>
             </div>
           </div>
 
-          <div class="color-card" data-color-name="info" data-category="system">
+          <div class="color-card locked" data-color-name="info" data-category="system">
             <div class="color-card-header">
               <label class="form-label">Info</label>
-              <button class="btn-icon btn-remove-color" title="Нельзя удалить системный">🔒</button>
+              <button class="btn-icon btn-lock-color active" data-color="info" title="Разблокировать для редактирования">🔒</button>
             </div>
             <div class="color-input-group">
-              <input type="color" class="color-picker" data-color="info" value="#0EA5E9">
-              <input type="text" class="form-input color-hex" data-color="info" value="#0EA5E9">
+              <input type="color" class="color-picker" data-color="info" value="#3B82F6" disabled>
+              <input type="text" class="form-input color-hex" data-color="info" value="#3B82F6" disabled>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Brand Colors - PER PRODUCT -->
-      <div class="color-section" data-scope="product">
+      <!-- Base Colors (white, black, transparent) -->
+      <div class="color-section" data-scope="shared">
+        <div class="section-title">
+          Базовые цвета
+          <span class="badge">фундаментальные</span>
+        </div>
+        
+        <div class="color-grid" id="base-colors-grid">
+          <div class="color-card locked" data-color-name="white" data-category="base">
+            <div class="color-card-header">
+              <label class="form-label">White</label>
+              <button class="btn-icon btn-lock-color active" data-color="white" title="Разблокировать">🔒</button>
+            </div>
+            <div class="color-input-group">
+              <input type="color" class="color-picker" data-color="white" value="#FFFFFF" disabled>
+              <input type="text" class="form-input color-hex" data-color="white" value="#FFFFFF" disabled>
+            </div>
+          </div>
+
+          <div class="color-card locked" data-color-name="black" data-category="base">
+            <div class="color-card-header">
+              <label class="form-label">Black</label>
+              <button class="btn-icon btn-lock-color active" data-color="black" title="Разблокировать">🔒</button>
+            </div>
+            <div class="color-input-group">
+              <input type="color" class="color-picker" data-color="black" value="#000000" disabled>
+              <input type="text" class="form-input color-hex" data-color="black" value="#000000" disabled>
+            </div>
+          </div>
+
+          <div class="color-card locked" data-color-name="transparent-light" data-category="base">
+            <div class="color-card-header">
+              <label class="form-label">Transparent Light</label>
+              <button class="btn-icon btn-lock-color active" data-color="transparent-light" title="Заблокировано">🔒</button>
+            </div>
+            <div class="color-input-group">
+              <div class="transparent-preview transparent-light"></div>
+              <input type="text" class="form-input color-hex" data-color="transparent-light" value="rgba(0,0,0,0.3)" disabled readonly>
+            </div>
+          </div>
+
+          <div class="color-card locked" data-color-name="transparent-dark" data-category="base">
+            <div class="color-card-header">
+              <label class="form-label">Transparent Dark</label>
+              <button class="btn-icon btn-lock-color active" data-color="transparent-dark" title="Заблокировано">🔒</button>
+            </div>
+            <div class="color-input-group">
+              <div class="transparent-preview transparent-dark"></div>
+              <input type="text" class="form-input color-hex" data-color="transparent-dark" value="rgba(0,0,0,0.7)" disabled readonly>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Brand Colors -->
+      <div class="color-section" data-scope="shared">
         <div class="section-title">
           Брендовые цвета
-          <span class="badge">специфичные для продукта</span>
+          <span class="badge">основные акценты</span>
         </div>
         
         <div class="color-grid" id="brand-colors-grid">
           <div class="color-card" data-color-name="brand" data-category="brand">
             <div class="color-card-header">
-              <label class="form-label">Brand Primary</label>
-              <button class="btn-icon btn-remove-color" data-color="brand" title="Удалить">✕</button>
+              <label class="form-label">Brand</label>
             </div>
             <div class="color-input-group">
-              <input type="color" class="color-picker" data-color="brand" value="#3B82F6">
-              <input type="text" class="form-input color-hex" data-color="brand" value="#3B82F6">
+              <input type="color" class="color-picker" data-color="brand" value="#2781F3">
+              <input type="text" class="form-input color-hex" data-color="brand" value="#2781F3">
             </div>
           </div>
 
           <div class="color-card" data-color-name="accent" data-category="brand">
             <div class="color-card-header">
               <label class="form-label">Accent</label>
-              <button class="btn-icon btn-remove-color" data-color="accent" title="Удалить">✕</button>
             </div>
             <div class="color-input-group">
-              <input type="color" class="color-picker" data-color="accent" value="#8B5CF6">
-              <input type="text" class="form-input color-hex" data-color="accent" value="#8B5CF6">
+              <input type="color" class="color-picker" data-color="accent" value="#844DBB">
+              <input type="text" class="form-input color-hex" data-color="accent" value="#844DBB">
             </div>
           </div>
         </div>
-
-        <button class="btn btn-secondary btn-sm" id="btn-add-brand-color">+ Добавить брендовый цвет</button>
       </div>
 
       <!-- Custom Themes - Color variations for brand -->  

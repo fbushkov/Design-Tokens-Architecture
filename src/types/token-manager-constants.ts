@@ -35,17 +35,15 @@ export const COLOR_SCALE = [
 export type ColorStep = typeof COLOR_SCALE[number];
 
 // ============================================
-// DEFAULT PALETTES
+// DEFAULT PALETTES (system colors only)
 // ============================================
 
 export const DEFAULT_PALETTES = [
-  { name: 'brand', hex: '#3B82F6', label: 'Brand' },
-  { name: 'accent', hex: '#8B5CF6', label: 'Accent' },
-  { name: 'neutral', hex: '#6B7280', label: 'Neutral' },
-  { name: 'success', hex: '#10B981', label: 'Success' },
-  { name: 'warning', hex: '#F59E0B', label: 'Warning' },
-  { name: 'error', hex: '#EF4444', label: 'Error' },
-  { name: 'info', hex: '#06B6D4', label: 'Info' },
+  { name: 'neutral', hex: '#999999', label: 'Neutral' },
+  { name: 'success', hex: '#4DB35D', label: 'Success' },
+  { name: 'warning', hex: '#D7B923', label: 'Warning' },
+  { name: 'error', hex: '#E9033A', label: 'Error' },
+  { name: 'info', hex: '#3B82F6', label: 'Info' },
 ];
 
 // ============================================
