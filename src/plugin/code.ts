@@ -3472,6 +3472,1115 @@ async function createScalingCollection(data: ScalingCollectionData): Promise<{ c
 }
 
 // ============================================
+// DOCUMENTATION GENERATOR FUNCTIONS
+// ============================================
+
+interface DocGeneratorResult {
+  pageName: string;
+  framesCreated: number;
+}
+
+// Helper to load common fonts
+async function loadDocFonts() {
+  await Promise.all([
+    figma.loadFontAsync({ family: 'Inter', style: 'Bold' }),
+    figma.loadFontAsync({ family: 'Inter', style: 'Medium' }),
+    figma.loadFontAsync({ family: 'Inter', style: 'Regular' })
+  ]);
+}
+
+// Helper to create styled text
+function createStyledText(
+  content: string, 
+  x: number, 
+  y: number, 
+  fontSize: number, 
+  style: 'Bold' | 'Medium' | 'Regular' = 'Regular',
+  color: RGB = { r: 0, g: 0, b: 0 }
+): TextNode {
+  const text = figma.createText();
+  text.fontName = { family: 'Inter', style };
+  text.characters = content;
+  text.fontSize = fontSize;
+  text.fills = [{ type: 'SOLID', color }];
+  text.x = x;
+  text.y = y;
+  return text;
+}
+
+// Helper to resolve variable value (handles aliases)
+async function resolveColorValue(
+  variable: Variable, 
+  modeId: string
+): Promise<RGBA | null> {
+  const value = variable.valuesByMode[modeId];
+  
+  if (!value) return null;
+  
+  // Direct color value
+  if (typeof value === 'object' && 'r' in value && 'g' in value && 'b' in value) {
+    return value as RGBA;
+  }
+  
+  // Alias to another variable
+  if (typeof value === 'object' && 'type' in value && value.type === 'VARIABLE_ALIAS') {
+    try {
+      const aliasedVar = await figma.variables.getVariableByIdAsync(value.id);
+      if (aliasedVar) {
+        // Get the collection to find its default mode
+        const aliasedCollection = await figma.variables.getVariableCollectionByIdAsync(aliasedVar.variableCollectionId);
+        if (aliasedCollection) {
+          const aliasedModeId = aliasedCollection.modes[0]?.modeId;
+          if (aliasedModeId) {
+            return resolveColorValue(aliasedVar, aliasedModeId);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error resolving alias:', e);
+    }
+  }
+  
+  return null;
+}
+
+// Generate Colors Documentation
+async function generateColorsDocumentation(): Promise<DocGeneratorResult> {
+  await loadDocFonts();
+  
+  const pageName = '📖 Colors Documentation';
+  const page = figma.createPage();
+  page.name = pageName;
+  
+  // Get all color variables
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  const colorVars = await figma.variables.getLocalVariablesAsync('COLOR');
+  
+  // Group by collection
+  const varsByCollection = new Map<string, Variable[]>();
+  for (const v of colorVars) {
+    const list = varsByCollection.get(v.variableCollectionId) || [];
+    list.push(v);
+    varsByCollection.set(v.variableCollectionId, list);
+  }
+  
+  let yOffset = 0;
+  let framesCreated = 0;
+  
+  // ===== ARCHITECTURE DESCRIPTION FRAME =====
+  const archFrame = figma.createFrame();
+  archFrame.name = 'Архитектура цветов';
+  archFrame.x = 0;
+  archFrame.y = yOffset;
+  archFrame.layoutMode = 'VERTICAL';
+  archFrame.itemSpacing = 20;
+  archFrame.paddingTop = 40;
+  archFrame.paddingBottom = 40;
+  archFrame.paddingLeft = 40;
+  archFrame.paddingRight = 40;
+  archFrame.primaryAxisSizingMode = 'AUTO';
+  archFrame.counterAxisSizingMode = 'AUTO';
+  archFrame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.98, b: 1 } }];
+  archFrame.cornerRadius = 16;
+  archFrame.minWidth = 700;
+  
+  const archTitle = createStyledText('🏗️ Архитектура цветовой системы', 0, 0, 28, 'Bold');
+  archFrame.appendChild(archTitle);
+  
+  const archDesc = createStyledText(
+    `Цветовая система построена по принципу "Примитивы → Токены → Темы".\n\n` +
+    `📦 ПРИМИТИВЫ (Primitives)\n` +
+    `Базовые цвета с числовой шкалой: blue/500, gray/100, red/600.\n` +
+    `Это "сырые" значения без семантики, которые никогда не меняются.\n\n` +
+    `🎯 СЕМАНТИЧЕСКИЕ ТОКЕНЫ (Tokens)\n` +
+    `Токены ссылаются на примитивы и несут смысл: bg/primary, text/secondary, border/error.\n` +
+    `Компоненты используют только семантические токены.\n\n` +
+    `🌓 ТЕМЫ (Themes)\n` +
+    `Темы переключают значения токенов: в Light теме bg/primary = white,\n` +
+    `в Dark теме bg/primary = gray/900. Примитивы при этом остаются неизменными.\n\n` +
+    `💡 ПРЕИМУЩЕСТВА\n` +
+    `• Централизованное управление цветами\n` +
+    `• Мгновенное переключение тем\n` +
+    `• Консистентность во всём продукте\n` +
+    `• Простота обновления брендовых цветов`,
+    0, 0, 13, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  archFrame.appendChild(archDesc);
+  
+  page.appendChild(archFrame);
+  yOffset += archFrame.height + 48;
+  framesCreated++;
+  
+  // ===== COLOR COLLECTIONS =====
+  for (const coll of collections) {
+    const vars = varsByCollection.get(coll.id);
+    if (!vars || vars.length === 0) continue;
+    
+    // Section frame
+    const sectionFrame = figma.createFrame();
+    sectionFrame.name = `Colors: ${coll.name}`;
+    sectionFrame.x = 0;
+    sectionFrame.y = yOffset;
+    sectionFrame.layoutMode = 'VERTICAL';
+    sectionFrame.itemSpacing = 24;
+    sectionFrame.paddingTop = 32;
+    sectionFrame.paddingBottom = 32;
+    sectionFrame.paddingLeft = 32;
+    sectionFrame.paddingRight = 32;
+    sectionFrame.primaryAxisSizingMode = 'AUTO';
+    sectionFrame.counterAxisSizingMode = 'AUTO';
+    sectionFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+    sectionFrame.cornerRadius = 16;
+    
+    // Title
+    const title = createStyledText(`🎨 ${coll.name}`, 0, 0, 32, 'Bold');
+    sectionFrame.appendChild(title);
+    
+    // Modes info
+    const modesInfo = coll.modes.length > 1 
+      ? `Режимы: ${coll.modes.map(m => m.name).join(', ')}`
+      : 'Без режимов (примитивы)';
+    
+    // Description
+    const desc = createStyledText(
+      `${vars.length} цветовых переменных · ${modesInfo}`, 
+      0, 0, 14, 'Regular', { r: 0.5, g: 0.5, b: 0.5 }
+    );
+    sectionFrame.appendChild(desc);
+    
+    // Group by path prefix
+    const varsByGroup = new Map<string, Variable[]>();
+    for (const v of vars) {
+      const parts = v.name.split('/');
+      const group = parts.length > 1 ? parts[0] : 'Other';
+      const list = varsByGroup.get(group) || [];
+      list.push(v);
+      varsByGroup.set(group, list);
+    }
+    
+    for (const [groupName, groupVars] of varsByGroup) {
+      // Group container
+      const groupFrame = figma.createFrame();
+      groupFrame.name = groupName;
+      groupFrame.layoutMode = 'VERTICAL';
+      groupFrame.itemSpacing = 12;
+      groupFrame.primaryAxisSizingMode = 'AUTO';
+      groupFrame.counterAxisSizingMode = 'AUTO';
+      groupFrame.fills = [];
+      
+      // Group title
+      const groupTitle = createStyledText(groupName, 0, 0, 18, 'Medium');
+      groupFrame.appendChild(groupTitle);
+      
+      // Colors grid
+      const gridFrame = figma.createFrame();
+      gridFrame.name = 'Colors Grid';
+      gridFrame.layoutMode = 'HORIZONTAL';
+      gridFrame.layoutWrap = 'WRAP';
+      gridFrame.itemSpacing = 16;
+      gridFrame.counterAxisSpacing = 16;
+      gridFrame.primaryAxisSizingMode = 'AUTO';
+      gridFrame.counterAxisSizingMode = 'AUTO';
+      gridFrame.fills = [];
+      
+      for (const variable of groupVars) {
+        // Color card
+        const card = figma.createFrame();
+        card.name = variable.name;
+        card.layoutMode = 'VERTICAL';
+        card.itemSpacing = 8;
+        card.primaryAxisSizingMode = 'AUTO';
+        card.counterAxisSizingMode = 'FIXED';
+        card.resize(120, card.height);
+        card.fills = [];
+        
+        // Color swatch
+        const swatch = figma.createRectangle();
+        swatch.resize(120, 64);
+        swatch.cornerRadius = 8;
+        
+        // Get first mode value (resolve aliases)
+        const modeId = coll.modes[0]?.modeId;
+        let colorValue: RGBA | null = null;
+        
+        if (modeId) {
+          colorValue = await resolveColorValue(variable, modeId);
+        }
+        
+        if (colorValue) {
+          swatch.fills = [{ type: 'SOLID', color: { r: colorValue.r, g: colorValue.g, b: colorValue.b } }];
+          if (colorValue.a !== undefined && colorValue.a < 1) {
+            const fill = swatch.fills[0] as SolidPaint;
+            swatch.fills = [{ ...fill, opacity: colorValue.a }];
+          }
+        } else {
+          swatch.fills = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.9 } }];
+        }
+        
+        swatch.strokes = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.9 } }];
+        swatch.strokeWeight = 1;
+        card.appendChild(swatch);
+        
+        // Variable name (short)
+        const shortName = variable.name.split('/').pop() || variable.name;
+        const nameText = createStyledText(shortName, 0, 0, 11, 'Medium');
+        nameText.resize(120, nameText.height);
+        nameText.textTruncation = 'ENDING';
+        card.appendChild(nameText);
+        
+        // Variable path
+        const pathText = createStyledText(variable.name, 0, 0, 9, 'Regular', { r: 0.6, g: 0.6, b: 0.6 });
+        pathText.resize(120, pathText.height);
+        pathText.textTruncation = 'ENDING';
+        card.appendChild(pathText);
+        
+        gridFrame.appendChild(card);
+      }
+      
+      groupFrame.appendChild(gridFrame);
+      sectionFrame.appendChild(groupFrame);
+    }
+    
+    page.appendChild(sectionFrame);
+    yOffset += sectionFrame.height + 48;
+    framesCreated++;
+  }
+  
+  // Switch to new page
+  await figma.setCurrentPageAsync(page);
+  
+  return { pageName, framesCreated };
+}
+
+// Helper to resolve variable value (handles aliases)
+async function resolveVariableValue(variable: Variable, modeId: string): Promise<number | string | RGBA | null> {
+  const value = variable.valuesByMode[modeId];
+  
+  if (value === undefined) return null;
+  
+  // Check if it's an alias
+  if (typeof value === 'object' && 'type' in value && value.type === 'VARIABLE_ALIAS') {
+    const aliasedVar = await figma.variables.getVariableByIdAsync(value.id);
+    if (aliasedVar) {
+      // Get first mode of aliased variable's collection
+      const aliasedColl = await figma.variables.getVariableCollectionByIdAsync(aliasedVar.variableCollectionId);
+      if (aliasedColl && aliasedColl.modes.length > 0) {
+        return resolveVariableValue(aliasedVar, aliasedColl.modes[0].modeId);
+      }
+    }
+    return null;
+  }
+  
+  return value as number | string | RGBA;
+}
+
+// Generate Typography Documentation
+async function generateTypographyDocumentation(): Promise<DocGeneratorResult> {
+  await loadDocFonts();
+  
+  const pageName = '📖 Typography Documentation';
+  const page = figma.createPage();
+  page.name = pageName;
+  
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  const floatVars = await figma.variables.getLocalVariablesAsync('FLOAT');
+  const stringVars = await figma.variables.getLocalVariablesAsync('STRING');
+  
+  let framesCreated = 0;
+  let xOffset = 0;
+  
+  // ===== ARCHITECTURE DESCRIPTION FRAME =====
+  const archFrame = figma.createFrame();
+  archFrame.name = 'Архитектура типографики';
+  archFrame.x = xOffset;
+  archFrame.y = 0;
+  archFrame.layoutMode = 'VERTICAL';
+  archFrame.itemSpacing = 20;
+  archFrame.paddingTop = 40;
+  archFrame.paddingBottom = 40;
+  archFrame.paddingLeft = 40;
+  archFrame.paddingRight = 40;
+  archFrame.primaryAxisSizingMode = 'AUTO';
+  archFrame.counterAxisSizingMode = 'AUTO';
+  archFrame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 1, b: 0.98 } }];
+  archFrame.cornerRadius = 16;
+  archFrame.minWidth = 500;
+  
+  const archTitle = createStyledText('🏗️ Архитектура типографики', 0, 0, 28, 'Bold');
+  archFrame.appendChild(archTitle);
+  
+  const archDesc = createStyledText(
+    `Типографика построена по 2-уровневой архитектуре с адаптивностью.\n\n` +
+    `📦 ПРИМИТИВЫ\n` +
+    `Базовые значения без контекста:\n` +
+    `• font-size: 12, 14, 16, 18, 20, 24, 32, 40, 56px\n` +
+    `• line-height: 1.2, 1.4, 1.5, 1.6 (множители)\n` +
+    `• font-weight: 400, 500, 600, 700\n` +
+    `• letter-spacing: -0.02, 0, 0.02em\n\n` +
+    `🎯 СЕМАНТИЧЕСКИЕ СТИЛИ\n` +
+    `Токены с контекстом использования:\n` +
+    `• page/hero — крупные заголовки страниц\n` +
+    `• page/title — основные заголовки\n` +
+    `• card/title — заголовки в карточках\n` +
+    `• body/regular — основной текст\n\n` +
+    `📱 АДАПТИВНОСТЬ (Desktop → Tablet → Mobile)\n` +
+    `Каждый семантический токен имеет разные значения\n` +
+    `для разных устройств. Desktop = 100%, Mobile = 75%.\n\n` +
+    `💡 ИСПОЛЬЗОВАНИЕ\n` +
+    `Компоненты привязываются к семантическим токенам.\n` +
+    `При переключении режима устройства типографика\n` +
+    `масштабируется автоматически.`,
+    0, 0, 12, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  archFrame.appendChild(archDesc);
+  
+  page.appendChild(archFrame);
+  xOffset += archFrame.width + 48;
+  framesCreated++;
+  
+  // ===== SECTION 1: Font Scale =====
+  const scaleFrame = figma.createFrame();
+  scaleFrame.name = 'Font Scale';
+  scaleFrame.x = xOffset;
+  scaleFrame.y = 0;
+  scaleFrame.layoutMode = 'VERTICAL';
+  scaleFrame.itemSpacing = 24;
+  scaleFrame.paddingTop = 40;
+  scaleFrame.paddingBottom = 40;
+  scaleFrame.paddingLeft = 40;
+  scaleFrame.paddingRight = 40;
+  scaleFrame.primaryAxisSizingMode = 'AUTO';
+  scaleFrame.counterAxisSizingMode = 'AUTO';
+  scaleFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+  scaleFrame.cornerRadius = 16;
+  scaleFrame.minWidth = 600;
+  
+  const scaleTitle = createStyledText('📏 Шкала размеров', 0, 0, 28, 'Bold');
+  scaleFrame.appendChild(scaleTitle);
+  
+  // Find font-size variables
+  const fontSizeVars = floatVars.filter(v => 
+    v.name.toLowerCase().includes('font-size') || 
+    v.name.toLowerCase().includes('fontsize') ||
+    (v.name.toLowerCase().includes('size') && v.name.toLowerCase().includes('typography'))
+  );
+  
+  if (fontSizeVars.length > 0) {
+    // Group by collection and get primitives (raw values)
+    for (const coll of collections) {
+      const collVars = fontSizeVars.filter(v => v.variableCollectionId === coll.id);
+      if (collVars.length === 0) continue;
+      
+      const collSection = figma.createFrame();
+      collSection.name = coll.name;
+      collSection.layoutMode = 'VERTICAL';
+      collSection.itemSpacing = 12;
+      collSection.primaryAxisSizingMode = 'AUTO';
+      collSection.counterAxisSizingMode = 'AUTO';
+      collSection.fills = [];
+      
+      const collLabel = createStyledText(`${coll.name}`, 0, 0, 14, 'Medium', { r: 0.5, g: 0.5, b: 0.5 });
+      collSection.appendChild(collLabel);
+      
+      // Sort by value
+      const sortedVars: Array<{ variable: Variable; value: number }> = [];
+      for (const v of collVars) {
+        const modeId = coll.modes[0]?.modeId;
+        if (modeId) {
+          const resolved = await resolveVariableValue(v, modeId);
+          if (typeof resolved === 'number') {
+            sortedVars.push({ variable: v, value: resolved });
+          }
+        }
+      }
+      sortedVars.sort((a, b) => b.value - a.value);
+      
+      for (const { variable, value } of sortedVars.slice(0, 12)) {
+        const row = figma.createFrame();
+        row.name = variable.name;
+        row.layoutMode = 'HORIZONTAL';
+        row.itemSpacing = 20;
+        row.counterAxisAlignItems = 'CENTER';
+        row.primaryAxisSizingMode = 'AUTO';
+        row.counterAxisSizingMode = 'AUTO';
+        row.fills = [];
+        
+        // Size value badge
+        const badge = figma.createFrame();
+        badge.layoutMode = 'HORIZONTAL';
+        badge.paddingTop = 4;
+        badge.paddingBottom = 4;
+        badge.paddingLeft = 8;
+        badge.paddingRight = 8;
+        badge.primaryAxisSizingMode = 'AUTO';
+        badge.counterAxisSizingMode = 'AUTO';
+        badge.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.95, b: 0.95 } }];
+        badge.cornerRadius = 4;
+        
+        const sizeText = createStyledText(`${value}px`, 0, 0, 11, 'Medium');
+        badge.appendChild(sizeText);
+        row.appendChild(badge);
+        
+        // Variable name
+        const shortName = variable.name.split('/').pop() || variable.name;
+        const nameText = createStyledText(shortName, 0, 0, 12, 'Regular', { r: 0.4, g: 0.4, b: 0.4 });
+        nameText.resize(150, nameText.height);
+        row.appendChild(nameText);
+        
+        // Sample text at that size (clamped for display)
+        const displaySize = Math.min(Math.max(value, 10), 48);
+        const sampleText = createStyledText('Aa Bb Cc', 0, 0, displaySize, 'Regular');
+        row.appendChild(sampleText);
+        
+        collSection.appendChild(row);
+      }
+      
+      scaleFrame.appendChild(collSection);
+    }
+  } else {
+    const noData = createStyledText('No font-size variables found', 0, 0, 14, 'Regular', { r: 0.6, g: 0.6, b: 0.6 });
+    scaleFrame.appendChild(noData);
+  }
+  
+  page.appendChild(scaleFrame);
+  xOffset += scaleFrame.width + 48;
+  framesCreated++;
+  
+  // ===== SECTION 2: Type Styles Preview =====
+  const stylesFrame = figma.createFrame();
+  stylesFrame.name = 'Type Styles';
+  stylesFrame.x = xOffset;
+  stylesFrame.y = 0;
+  stylesFrame.layoutMode = 'VERTICAL';
+  stylesFrame.itemSpacing = 32;
+  stylesFrame.paddingTop = 40;
+  stylesFrame.paddingBottom = 40;
+  stylesFrame.paddingLeft = 40;
+  stylesFrame.paddingRight = 40;
+  stylesFrame.primaryAxisSizingMode = 'AUTO';
+  stylesFrame.counterAxisSizingMode = 'AUTO';
+  stylesFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+  stylesFrame.cornerRadius = 16;
+  stylesFrame.minWidth = 500;
+  
+  const stylesTitle = createStyledText('✨ Семантические стили', 0, 0, 28, 'Bold');
+  stylesFrame.appendChild(stylesTitle);
+  
+  // Find semantic typography variables (grouped by style name)
+  const semanticTypoVars = floatVars.filter(v => 
+    v.name.toLowerCase().includes('typography/') && 
+    !v.name.toLowerCase().includes('primitives')
+  );
+  
+  // Group by style (e.g., typography/page/hero, typography/page/title)
+  const styleGroups = new Map<string, Variable[]>();
+  for (const v of semanticTypoVars) {
+    const parts = v.name.split('/');
+    if (parts.length >= 3) {
+      const styleName = parts.slice(0, -1).join('/'); // e.g., typography/page/hero
+      const list = styleGroups.get(styleName) || [];
+      list.push(v);
+      styleGroups.set(styleName, list);
+    }
+  }
+  
+  // Show up to 8 type styles
+  let styleCount = 0;
+  for (const [styleName, vars] of styleGroups) {
+    if (styleCount >= 8) break;
+    
+    // Find fontSize for this style
+    const fontSizeVar = vars.find(v => v.name.toLowerCase().includes('fontsize') || v.name.toLowerCase().includes('size'));
+    const lineHeightVar = vars.find(v => v.name.toLowerCase().includes('lineheight'));
+    const fontWeightVar = vars.find(v => v.name.toLowerCase().includes('fontweight') || v.name.toLowerCase().includes('weight'));
+    
+    // Get collection for this var
+    const coll = collections.find(c => c.id === (fontSizeVar || vars[0]).variableCollectionId);
+    const modeId = coll?.modes[0]?.modeId;
+    
+    let fontSize = 16;
+    let lineHeight = 1.5;
+    let fontWeight = 400;
+    
+    if (modeId) {
+      if (fontSizeVar) {
+        const v = await resolveVariableValue(fontSizeVar, modeId);
+        if (typeof v === 'number') fontSize = v;
+      }
+      if (lineHeightVar) {
+        const v = await resolveVariableValue(lineHeightVar, modeId);
+        if (typeof v === 'number') lineHeight = v;
+      }
+      if (fontWeightVar) {
+        const v = await resolveVariableValue(fontWeightVar, modeId);
+        if (typeof v === 'number') fontWeight = v;
+      }
+    }
+    
+    const styleRow = figma.createFrame();
+    styleRow.name = styleName;
+    styleRow.layoutMode = 'VERTICAL';
+    styleRow.itemSpacing = 4;
+    styleRow.primaryAxisSizingMode = 'AUTO';
+    styleRow.counterAxisSizingMode = 'AUTO';
+    styleRow.fills = [];
+    
+    // Style name label
+    const shortStyleName = styleName.split('/').slice(1).join(' / ');
+    const styleLabel = createStyledText(shortStyleName, 0, 0, 11, 'Regular', { r: 0.5, g: 0.5, b: 0.5 });
+    styleRow.appendChild(styleLabel);
+    
+    // Sample text
+    const displaySize = Math.min(Math.max(fontSize, 12), 56);
+    const fontStyle = fontWeight >= 600 ? 'Bold' : (fontWeight >= 500 ? 'Medium' : 'Regular');
+    const sampleText = createStyledText('The quick brown fox jumps', 0, 0, displaySize, fontStyle);
+    styleRow.appendChild(sampleText);
+    
+    // Properties
+    const propsText = createStyledText(
+      `${fontSize}px / ${lineHeight} / ${fontWeight}`,
+      0, 0, 10, 'Regular', { r: 0.6, g: 0.6, b: 0.6 }
+    );
+    styleRow.appendChild(propsText);
+    
+    stylesFrame.appendChild(styleRow);
+    styleCount++;
+  }
+  
+  if (styleCount === 0) {
+    const noStyles = createStyledText('No semantic typography styles found', 0, 0, 14, 'Regular', { r: 0.6, g: 0.6, b: 0.6 });
+    stylesFrame.appendChild(noStyles);
+  }
+  
+  page.appendChild(stylesFrame);
+  xOffset += stylesFrame.width + 48;
+  framesCreated++;
+  
+  // ===== SECTION 3: Font Properties =====
+  const propsFrame = figma.createFrame();
+  propsFrame.name = 'Font Properties';
+  propsFrame.x = xOffset;
+  propsFrame.y = 0;
+  propsFrame.layoutMode = 'VERTICAL';
+  propsFrame.itemSpacing = 24;
+  propsFrame.paddingTop = 40;
+  propsFrame.paddingBottom = 40;
+  propsFrame.paddingLeft = 40;
+  propsFrame.paddingRight = 40;
+  propsFrame.primaryAxisSizingMode = 'AUTO';
+  propsFrame.counterAxisSizingMode = 'AUTO';
+  propsFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+  propsFrame.cornerRadius = 16;
+  propsFrame.minWidth = 350;
+  
+  const propsTitle = createStyledText('⚙️ Свойства шрифта', 0, 0, 28, 'Bold');
+  propsFrame.appendChild(propsTitle);
+  
+  // Font Families
+  const fontFamilyVars = stringVars.filter(v => 
+    v.name.toLowerCase().includes('font') && v.name.toLowerCase().includes('family')
+  );
+  
+  if (fontFamilyVars.length > 0) {
+    const familiesSection = figma.createFrame();
+    familiesSection.name = 'Font Families';
+    familiesSection.layoutMode = 'VERTICAL';
+    familiesSection.itemSpacing = 8;
+    familiesSection.primaryAxisSizingMode = 'AUTO';
+    familiesSection.counterAxisSizingMode = 'AUTO';
+    familiesSection.fills = [];
+    
+    const familiesLabel = createStyledText('Font Families', 0, 0, 14, 'Medium');
+    familiesSection.appendChild(familiesLabel);
+    
+    for (const v of fontFamilyVars.slice(0, 5)) {
+      const coll = collections.find(c => c.id === v.variableCollectionId);
+      const modeId = coll?.modes[0]?.modeId;
+      const value = modeId ? await resolveVariableValue(v, modeId) : null;
+      
+      const row = figma.createFrame();
+      row.layoutMode = 'HORIZONTAL';
+      row.itemSpacing = 12;
+      row.primaryAxisSizingMode = 'AUTO';
+      row.counterAxisSizingMode = 'AUTO';
+      row.fills = [];
+      
+      const shortName = v.name.split('/').pop() || v.name;
+      const nameText = createStyledText(shortName, 0, 0, 12, 'Regular', { r: 0.5, g: 0.5, b: 0.5 });
+      row.appendChild(nameText);
+      
+      const valueText = createStyledText(String(value || '-'), 0, 0, 12, 'Medium');
+      row.appendChild(valueText);
+      
+      familiesSection.appendChild(row);
+    }
+    
+    propsFrame.appendChild(familiesSection);
+  }
+  
+  // Font Weights
+  const fontWeightVars = floatVars.filter(v => 
+    v.name.toLowerCase().includes('weight') && !v.name.toLowerCase().includes('typography/')
+  );
+  
+  if (fontWeightVars.length > 0) {
+    const weightsSection = figma.createFrame();
+    weightsSection.name = 'Font Weights';
+    weightsSection.layoutMode = 'VERTICAL';
+    weightsSection.itemSpacing = 8;
+    weightsSection.primaryAxisSizingMode = 'AUTO';
+    weightsSection.counterAxisSizingMode = 'AUTO';
+    weightsSection.fills = [];
+    
+    const weightsLabel = createStyledText('Font Weights', 0, 0, 14, 'Medium');
+    weightsSection.appendChild(weightsLabel);
+    
+    for (const v of fontWeightVars.slice(0, 6)) {
+      const coll = collections.find(c => c.id === v.variableCollectionId);
+      const modeId = coll?.modes[0]?.modeId;
+      const value = modeId ? await resolveVariableValue(v, modeId) : null;
+      
+      const row = figma.createFrame();
+      row.layoutMode = 'HORIZONTAL';
+      row.itemSpacing = 12;
+      row.primaryAxisSizingMode = 'AUTO';
+      row.counterAxisSizingMode = 'AUTO';
+      row.fills = [];
+      
+      const shortName = v.name.split('/').pop() || v.name;
+      const nameText = createStyledText(shortName, 0, 0, 12, 'Regular', { r: 0.5, g: 0.5, b: 0.5 });
+      row.appendChild(nameText);
+      
+      const valueText = createStyledText(String(value || '-'), 0, 0, 12, 'Medium');
+      row.appendChild(valueText);
+      
+      weightsSection.appendChild(row);
+    }
+    
+    propsFrame.appendChild(weightsSection);
+  }
+  
+  // Line Heights
+  const lineHeightVars = floatVars.filter(v => 
+    v.name.toLowerCase().includes('line-height') && !v.name.toLowerCase().includes('typography/')
+  );
+  
+  if (lineHeightVars.length > 0) {
+    const lhSection = figma.createFrame();
+    lhSection.name = 'Line Heights';
+    lhSection.layoutMode = 'VERTICAL';
+    lhSection.itemSpacing = 8;
+    lhSection.primaryAxisSizingMode = 'AUTO';
+    lhSection.counterAxisSizingMode = 'AUTO';
+    lhSection.fills = [];
+    
+    const lhLabel = createStyledText('Line Heights', 0, 0, 14, 'Medium');
+    lhSection.appendChild(lhLabel);
+    
+    for (const v of lineHeightVars.slice(0, 6)) {
+      const coll = collections.find(c => c.id === v.variableCollectionId);
+      const modeId = coll?.modes[0]?.modeId;
+      const value = modeId ? await resolveVariableValue(v, modeId) : null;
+      
+      const row = figma.createFrame();
+      row.layoutMode = 'HORIZONTAL';
+      row.itemSpacing = 12;
+      row.primaryAxisSizingMode = 'AUTO';
+      row.counterAxisSizingMode = 'AUTO';
+      row.fills = [];
+      
+      const shortName = v.name.split('/').pop() || v.name;
+      const nameText = createStyledText(shortName, 0, 0, 12, 'Regular', { r: 0.5, g: 0.5, b: 0.5 });
+      row.appendChild(nameText);
+      
+      const valueText = createStyledText(String(value || '-'), 0, 0, 12, 'Medium');
+      row.appendChild(valueText);
+      
+      lhSection.appendChild(row);
+    }
+    
+    propsFrame.appendChild(lhSection);
+  }
+  
+  page.appendChild(propsFrame);
+  framesCreated++;
+  
+  await figma.setCurrentPageAsync(page);
+  
+  return { pageName, framesCreated };
+}
+
+// Generate Spacing Documentation
+async function generateSpacingDocumentation(): Promise<DocGeneratorResult> {
+  await loadDocFonts();
+  
+  const pageName = '📖 Spacing Documentation';
+  const page = figma.createPage();
+  page.name = pageName;
+  
+  // Get all float variables
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  const floatVars = await figma.variables.getLocalVariablesAsync('FLOAT');
+  
+  // Filter spacing-related variables
+  const spacingKeywords = ['spacing', 'space', 'margin', 'padding', 'inset'];
+  const spacingVars = floatVars.filter(v => 
+    spacingKeywords.some(kw => v.name.toLowerCase().includes(kw))
+  );
+  
+  let yOffset = 0;
+  let framesCreated = 0;
+  
+  // ===== ARCHITECTURE DESCRIPTION FRAME =====
+  const archFrame = figma.createFrame();
+  archFrame.name = 'Архитектура Spacing';
+  archFrame.x = 0;
+  archFrame.y = yOffset;
+  archFrame.layoutMode = 'VERTICAL';
+  archFrame.itemSpacing = 20;
+  archFrame.paddingTop = 40;
+  archFrame.paddingBottom = 40;
+  archFrame.paddingLeft = 40;
+  archFrame.paddingRight = 40;
+  archFrame.primaryAxisSizingMode = 'AUTO';
+  archFrame.counterAxisSizingMode = 'AUTO';
+  archFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 0.98, b: 0.95 } }];
+  archFrame.cornerRadius = 16;
+  archFrame.minWidth = 700;
+  
+  const archTitle = createStyledText('🏗️ Архитектура системы отступов', 0, 0, 28, 'Bold');
+  archFrame.appendChild(archTitle);
+  
+  const archDesc = createStyledText(
+    `Spacing — это 2-уровневая система отступов с адаптивностью.\n\n` +
+    `📦 ПРИМИТИВЫ (Primitives)\n` +
+    `Базовая шкала значений в пикселях:\n` +
+    `space.0 = 0px, space.4 = 4px, space.8 = 8px, space.12 = 12px...\n` +
+    `Шаг шкалы кратен 4px для соблюдения сетки.\n\n` +
+    `🎯 СЕМАНТИЧЕСКИЕ ТОКЕНЫ (Spacing Collection)\n` +
+    `Токены с контекстом использования, ссылающиеся на примитивы:\n` +
+    `• spacing/button/paddingX — горизонтальные отступы кнопки\n` +
+    `• spacing/card/padding — внутренние отступы карточки\n` +
+    `• spacing/section/gap — расстояние между секциями\n\n` +
+    `📱 АДАПТИВНОСТЬ (Desktop / Tablet / Mobile)\n` +
+    `Каждый семантический токен имеет 3 режима:\n` +
+    `• Desktop: полные значения (16px)\n` +
+    `• Tablet: уменьшенные (14px)\n` +
+    `• Mobile: компактные (12px)\n\n` +
+    `💡 ИСПОЛЬЗОВАНИЕ В FIGMA\n` +
+    `1. Привяжите padding/margin к семантическим токенам\n` +
+    `2. Выберите фрейм и примените режим устройства\n` +
+    `3. Отступы автоматически адаптируются`,
+    0, 0, 12, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  archFrame.appendChild(archDesc);
+  
+  page.appendChild(archFrame);
+  yOffset += archFrame.height + 48;
+  framesCreated++;
+  
+  // Main frame
+  const mainFrame = figma.createFrame();
+  mainFrame.name = 'Spacing Overview';
+  mainFrame.x = 0;
+  mainFrame.y = yOffset;
+  mainFrame.layoutMode = 'VERTICAL';
+  mainFrame.itemSpacing = 32;
+  mainFrame.paddingTop = 32;
+  mainFrame.paddingBottom = 32;
+  mainFrame.paddingLeft = 32;
+  mainFrame.paddingRight = 32;
+  mainFrame.primaryAxisSizingMode = 'AUTO';
+  mainFrame.counterAxisSizingMode = 'AUTO';
+  mainFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+  mainFrame.cornerRadius = 16;
+  mainFrame.minWidth = 800;
+  
+  // Title
+  const title = createStyledText('📐 Система отступов', 0, 0, 32, 'Bold');
+  mainFrame.appendChild(title);
+  
+  // Stats
+  const stats = createStyledText(
+    `Всего переменных: ${spacingVars.length}`,
+    0, 0, 14, 'Regular', { r: 0.5, g: 0.5, b: 0.5 }
+  );
+  mainFrame.appendChild(stats);
+  
+  // Group by collection
+  const varsByCollection = new Map<string, Variable[]>();
+  for (const v of spacingVars) {
+    const list = varsByCollection.get(v.variableCollectionId) || [];
+    list.push(v);
+    varsByCollection.set(v.variableCollectionId, list);
+  }
+  
+  for (const coll of collections) {
+    const vars = varsByCollection.get(coll.id);
+    if (!vars || vars.length === 0) continue;
+    
+    // Collection section
+    const collSection = figma.createFrame();
+    collSection.name = coll.name;
+    collSection.layoutMode = 'VERTICAL';
+    collSection.itemSpacing = 20;
+    collSection.primaryAxisSizingMode = 'AUTO';
+    collSection.counterAxisSizingMode = 'AUTO';
+    collSection.fills = [];
+    
+    // Collection title with mode names
+    const modeNames = coll.modes.map(m => m.name).join(' / ');
+    const collTitle = createStyledText(`📦 ${coll.name} (${modeNames})`, 0, 0, 20, 'Medium');
+    collSection.appendChild(collTitle);
+    
+    // Visual spacing guide
+    for (const variable of vars.slice(0, 15)) {
+      const row = figma.createFrame();
+      row.name = variable.name;
+      row.layoutMode = 'HORIZONTAL';
+      row.itemSpacing = 16;
+      row.counterAxisAlignItems = 'CENTER';
+      row.primaryAxisSizingMode = 'AUTO';
+      row.counterAxisSizingMode = 'AUTO';
+      row.fills = [];
+      
+      // Name
+      const nameText = createStyledText(variable.name, 0, 0, 12, 'Medium');
+      nameText.resize(250, nameText.height);
+      row.appendChild(nameText);
+      
+      // Visual bar for each mode
+      for (const mode of coll.modes) {
+        const resolved = await resolveVariableValue(variable, mode.modeId);
+        const numValue = typeof resolved === 'number' ? resolved : 0;
+        
+        const barContainer = figma.createFrame();
+        barContainer.name = mode.name;
+        barContainer.layoutMode = 'HORIZONTAL';
+        barContainer.itemSpacing = 8;
+        barContainer.counterAxisAlignItems = 'CENTER';
+        barContainer.primaryAxisSizingMode = 'AUTO';
+        barContainer.counterAxisSizingMode = 'AUTO';
+        barContainer.fills = [];
+        
+        // Visual bar
+        const bar = figma.createRectangle();
+        bar.resize(Math.max(1, Math.min(numValue * 2, 200)), 16);
+        bar.cornerRadius = 4;
+        bar.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.5, b: 0.9 } }];
+        barContainer.appendChild(bar);
+        
+        // Value label
+        const valueText = createStyledText(`${numValue}px`, 0, 0, 11, 'Regular', { r: 0.5, g: 0.5, b: 0.5 });
+        barContainer.appendChild(valueText);
+        
+        row.appendChild(barContainer);
+      }
+      
+      collSection.appendChild(row);
+    }
+    
+    mainFrame.appendChild(collSection);
+    framesCreated++;
+  }
+  
+  page.appendChild(mainFrame);
+  await figma.setCurrentPageAsync(page);
+  
+  return { pageName, framesCreated: framesCreated || 1 };
+}
+
+// Generate Gap Documentation
+async function generateGapDocumentation(): Promise<DocGeneratorResult> {
+  await loadDocFonts();
+  
+  const pageName = '📖 Gap Documentation';
+  const page = figma.createPage();
+  page.name = pageName;
+  
+  // Get all float variables
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  const floatVars = await figma.variables.getLocalVariablesAsync('FLOAT');
+  
+  // Filter gap-related variables
+  const gapKeywords = ['gap'];
+  const gapVars = floatVars.filter(v => 
+    gapKeywords.some(kw => v.name.toLowerCase().includes(kw))
+  );
+  
+  let yOffset = 0;
+  let framesCreated = 0;
+  
+  // ===== ARCHITECTURE DESCRIPTION FRAME =====
+  const archFrame = figma.createFrame();
+  archFrame.name = 'Архитектура Gap';
+  archFrame.x = 0;
+  archFrame.y = yOffset;
+  archFrame.layoutMode = 'VERTICAL';
+  archFrame.itemSpacing = 20;
+  archFrame.paddingTop = 40;
+  archFrame.paddingBottom = 40;
+  archFrame.paddingLeft = 40;
+  archFrame.paddingRight = 40;
+  archFrame.primaryAxisSizingMode = 'AUTO';
+  archFrame.counterAxisSizingMode = 'AUTO';
+  archFrame.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.98, b: 1 } }];
+  archFrame.cornerRadius = 16;
+  archFrame.minWidth = 700;
+  
+  const archTitle = createStyledText('🏗️ Архитектура Gap системы', 0, 0, 28, 'Bold');
+  archFrame.appendChild(archTitle);
+  
+  const archDesc = createStyledText(
+    `Gap — это система расстояний между элементами в Auto Layout.\n\n` +
+    `📦 ПРИМИТИВЫ (Primitives)\n` +
+    `Базовые значения gap в пикселях:\n` +
+    `gap.0 = 0px, gap.4 = 4px, gap.8 = 8px, gap.12 = 12px...\n` +
+    `Используются как источник для семантических токенов.\n\n` +
+    `🎯 СЕМАНТИЧЕСКИЕ ТОКЕНЫ (Gap Collection)\n` +
+    `Токены с контекстом, описывающие расстояния в компонентах:\n` +
+    `• gap/inline/icon — между иконкой и текстом\n` +
+    `• gap/inline/badge — между бейджами в группе\n` +
+    `• gap/stack/card — между карточками в колонке\n` +
+    `• gap/form/fields — между полями формы\n\n` +
+    `📱 АДАПТИВНОСТЬ (Desktop / Tablet / Mobile)\n` +
+    `Каждый токен адаптируется под размер экрана:\n` +
+    `• Desktop: просторная компоновка (12px)\n` +
+    `• Tablet: средняя плотность (10px)\n` +
+    `• Mobile: компактная (8px)\n\n` +
+    `💡 ОТЛИЧИЕ ОТ SPACING\n` +
+    `• Spacing — внутренние отступы (padding, margin)\n` +
+    `• Gap — расстояния между элементами в контейнере`,
+    0, 0, 12, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  archFrame.appendChild(archDesc);
+  
+  page.appendChild(archFrame);
+  yOffset += archFrame.height + 48;
+  framesCreated++;
+  
+  // Main frame
+  const mainFrame = figma.createFrame();
+  mainFrame.name = 'Gap Overview';
+  mainFrame.x = 0;
+  mainFrame.y = yOffset;
+  mainFrame.layoutMode = 'VERTICAL';
+  mainFrame.itemSpacing = 32;
+  mainFrame.paddingTop = 32;
+  mainFrame.paddingBottom = 32;
+  mainFrame.paddingLeft = 32;
+  mainFrame.paddingRight = 32;
+  mainFrame.primaryAxisSizingMode = 'AUTO';
+  mainFrame.counterAxisSizingMode = 'AUTO';
+  mainFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+  mainFrame.cornerRadius = 16;
+  mainFrame.minWidth = 800;
+  
+  // Title
+  const title = createStyledText('📏 Система Gap', 0, 0, 32, 'Bold');
+  mainFrame.appendChild(title);
+  
+  // Stats
+  const stats = createStyledText(
+    `Всего переменных: ${gapVars.length}`,
+    0, 0, 14, 'Regular', { r: 0.5, g: 0.5, b: 0.5 }
+  );
+  mainFrame.appendChild(stats);
+  
+  // Group by collection
+  const varsByCollection = new Map<string, Variable[]>();
+  for (const v of gapVars) {
+    const list = varsByCollection.get(v.variableCollectionId) || [];
+    list.push(v);
+    varsByCollection.set(v.variableCollectionId, list);
+  }
+  
+  for (const coll of collections) {
+    const vars = varsByCollection.get(coll.id);
+    if (!vars || vars.length === 0) continue;
+    
+    // Collection section
+    const collSection = figma.createFrame();
+    collSection.name = coll.name;
+    collSection.layoutMode = 'VERTICAL';
+    collSection.itemSpacing = 20;
+    collSection.primaryAxisSizingMode = 'AUTO';
+    collSection.counterAxisSizingMode = 'AUTO';
+    collSection.fills = [];
+    
+    // Collection title with mode names
+    const modeNames = coll.modes.map(m => m.name).join(' / ');
+    const collTitle = createStyledText(`📦 ${coll.name} (${modeNames})`, 0, 0, 20, 'Medium');
+    collSection.appendChild(collTitle);
+    
+    // Gap visualization
+    for (const variable of vars.slice(0, 15)) {
+      const row = figma.createFrame();
+      row.name = variable.name;
+      row.layoutMode = 'HORIZONTAL';
+      row.itemSpacing = 16;
+      row.counterAxisAlignItems = 'CENTER';
+      row.primaryAxisSizingMode = 'AUTO';
+      row.counterAxisSizingMode = 'AUTO';
+      row.fills = [];
+      
+      // Name
+      const nameText = createStyledText(variable.name, 0, 0, 12, 'Medium');
+      nameText.resize(250, nameText.height);
+      row.appendChild(nameText);
+      
+      // Visual representation for each mode
+      for (const mode of coll.modes) {
+        const resolved = await resolveVariableValue(variable, mode.modeId);
+        const numValue = typeof resolved === 'number' ? resolved : 0;
+        
+        const gapContainer = figma.createFrame();
+        gapContainer.name = mode.name;
+        gapContainer.layoutMode = 'HORIZONTAL';
+        gapContainer.itemSpacing = Math.max(numValue, 2);
+        gapContainer.counterAxisAlignItems = 'CENTER';
+        gapContainer.primaryAxisSizingMode = 'AUTO';
+        gapContainer.counterAxisSizingMode = 'AUTO';
+        gapContainer.fills = [];
+        gapContainer.paddingLeft = 8;
+        gapContainer.paddingRight = 8;
+        gapContainer.paddingTop = 4;
+        gapContainer.paddingBottom = 4;
+        
+        // Two boxes with gap between them
+        const box1 = figma.createRectangle();
+        box1.resize(24, 24);
+        box1.cornerRadius = 4;
+        box1.fills = [{ type: 'SOLID', color: { r: 0.9, g: 0.4, b: 0.3 } }];
+        gapContainer.appendChild(box1);
+        
+        const box2 = figma.createRectangle();
+        box2.resize(24, 24);
+        box2.cornerRadius = 4;
+        box2.fills = [{ type: 'SOLID', color: { r: 0.9, g: 0.4, b: 0.3 } }];
+        gapContainer.appendChild(box2);
+        
+        row.appendChild(gapContainer);
+        
+        // Value label
+        const valueText = createStyledText(`${numValue}px`, 0, 0, 11, 'Regular', { r: 0.5, g: 0.5, b: 0.5 });
+        row.appendChild(valueText);
+      }
+      
+      collSection.appendChild(row);
+    }
+    
+    mainFrame.appendChild(collSection);
+    framesCreated++;
+  }
+  
+  page.appendChild(mainFrame);
+  await figma.setCurrentPageAsync(page);
+  
+  return { pageName, framesCreated: framesCreated || 1 };
+}
+
+// ============================================
 // MESSAGE HANDLING
 // ============================================
 
@@ -3846,6 +4955,58 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       case 'notify': {
         const { message } = msg.payload as { message: string };
         figma.notify(message);
+        break;
+      }
+
+      // ========================================
+      // DOCUMENTATION GENERATORS
+      // ========================================
+
+      case 'generate-colors-documentation': {
+        figma.notify('📖 Создание документации по цветам...');
+        try {
+          const result = await generateColorsDocumentation();
+          figma.notify(`✅ Документация создана: страница "${result.pageName}"`);
+          figma.ui.postMessage({ type: 'docs-colors-created', pageName: result.pageName });
+        } catch (error) {
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      case 'generate-typography-documentation': {
+        figma.notify('📖 Создание документации по типографике...');
+        try {
+          const result = await generateTypographyDocumentation();
+          figma.notify(`✅ Документация создана: страница "${result.pageName}"`);
+          figma.ui.postMessage({ type: 'docs-typography-created', pageName: result.pageName });
+        } catch (error) {
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      case 'generate-spacing-documentation': {
+        figma.notify('📖 Создание документации по Spacing...');
+        try {
+          const result = await generateSpacingDocumentation();
+          figma.notify(`✅ Документация создана: страница "${result.pageName}"`);
+          figma.ui.postMessage({ type: 'docs-spacing-created', pageName: result.pageName });
+        } catch (error) {
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      case 'generate-gap-documentation': {
+        figma.notify('📖 Создание документации по Gap...');
+        try {
+          const result = await generateGapDocumentation();
+          figma.notify(`✅ Документация создана: страница "${result.pageName}"`);
+          figma.ui.postMessage({ type: 'docs-gap-created', pageName: result.pageName });
+        } catch (error) {
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
         break;
       }
     }

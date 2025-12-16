@@ -421,4 +421,40 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// ============================================
+// DOCUMENTATION GENERATORS
+// ============================================
+
+// Colors Documentation
+const btnDocsColors = document.getElementById('btn-docs-colors');
+if (btnDocsColors) {
+  btnDocsColors.addEventListener('click', () => {
+    postMessage('generate-colors-documentation');
+  });
+}
+
+// Typography Documentation
+const btnDocsTypography = document.getElementById('btn-docs-typography');
+if (btnDocsTypography) {
+  btnDocsTypography.addEventListener('click', () => {
+    postMessage('generate-typography-documentation');
+  });
+}
+
+// Spacing Documentation
+const btnDocsSpacing = document.getElementById('btn-docs-spacing');
+if (btnDocsSpacing) {
+  btnDocsSpacing.addEventListener('click', () => {
+    postMessage('generate-spacing-documentation');
+  });
+}
+
+// Gap Documentation
+const btnDocsGap = document.getElementById('btn-docs-gap');
+if (btnDocsGap) {
+  btnDocsGap.addEventListener('click', () => {
+    postMessage('generate-gap-documentation');
+  });
+}
+
 console.log('🎨 Design Tokens Manager initialized');

@@ -3819,6 +3819,9 @@
           <button class="btn btn-secondary" id="btn-toggle-preview">
             👁 Открыть превью
           </button>
+          <button class="btn btn-secondary" id="btn-docs-colors">
+            📖 Создать документацию
+          </button>
         </div>
       </div>
 
@@ -3838,7 +3841,7 @@
       <div class="typography-nav">
         <button class="typo-tab active" data-typo-tab="typo-primitives">Примитивы</button>
         <button class="typo-tab" data-typo-tab="typo-semantic">Семантика</button>
-        <button class="typo-tab" data-typo-tab="typo-preview">Превью</button>
+        <button class="typo-tab" data-typo-tab="typo-preview">Экспорт</button>
       </div>
 
       <!-- Primitives Section -->
@@ -4020,64 +4023,8 @@
         </div>
       </div>
 
-      <!-- Preview Section -->
+      <!-- Export Section -->
       <div id="typo-preview" class="typo-tab-content">
-        <div class="section">
-          <div class="section-title">Предпросмотр типографики</div>
-          
-          <div class="typography-preview-panel">
-            <!-- Page Context -->
-            <div class="preview-context">
-              <div class="preview-context-label">Page Context</div>
-              <div class="preview-sample preview-hero">Hero Heading — 56px Bold</div>
-              <div class="preview-sample preview-title">Page Title — 40px Bold</div>
-              <div class="preview-sample preview-subtitle">Page Subtitle — 24px Semibold</div>
-            </div>
-
-            <!-- Card Context -->
-            <div class="preview-context preview-card-demo">
-              <div class="preview-context-label">Card Context</div>
-              <div class="preview-card">
-                <div class="preview-card-title">Card Title — 18px Semibold</div>
-                <div class="preview-card-subtitle">Card subtitle — 14px Medium</div>
-                <div class="preview-card-body">Body text paragraph. Lorem ipsum dolor sit amet, consectetur adipiscing elit. — 14px Regular</div>
-                <div class="preview-card-meta">Caption · 11px · 3 min read</div>
-              </div>
-            </div>
-
-            <!-- Form Context -->
-            <div class="preview-context">
-              <div class="preview-context-label">Form Context</div>
-              <div class="preview-form">
-                <div class="preview-form-label">Label — 14px Medium</div>
-                <div class="preview-form-input">Input value — 14px Regular</div>
-                <div class="preview-form-placeholder">Placeholder text — 14px Italic</div>
-                <div class="preview-form-error">Error message — 12px Medium</div>
-                <div class="preview-form-help">Help text — 12px Regular</div>
-              </div>
-            </div>
-
-            <!-- Data Context -->
-            <div class="preview-context">
-              <div class="preview-context-label">Data Context</div>
-              <div class="preview-metric">
-                <div class="preview-metric-value">$12,450</div>
-                <div class="preview-metric-label">TOTAL REVENUE</div>
-                <div class="preview-metric-delta">+12.5% vs last month</div>
-              </div>
-            </div>
-
-            <!-- Code Context -->
-            <div class="preview-context">
-              <div class="preview-context-label">Code Context</div>
-              <div class="preview-code">
-                <span class="preview-code-keyword">const</span> token = <span class="preview-code-string">'typography'</span>;
-                <span class="preview-code-comment">// 13px Mono</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Adaptive Modes Settings -->
         <div class="section" id="breakpoint-settings">
           <div class="section-title" style="display: flex; align-items: center; justify-content: space-between;">
@@ -4175,6 +4122,9 @@
             </button>
             <button class="btn btn-secondary" id="btn-create-text-styles">
               🎨 Семантика → Text Styles (полная типографика)
+            </button>
+            <button class="btn btn-secondary" id="btn-docs-typography">
+              📖 Создать документацию
             </button>
           </div>
           
@@ -4383,6 +4333,9 @@
             <button class="btn btn-secondary" id="export-spacing-all">
               ✨ Экспортировать всё
             </button>
+            <button class="btn btn-secondary" id="btn-docs-spacing">
+              📖 Создать документацию
+            </button>
           </div>
           
           <div id="spacing-export-status" class="export-status" style="display: none; margin-top: 12px;"></div>
@@ -4479,6 +4432,9 @@
             </button>
             <button class="btn btn-secondary" id="export-gap-all">
               ✨ Экспортировать всё
+            </button>
+            <button class="btn btn-secondary" id="btn-docs-gap">
+              📖 Создать документацию
             </button>
           </div>
           
