@@ -2486,6 +2486,203 @@ async function createExtendedTypographyPrimitives(
 }
 
 // ============================================
+// TEXT STYLES CREATION (для полной типографики)
+// ============================================
+
+interface TextStylePayload {
+  semanticTokens: Array<{
+    id: string;
+    name: string;
+    path: string[];
+    fontFamily: string;
+    fontSize: string;
+    fontWeight: string;
+    lineHeight: string;
+    letterSpacing: string;
+    textDecoration?: string;
+    textTransform?: string;
+    fontStyle?: string;
+    description?: string;
+    category: string;
+    subcategory?: string;
+  }>;
+  primitives: {
+    fontFamilies: Array<{ name: string; value: string; isEnabled: boolean }>;
+    fontSizes: Array<{ name: string; value: number }>;
+    lineHeights: Array<{ name: string; value: number }>;
+    letterSpacings: Array<{ name: string; value: number }>;
+    fontWeights: Array<{ name: string; value: number; label: string }>;
+  };
+}
+
+// Маппинг font-weight на стиль шрифта
+function getFontStyleFromWeight(weight: number, isItalic: boolean): string {
+  const weightStyles: Record<number, string> = {
+    100: 'Thin',
+    200: 'ExtraLight',
+    300: 'Light',
+    400: 'Regular',
+    500: 'Medium',
+    600: 'SemiBold',
+    700: 'Bold',
+    800: 'ExtraBold',
+    900: 'Black',
+  };
+  
+  const baseStyle = weightStyles[weight] || 'Regular';
+  
+  // Для Regular + Italic = Italic
+  if (isItalic && baseStyle === 'Regular') {
+    return 'Italic';
+  }
+  // Для других весов + Italic = Weight Italic
+  if (isItalic) {
+    return `${baseStyle} Italic`;
+  }
+  
+  return baseStyle;
+}
+
+// Парсинг токен-референса {font.size.16} → извлечение значения
+function parseTokenReference(ref: string): string {
+  // Убираем {} и возвращаем последнюю часть пути
+  const match = ref.match(/\{font\.(\w+)\.([^}]+)\}/);
+  if (match) {
+    return match[2];
+  }
+  return ref;
+}
+
+async function createTextStyles(payload: TextStylePayload): Promise<{ created: number; updated: number; errors: string[] }> {
+  const result = { created: 0, updated: 0, errors: [] as string[] };
+  
+  // Получаем существующие Text Styles
+  const existingStyles = await figma.getLocalTextStylesAsync();
+  
+  // Создаем lookup maps для примитивов
+  const fontFamilyMap = new Map<string, string>();
+  payload.primitives.fontFamilies
+    .filter(f => f.isEnabled)
+    .forEach(f => fontFamilyMap.set(f.name.toLowerCase(), f.value));
+  
+  const fontSizeMap = new Map<string, number>();
+  payload.primitives.fontSizes.forEach(s => fontSizeMap.set(s.name, s.value));
+  
+  const lineHeightMap = new Map<string, number>();
+  payload.primitives.lineHeights.forEach(lh => lineHeightMap.set(lh.name, lh.value));
+  
+  const letterSpacingMap = new Map<string, number>();
+  payload.primitives.letterSpacings.forEach(ls => letterSpacingMap.set(ls.name, ls.value));
+  
+  const fontWeightMap = new Map<string, number>();
+  payload.primitives.fontWeights.forEach(fw => fontWeightMap.set(fw.name, fw.value));
+  
+  for (const token of payload.semanticTokens) {
+    try {
+      // Построение имени стиля: typography/category/subcategory/name
+      const stylePath = token.path.join('/');
+      const styleName = stylePath;
+      
+      // Парсим значения из токен-референсов
+      const fontFamilyKey = parseTokenReference(token.fontFamily);
+      const fontSizeKey = parseTokenReference(token.fontSize);
+      const lineHeightKey = parseTokenReference(token.lineHeight);
+      const letterSpacingKey = parseTokenReference(token.letterSpacing);
+      const fontWeightKey = parseTokenReference(token.fontWeight);
+      
+      // Получаем фактические значения
+      const fontFamily = fontFamilyMap.get(fontFamilyKey.toLowerCase()) || 'Roboto';
+      const fontSize = fontSizeMap.get(fontSizeKey) || 16;
+      const lineHeightValue = lineHeightMap.get(lineHeightKey) || 1.4;
+      const letterSpacingValue = letterSpacingMap.get(letterSpacingKey) || 0;
+      const fontWeight = fontWeightMap.get(fontWeightKey) || 400;
+      
+      // Определяем textDecoration
+      let textDecoration: 'NONE' | 'UNDERLINE' | 'STRIKETHROUGH' = 'NONE';
+      if (token.textDecoration) {
+        const decorationKey = parseTokenReference(token.textDecoration);
+        if (decorationKey === 'underline') textDecoration = 'UNDERLINE';
+        else if (decorationKey === 'line-through' || decorationKey === 'strikethrough') textDecoration = 'STRIKETHROUGH';
+      }
+      
+      // Определяем textCase (textTransform)
+      let textCase: 'ORIGINAL' | 'UPPER' | 'LOWER' | 'TITLE' = 'ORIGINAL';
+      if (token.textTransform) {
+        const transformKey = parseTokenReference(token.textTransform);
+        if (transformKey === 'uppercase') textCase = 'UPPER';
+        else if (transformKey === 'lowercase') textCase = 'LOWER';
+        else if (transformKey === 'capitalize') textCase = 'TITLE';
+      }
+      
+      // Определяем fontStyle (italic)
+      const isItalic = token.fontStyle ? parseTokenReference(token.fontStyle) === 'italic' : false;
+      const fontStyle = getFontStyleFromWeight(fontWeight, isItalic);
+      
+      // Загружаем шрифт
+      let fontName: FontName = { family: fontFamily, style: fontStyle };
+      try {
+        await figma.loadFontAsync(fontName);
+      } catch (fontError) {
+        // Пробуем fallback варианты
+        const fallbackStyles = ['Regular', 'Normal', 'Book'];
+        let loaded = false;
+        for (const fallbackStyle of fallbackStyles) {
+          try {
+            const fallbackFont: FontName = { family: fontFamily, style: fallbackStyle };
+            await figma.loadFontAsync(fallbackFont);
+            fontName = fallbackFont;
+            loaded = true;
+            break;
+          } catch {
+            continue;
+          }
+        }
+        if (!loaded) {
+          result.errors.push(`Не удалось загрузить шрифт ${fontFamily} ${fontStyle} для "${token.name}"`);
+          continue;
+        }
+      }
+      
+      // Проверяем существующий стиль
+      let textStyle = existingStyles.find(s => s.name === styleName);
+      
+      if (textStyle) {
+        // Обновляем существующий
+        textStyle.fontName = fontName;
+        textStyle.fontSize = fontSize;
+        textStyle.lineHeight = { value: lineHeightValue * 100, unit: 'PERCENT' };
+        textStyle.letterSpacing = { value: letterSpacingValue * 100, unit: 'PERCENT' };
+        textStyle.textDecoration = textDecoration;
+        textStyle.textCase = textCase;
+        if (token.description) {
+          textStyle.description = token.description;
+        }
+        result.updated++;
+      } else {
+        // Создаем новый
+        textStyle = figma.createTextStyle();
+        textStyle.name = styleName;
+        textStyle.fontName = fontName;
+        textStyle.fontSize = fontSize;
+        textStyle.lineHeight = { value: lineHeightValue * 100, unit: 'PERCENT' };
+        textStyle.letterSpacing = { value: letterSpacingValue * 100, unit: 'PERCENT' };
+        textStyle.textDecoration = textDecoration;
+        textStyle.textCase = textCase;
+        if (token.description) {
+          textStyle.description = token.description;
+        }
+        result.created++;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания стиля "${token.name}": ${errorMessage}`);
+    }
+  }
+  
+  return result;
+}
+
+// ============================================
 // MESSAGE HANDLING
 // ============================================
 
@@ -2641,6 +2838,31 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           payload: { success: true }
         });
         figma.notify('✅ Typography Variables созданы!');
+        break;
+      }
+
+      case 'create-text-styles': {
+        const payload = msg.payload as TextStylePayload;
+        
+        figma.notify('⏳ Создание Text Styles...');
+        
+        const result = await createTextStyles(payload);
+        
+        figma.ui.postMessage({
+          type: 'text-styles-created',
+          payload: { 
+            success: result.errors.length === 0,
+            created: result.created,
+            updated: result.updated,
+            errors: result.errors
+          }
+        });
+        
+        if (result.errors.length > 0) {
+          figma.notify(`⚠️ Text Styles: ${result.created} создано, ${result.updated} обновлено, ${result.errors.length} ошибок`);
+        } else {
+          figma.notify(`✅ Text Styles: ${result.created} создано, ${result.updated} обновлено`);
+        }
         break;
       }
 

@@ -974,6 +974,12 @@ function setupTypographyEvents(): void {
     btnSyncFigma.addEventListener('click', syncTypographyToFigma);
   }
   
+  // Create Text Styles button
+  const btnCreateTextStyles = document.getElementById('btn-create-text-styles');
+  if (btnCreateTextStyles) {
+    btnCreateTextStyles.addEventListener('click', createTextStylesInFigma);
+  }
+  
   // Category filter
   document.querySelectorAll('.typo-category-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1426,6 +1432,66 @@ function syncTypographyToFigma(): void {
   }, '*');
   
   showNotification('🔄 Синхронизация с Figma...');
+}
+
+function createTextStylesInFigma(): void {
+  // Подготавливаем данные для создания Text Styles
+  const semanticTokens = typographyState.semanticTokens.map(token => ({
+    id: token.id,
+    name: token.name,
+    path: token.path,
+    fontFamily: token.fontFamily,
+    fontSize: token.fontSize,
+    fontWeight: token.fontWeight,
+    lineHeight: token.lineHeight,
+    letterSpacing: token.letterSpacing,
+    textDecoration: token.textDecoration,
+    textTransform: token.textTransform,
+    fontStyle: token.fontStyle,
+    description: token.description,
+    category: token.category,
+    subcategory: token.subcategory,
+  }));
+  
+  const primitives = {
+    fontFamilies: typographyState.fontFamilies.map(f => ({
+      name: f.name,
+      value: f.value,
+      isEnabled: true, // All fonts in state are considered enabled
+    })),
+    fontSizes: typographyState.fontSizes.map(s => ({
+      name: s.name,
+      value: s.value,
+    })),
+    lineHeights: typographyState.lineHeights.map(lh => ({
+      name: lh.name,
+      value: lh.value,
+    })),
+    letterSpacings: typographyState.letterSpacings.map(ls => ({
+      name: ls.name,
+      value: ls.value,
+    })),
+    fontWeights: typographyState.fontWeights.map(fw => ({
+      name: fw.name,
+      value: fw.value,
+      label: fw.label,
+    })),
+  };
+  
+  if (semanticTokens.length === 0) {
+    showNotification('⚠️ Нет семантических токенов для создания Text Styles');
+    return;
+  }
+  
+  // Отправляем в Figma
+  parent.postMessage({
+    pluginMessage: {
+      type: 'create-text-styles',
+      payload: { semanticTokens, primitives },
+    },
+  }, '*');
+  
+  showNotification('🎨 Создание Text Styles в Figma...');
 }
 
 // ============================================
