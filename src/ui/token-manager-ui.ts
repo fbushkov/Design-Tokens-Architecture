@@ -331,116 +331,118 @@ export function renderSettingsPanel(): string {
   const previewPath = generatePathPreview(settings.separator, settings.caseStyle);
 
   return `
-    <div class="tm-settings-panel" id="settings-panel">
-      <div class="tm-settings-header">
-        <span class="tm-settings-title">⚙️ Настройки</span>
-        <button class="tm-settings-close">✕</button>
-      </div>
-      
-      <div class="ts-container">
-        <div class="ts-section">
-          <div class="ts-section-title">Разделитель пути</div>
-          <div class="ts-field">
-            <div class="ts-radio-group">
-              <div class="ts-radio-option">
-                <input type="radio" name="separator" id="sep-slash" value="/" ${settings.separator === '/' ? 'checked' : ''}>
-                <label for="sep-slash">/</label>
-              </div>
-              <div class="ts-radio-option">
-                <input type="radio" name="separator" id="sep-dot" value="." ${settings.separator === '.' ? 'checked' : ''}>
-                <label for="sep-dot">.</label>
-              </div>
-              <div class="ts-radio-option">
-                <input type="radio" name="separator" id="sep-dash" value="-" ${settings.separator === '-' ? 'checked' : ''}>
-                <label for="sep-dash">-</label>
-              </div>
-            </div>
-            <div class="ts-info">Разделитель между уровнями иерархии</div>
-          </div>
+    <div class="tm-settings-modal-overlay" id="settings-modal-overlay">
+      <div class="tm-settings-panel" id="settings-panel">
+        <div class="tm-settings-header">
+          <span class="tm-settings-title">Настройки</span>
+          <button class="tm-settings-close">✕</button>
         </div>
-
-        <div class="ts-section">
-          <div class="ts-section-title">Стиль именования</div>
-          <div class="ts-field">
-            <div class="ts-radio-group">
-              <div class="ts-radio-option">
-                <input type="radio" name="caseStyle" id="case-kebab" value="kebab" ${settings.caseStyle === 'kebab' ? 'checked' : ''}>
-                <label for="case-kebab">kebab-case</label>
+        
+        <div class="ts-container">
+          <div class="ts-section">
+            <div class="ts-section-title">Разделитель пути</div>
+            <div class="ts-field">
+              <div class="ts-radio-group">
+                <div class="ts-radio-option">
+                  <input type="radio" name="separator" id="sep-slash" value="/" ${settings.separator === '/' ? 'checked' : ''}>
+                  <label for="sep-slash">/</label>
+                </div>
+                <div class="ts-radio-option">
+                  <input type="radio" name="separator" id="sep-dot" value="." ${settings.separator === '.' ? 'checked' : ''}>
+                  <label for="sep-dot">.</label>
+                </div>
+                <div class="ts-radio-option">
+                  <input type="radio" name="separator" id="sep-dash" value="-" ${settings.separator === '-' ? 'checked' : ''}>
+                  <label for="sep-dash">-</label>
+                </div>
               </div>
-              <div class="ts-radio-option">
-                <input type="radio" name="caseStyle" id="case-camel" value="camel" ${settings.caseStyle === 'camel' ? 'checked' : ''}>
-                <label for="case-camel">camelCase</label>
-              </div>
-            </div>
-            <div class="ts-radio-group" style="margin-top: 4px;">
-              <div class="ts-radio-option">
-                <input type="radio" name="caseStyle" id="case-snake" value="snake" ${settings.caseStyle === 'snake' ? 'checked' : ''}>
-                <label for="case-snake">snake_case</label>
-              </div>
-              <div class="ts-radio-option">
-                <input type="radio" name="caseStyle" id="case-pascal" value="pascal" ${settings.caseStyle === 'pascal' ? 'checked' : ''}>
-                <label for="case-pascal">PascalCase</label>
-              </div>
+              <div class="ts-info">Разделитель между уровнями иерархии</div>
             </div>
           </div>
-        </div>
 
-        <div class="ts-section">
-          <div class="ts-section-title">Превью формата</div>
-          <div class="ts-preview">
-            <div class="ts-preview-label">Примитив:</div>
-            <div>${previewPath.primitive}</div>
+          <div class="ts-section">
+            <div class="ts-section-title">Стиль именования</div>
+            <div class="ts-field">
+              <div class="ts-radio-group">
+                <div class="ts-radio-option">
+                  <input type="radio" name="caseStyle" id="case-kebab" value="kebab" ${settings.caseStyle === 'kebab' ? 'checked' : ''}>
+                  <label for="case-kebab">kebab-case</label>
+                </div>
+                <div class="ts-radio-option">
+                  <input type="radio" name="caseStyle" id="case-camel" value="camel" ${settings.caseStyle === 'camel' ? 'checked' : ''}>
+                  <label for="case-camel">camelCase</label>
+                </div>
+              </div>
+              <div class="ts-radio-group" style="margin-top: 4px;">
+                <div class="ts-radio-option">
+                  <input type="radio" name="caseStyle" id="case-snake" value="snake" ${settings.caseStyle === 'snake' ? 'checked' : ''}>
+                  <label for="case-snake">snake_case</label>
+                </div>
+                <div class="ts-radio-option">
+                  <input type="radio" name="caseStyle" id="case-pascal" value="pascal" ${settings.caseStyle === 'pascal' ? 'checked' : ''}>
+                  <label for="case-pascal">PascalCase</label>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="ts-preview">
-            <div class="ts-preview-label">Семантический:</div>
-            <div>${previewPath.semantic}</div>
-          </div>
-          <div class="ts-preview">
-            <div class="ts-preview-label">Компонент:</div>
-            <div>${previewPath.component}</div>
-          </div>
-        </div>
 
-        <div class="ts-section">
-          <div class="ts-section-title">Режимы</div>
-          <div class="ts-toggle">
-            <span class="ts-toggle-label">Dark Mode</span>
-            <label class="ts-switch">
-              <input type="checkbox" id="dark-mode-toggle" ${settings.darkModeEnabled ? 'checked' : ''}>
-              <span class="ts-switch-slider"></span>
-            </label>
+          <div class="ts-section">
+            <div class="ts-section-title">Превью формата</div>
+            <div class="ts-preview">
+              <div class="ts-preview-label">Примитив:</div>
+              <div>${previewPath.primitive}</div>
+            </div>
+            <div class="ts-preview">
+              <div class="ts-preview-label">Семантический:</div>
+              <div>${previewPath.semantic}</div>
+            </div>
+            <div class="ts-preview">
+              <div class="ts-preview-label">Компонент:</div>
+              <div>${previewPath.component}</div>
+            </div>
           </div>
-          <div class="ts-info">Включить поддержку светлой/тёмной темы</div>
-        </div>
 
-        <div class="ts-section">
-          <div class="ts-section-title">Синхронизация</div>
-          <div class="ts-toggle">
-            <span class="ts-toggle-label">Auto-sync с Figma</span>
-            <label class="ts-switch">
-              <input type="checkbox" id="auto-sync-toggle" ${settings.autoSync ? 'checked' : ''}>
-              <span class="ts-switch-slider"></span>
-            </label>
+          <div class="ts-section">
+            <div class="ts-section-title">Режимы</div>
+            <div class="ts-toggle">
+              <span class="ts-toggle-label">Dark Mode</span>
+              <label class="ts-switch">
+                <input type="checkbox" id="dark-mode-toggle" ${settings.darkModeEnabled ? 'checked' : ''}>
+                <span class="ts-switch-slider"></span>
+              </label>
+            </div>
+            <div class="ts-info">Включить поддержку светлой/тёмной темы</div>
           </div>
-          <div class="ts-info">Автоматически синхронизировать изменения</div>
-        </div>
 
-        <div class="ts-section">
-          <div class="ts-section-title">Формат экспорта</div>
-          <div class="ts-field">
-            <select class="te-select ts-export-format" id="export-format-select">
-              <option value="json" ${settings.exportFormat === 'json' ? 'selected' : ''}>JSON (Design Tokens)</option>
-              <option value="css" ${settings.exportFormat === 'css' ? 'selected' : ''}>CSS Variables</option>
-              <option value="scss" ${settings.exportFormat === 'scss' ? 'selected' : ''}>SCSS Variables</option>
-              <option value="figma" ${settings.exportFormat === 'figma' ? 'selected' : ''}>Figma Variables</option>
-              <option value="tailwind" ${settings.exportFormat === 'tailwind' ? 'selected' : ''}>Tailwind Config</option>
-            </select>
+          <div class="ts-section">
+            <div class="ts-section-title">Синхронизация</div>
+            <div class="ts-toggle">
+              <span class="ts-toggle-label">Auto-sync с Figma</span>
+              <label class="ts-switch">
+                <input type="checkbox" id="auto-sync-toggle" ${settings.autoSync ? 'checked' : ''}>
+                <span class="ts-switch-slider"></span>
+              </label>
+            </div>
+            <div class="ts-info">Автоматически синхронизировать изменения</div>
           </div>
-        </div>
 
-        <div class="ts-actions">
-          <button class="btn btn-primary ts-save-settings">💾 Сохранить</button>
-          <button class="btn btn-secondary ts-reset-settings">↺ Сбросить</button>
+          <div class="ts-section">
+            <div class="ts-section-title">Формат экспорта</div>
+            <div class="ts-field">
+              <select class="te-select ts-export-format" id="export-format-select">
+                <option value="json" ${settings.exportFormat === 'json' ? 'selected' : ''}>JSON (Design Tokens)</option>
+                <option value="css" ${settings.exportFormat === 'css' ? 'selected' : ''}>CSS Variables</option>
+                <option value="scss" ${settings.exportFormat === 'scss' ? 'selected' : ''}>SCSS Variables</option>
+                <option value="figma" ${settings.exportFormat === 'figma' ? 'selected' : ''}>Figma Variables</option>
+                <option value="tailwind" ${settings.exportFormat === 'tailwind' ? 'selected' : ''}>Tailwind Config</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="ts-actions">
+            <button class="btn btn-primary ts-save-settings">Сохранить</button>
+            <button class="btn btn-secondary ts-reset-settings">Сбросить</button>
+          </div>
         </div>
       </div>
     </div>
@@ -649,21 +651,23 @@ export function initTokenManagerEvents(container: HTMLElement, refreshCallback: 
 
     // Settings toggle
     if (target.classList.contains('tm-settings-toggle')) {
-      const panel = container.querySelector('#settings-panel') as HTMLElement;
-      if (panel) {
-        panel.classList.toggle('open');
-        target.classList.toggle('active');
+      const overlay = container.querySelector('#settings-modal-overlay') as HTMLElement;
+      if (overlay) {
+        overlay.classList.add('open');
       }
     }
 
     // Settings close
     if (target.classList.contains('tm-settings-close')) {
-      const panel = container.querySelector('#settings-panel') as HTMLElement;
-      const toggle = container.querySelector('.tm-settings-toggle') as HTMLElement;
-      if (panel) {
-        panel.classList.remove('open');
-        toggle?.classList.remove('active');
+      const overlay = container.querySelector('#settings-modal-overlay') as HTMLElement;
+      if (overlay) {
+        overlay.classList.remove('open');
       }
+    }
+
+    // Click on overlay to close
+    if (target.id === 'settings-modal-overlay') {
+      target.classList.remove('open');
     }
 
     // Save settings
@@ -672,12 +676,22 @@ export function initTokenManagerEvents(container: HTMLElement, refreshCallback: 
       saveState();
       refreshCallback();
       container.dispatchEvent(new CustomEvent('settings-saved'));
+      // Close modal after save
+      const overlay = container.querySelector('#settings-modal-overlay') as HTMLElement;
+      if (overlay) {
+        overlay.classList.remove('open');
+      }
     }
 
     // Reset settings
     if (target.classList.contains('ts-reset-settings')) {
       resetSettings();
       refreshCallback();
+      // Close modal after reset
+      const overlay = container.querySelector('#settings-modal-overlay') as HTMLElement;
+      if (overlay) {
+        overlay.classList.remove('open');
+      }
     }
   });
 
