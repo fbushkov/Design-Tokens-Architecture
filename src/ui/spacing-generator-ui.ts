@@ -32,12 +32,15 @@ let activeTab: 'primitives' | 'semantic' | 'export' = 'primitives';
 export function initSpacingUI(): void {
   loadSpacingState();
   
-  // Tab switching
-  const tabBtns = document.querySelectorAll('#scaling-tabs .tab-btn');
+  // Tab switching (uses typo-tab class like Typography)
+  const tabBtns = document.querySelectorAll('.typo-tab[data-spacing-tab]');
   tabBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      const tab = btn.getAttribute('data-tab') as 'primitives' | 'semantic' | 'export';
-      setActiveTab(tab);
+      const tabId = btn.getAttribute('data-spacing-tab');
+      if (tabId) {
+        const tab = tabId.replace('spacing-', '') as 'primitives' | 'semantic' | 'export';
+        setActiveTab(tab);
+      }
     });
   });
   
@@ -64,6 +67,12 @@ export function initSpacingUI(): void {
       setTimeout(() => exportSemanticToFigma(), 500);
     });
   }
+  
+  // Generate primitives button
+  const generatePrimBtn = document.getElementById('btn-generate-spacing-primitives');
+  if (generatePrimBtn) {
+    generatePrimBtn.addEventListener('click', () => exportPrimitivesToFigma());
+  }
 }
 
 // ============================================
@@ -73,18 +82,21 @@ export function initSpacingUI(): void {
 function setActiveTab(tab: 'primitives' | 'semantic' | 'export'): void {
   activeTab = tab;
   
-  const tabs = document.querySelectorAll('#scaling-tabs .tab-btn');
+  // Update tab buttons (typo-tab class)
+  const tabs = document.querySelectorAll('.typo-tab[data-spacing-tab]');
   tabs.forEach(t => {
-    t.classList.toggle('active', t.getAttribute('data-tab') === tab);
+    const tabId = t.getAttribute('data-spacing-tab');
+    t.classList.toggle('active', tabId === `spacing-${tab}`);
   });
   
-  const primitivesPanel = document.getElementById('spacing-primitives-panel');
-  const semanticPanel = document.getElementById('spacing-semantic-panel');
-  const exportPanel = document.getElementById('spacing-export-panel');
+  // Update content panels (typo-tab-content class)
+  const primitivesPanel = document.getElementById('spacing-primitives');
+  const semanticPanel = document.getElementById('spacing-semantic');
+  const exportPanel = document.getElementById('spacing-export');
   
-  if (primitivesPanel) primitivesPanel.style.display = tab === 'primitives' ? 'block' : 'none';
-  if (semanticPanel) semanticPanel.style.display = tab === 'semantic' ? 'block' : 'none';
-  if (exportPanel) exportPanel.style.display = tab === 'export' ? 'block' : 'none';
+  if (primitivesPanel) primitivesPanel.classList.toggle('active', tab === 'primitives');
+  if (semanticPanel) semanticPanel.classList.toggle('active', tab === 'semantic');
+  if (exportPanel) exportPanel.classList.toggle('active', tab === 'export');
 }
 
 // ============================================
