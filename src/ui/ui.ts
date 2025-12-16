@@ -42,6 +42,10 @@ import {
 } from './gap-generator-ui';
 
 import {
+  initRadiusUI,
+} from './radius-generator-ui';
+
+import {
   getState,
   getTokens,
   saveState,
@@ -398,6 +402,9 @@ initSpacingUI();
 // Initialize Gap UI (2-tier for flex/grid gaps)
 initGapUI();
 
+// Initialize Radius UI (2-tier for border-radius)
+initRadiusUI();
+
 // Listen for token-generated event to refresh Token Manager
 document.addEventListener('tokens-generated', () => {
   refreshTokenManager();
@@ -454,6 +461,14 @@ const btnDocsGap = document.getElementById('btn-docs-gap');
 if (btnDocsGap) {
   btnDocsGap.addEventListener('click', () => {
     postMessage('generate-gap-documentation');
+  });
+}
+
+// Radius Documentation
+const btnDocsRadius = document.getElementById('btn-docs-radius');
+if (btnDocsRadius) {
+  btnDocsRadius.addEventListener('click', () => {
+    postMessage('generate-radius-documentation');
   });
 }
 

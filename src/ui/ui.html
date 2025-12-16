@@ -4146,34 +4146,101 @@
 
     <!-- Radius -->
     <div id="prim-radius" class="sub-tab-content">
-      <div class="info-box">
-        <strong>⬜ Радиусы скругления</strong><br>
-        Настройте шкалу border-radius для консистентных форм.
+      <!-- Radius Sub-navigation (like Gap/Spacing) -->
+      <div class="typography-nav">
+        <button class="typo-tab active" data-radius-tab="radius-primitives">Примитивы</button>
+        <button class="typo-tab" data-radius-tab="radius-semantic">Семантика</button>
+        <button class="typo-tab" data-radius-tab="radius-export">Экспорт</button>
       </div>
 
-      <div class="section">
-        <div class="form-group">
-          <label class="form-label">Base Radius (px)</label>
-          <input type="number" class="form-input" id="radius-base" value="4" min="0" max="16">
+      <!-- Primitives Section -->
+      <div id="radius-primitives" class="typo-tab-content active">
+        <div class="section">
+          <div class="section-title">
+            Базовые значения (radius.X)
+            <span class="badge" id="radius-primitives-count">12/12</span>
+          </div>
+          <p class="section-desc" style="margin-bottom: 12px; color: var(--color-text-secondary); font-size: 11px;">
+            Кликните для включения/выключения. Эти значения создаются в коллекции Primitives.
+          </p>
+          <div id="radius-primitives-grid" class="spacing-primitives-grid">
+            <!-- Dynamic -->
+          </div>
+        </div>
+
+        <div class="section">
+          <button class="btn btn-primary" id="btn-generate-radius-primitives">
+            ✨ Сгенерировать примитивы radius
+          </button>
         </div>
       </div>
 
-      <div class="section">
-        <div class="section-title">Превью радиусов</div>
-        <div id="radius-preview" class="radius-preview">
-          <div class="radius-item"><span class="radius-box" style="border-radius: 0px;"></span><span>none: 0px</span></div>
-          <div class="radius-item"><span class="radius-box" style="border-radius: 2px;"></span><span>sm: 2px</span></div>
-          <div class="radius-item"><span class="radius-box" style="border-radius: 4px;"></span><span>md: 4px</span></div>
-          <div class="radius-item"><span class="radius-box" style="border-radius: 8px;"></span><span>lg: 8px</span></div>
-          <div class="radius-item"><span class="radius-box" style="border-radius: 12px;"></span><span>xl: 12px</span></div>
-          <div class="radius-item"><span class="radius-box" style="border-radius: 9999px;"></span><span>full: 9999px</span></div>
+      <!-- Semantic Section -->
+      <div id="radius-semantic" class="typo-tab-content">
+        <div class="info-box info-box-sm">
+          <strong>Семантические токены Radius</strong> — контекстное применение для компонентов (button, card, avatar и т.д.)
+        </div>
+
+        <div class="section">
+          <div class="section-title">Категории</div>
+          <div id="radius-category-tabs" class="spacing-category-tabs">
+            <!-- Dynamic -->
+          </div>
+        </div>
+        
+        <div class="section">
+          <div class="section-title">
+            Семантические токены
+            <span class="badge" id="radius-semantic-count">58</span>
+          </div>
+          <p class="section-desc" style="margin-bottom: 12px; color: var(--color-text-secondary); font-size: 11px;">
+            Токены со ссылками на примитивы radius для контекстного использования.
+          </p>
+          <div id="radius-semantic-list">
+            <!-- Dynamic -->
+          </div>
         </div>
       </div>
 
-      <div class="section">
-        <button class="btn btn-primary" id="btn-generate-radius">
-          ✨ Сгенерировать радиусы
-        </button>
+      <!-- Export Section -->
+      <div id="radius-export" class="typo-tab-content">
+        <div class="section">
+          <div class="section-title">Архитектура</div>
+          <div class="architecture-preview">
+            <div class="arch-level">
+              <div class="arch-level-title">Primitives (коллекция)</div>
+              <div class="arch-level-example">radius.0 = 0px, radius.4 = 4px, radius.full = 9999px...</div>
+            </div>
+            <div class="arch-arrow">↓ алиасы</div>
+            <div class="arch-level">
+              <div class="arch-level-title">Radius (коллекция)</div>
+              <div class="arch-level-example">
+                radius.interactive.button → {radius.6}<br>
+                radius.container.card → {radius.8}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Экспорт в Figma</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn btn-primary" id="export-radius-primitives">
+              ⬜ Примитивы → Primitives
+            </button>
+            <button class="btn btn-secondary" id="export-radius-semantic">
+              🎯 Семантика → Radius
+            </button>
+            <button class="btn btn-secondary" id="export-radius-all">
+              ✨ Экспортировать всё
+            </button>
+            <button class="btn btn-secondary" id="btn-docs-radius">
+              📖 Создать документацию
+            </button>
+          </div>
+          
+          <div id="radius-export-status" class="export-status" style="display: none; margin-top: 12px;"></div>
+        </div>
       </div>
     </div>
 

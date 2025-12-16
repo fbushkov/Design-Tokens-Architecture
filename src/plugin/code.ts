@@ -3114,6 +3114,132 @@ async function createGapSemanticCollection(data: GapSemanticData): Promise<{ cre
 }
 
 // ============================================
+// RADIUS PRIMITIVES & SEMANTIC
+// ============================================
+
+async function createRadiusPrimitives(primitives: Array<{ name: string; value: number }>): Promise<{ created: number; updated: number; errors: string[] }> {
+  const result = { created: 0, updated: 0, errors: [] as string[] };
+  
+  // Get or create Primitives collection
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  let primitivesCollection = collections.find(c => c.name === 'Primitives');
+  
+  if (!primitivesCollection) {
+    primitivesCollection = figma.variables.createVariableCollection('Primitives');
+  }
+  
+  // Get existing variables
+  const existingVariables = await figma.variables.getLocalVariablesAsync();
+  
+  for (const prim of primitives) {
+    try {
+      const varName = `radius/${prim.name}`;
+      
+      // Check if exists
+      let existingVar = existingVariables.find(v => 
+        v.name === varName && v.variableCollectionId === primitivesCollection!.id
+      );
+      
+      if (existingVar) {
+        // Update value
+        existingVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        result.updated++;
+      } else {
+        // Create new
+        const newVar = figma.variables.createVariable(varName, primitivesCollection, 'FLOAT');
+        newVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        newVar.description = prim.name === 'full' ? '9999px (full round)' : `${prim.value}px`;
+        result.created++;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания radius/${prim.name}: ${errorMessage}`);
+    }
+  }
+  
+  return result;
+}
+
+interface RadiusSemanticData {
+  tokens: Array<{
+    id: string;          // "r-1"
+    path: string;        // "radius.interactive.button"
+    primitiveRef: string; // "6", "full", "0"
+  }>;
+}
+
+async function createRadiusSemanticCollection(data: RadiusSemanticData): Promise<{ created: number; aliased: number; errors: string[] }> {
+  const result = { created: 0, aliased: 0, errors: [] as string[] };
+  
+  // Get all collections
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  
+  // Find Primitives collection
+  const primitivesCollection = collections.find(c => c.name === 'Primitives');
+  if (!primitivesCollection) {
+    result.errors.push('Коллекция Primitives не найдена. Сначала создайте примитивы.');
+    return result;
+  }
+  
+  // Find or create Radius collection
+  let radiusCollection = collections.find(c => c.name === 'Radius');
+  if (!radiusCollection) {
+    radiusCollection = figma.variables.createVariableCollection('Radius');
+  }
+  
+  // Get all existing variables
+  const allVariables = await figma.variables.getLocalVariablesAsync('FLOAT');
+  
+  // Create map of primitive variables (radius/0, radius/4, radius/full...)
+  const primitiveVarMap = new Map<string, Variable>();
+  allVariables.forEach(v => {
+    if (v.variableCollectionId === primitivesCollection.id) {
+      // v.name is "radius/16" or "radius/full", extract "16" or "full"
+      const match = v.name.match(/radius\/(.+)/);
+      if (match) {
+        primitiveVarMap.set(match[1], v);
+      }
+    }
+  });
+  
+  // Existing semantic variables in Radius collection
+  const existingRadiusVars = allVariables.filter(v => v.variableCollectionId === radiusCollection!.id);
+  const existingVarMap = new Map<string, Variable>();
+  existingRadiusVars.forEach(v => existingVarMap.set(v.name, v));
+  
+  // Create/update semantic tokens
+  for (const token of data.tokens) {
+    try {
+      // Convert path: "radius.interactive.button" -> "radius/interactive/button"
+      const varName = token.path.replace(/\./g, '/');
+      
+      // Get or create variable
+      let variable = existingVarMap.get(varName);
+      if (!variable) {
+        variable = figma.variables.createVariable(varName, radiusCollection!, 'FLOAT');
+        result.created++;
+      }
+      
+      // Set alias to primitive
+      const primitive = primitiveVarMap.get(token.primitiveRef);
+      if (primitive) {
+        const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: primitive.id };
+        variable.setValueForMode(radiusCollection.defaultModeId, alias);
+        result.aliased++;
+      } else {
+        result.errors.push(`Примитив radius/${token.primitiveRef} не найден для ${token.path}`);
+      }
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания ${token.path}: ${errorMessage}`);
+    }
+  }
+  
+  return result;
+}
+
+// ============================================
 // SPACING PRIMITIVES & SEMANTIC
 // ============================================
 
@@ -4580,6 +4706,213 @@ async function generateGapDocumentation(): Promise<DocGeneratorResult> {
   return { pageName, framesCreated: framesCreated || 1 };
 }
 
+async function generateRadiusDocumentation(): Promise<DocGeneratorResult> {
+  await loadDocFonts();
+  
+  const pageName = '📖 Radius Documentation';
+  const page = figma.createPage();
+  page.name = pageName;
+  
+  // Get all float variables
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  const floatVars = await figma.variables.getLocalVariablesAsync('FLOAT');
+  
+  // Filter radius-related variables
+  const radiusVars = floatVars.filter(v => 
+    v.name.toLowerCase().includes('radius')
+  );
+  
+  let yOffset = 0;
+  let framesCreated = 0;
+  
+  // ===== ARCHITECTURE DESCRIPTION FRAME =====
+  const archFrame = figma.createFrame();
+  archFrame.name = 'Архитектура Radius';
+  archFrame.x = 0;
+  archFrame.y = yOffset;
+  archFrame.layoutMode = 'VERTICAL';
+  archFrame.itemSpacing = 20;
+  archFrame.paddingTop = 40;
+  archFrame.paddingBottom = 40;
+  archFrame.paddingLeft = 40;
+  archFrame.paddingRight = 40;
+  archFrame.primaryAxisSizingMode = 'AUTO';
+  archFrame.counterAxisSizingMode = 'AUTO';
+  archFrame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.95, b: 1 } }];
+  archFrame.cornerRadius = 16;
+  archFrame.minWidth = 700;
+  
+  const archTitle = createStyledText('🏗️ Архитектура Radius системы', 0, 0, 28, 'Bold');
+  archFrame.appendChild(archTitle);
+  
+  const archDesc = createStyledText(
+    `Radius — это система скругления углов для UI элементов.\n\n` +
+    `📦 ПРИМИТИВЫ (Primitives)\n` +
+    `Базовые значения border-radius в пикселях:\n` +
+    `radius.0 = 0px (sharp), radius.4 = 4px, radius.8 = 8px\n` +
+    `radius.12 = 12px, radius.16 = 16px, radius.full = 9999px (pill)\n` +
+    `Используются как источник для семантических токенов.\n\n` +
+    `🎯 СЕМАНТИЧЕСКИЕ ТОКЕНЫ (Radius Collection)\n` +
+    `Токены с контекстом использования:\n` +
+    `• radius/interactive/button — для кнопок (6px)\n` +
+    `• radius/interactive/buttonPill — для pill-кнопок (full)\n` +
+    `• radius/container/card — для карточек (8px)\n` +
+    `• radius/media/avatar — для круглых аватаров (full)\n\n` +
+    `📂 КАТЕГОРИИ\n` +
+    `• Interactive — кнопки, инпуты, чекбоксы, слайдеры\n` +
+    `• Container — карточки, модалки, панели, секции\n` +
+    `• Feedback — алерты, бейджи, теги, чипы\n` +
+    `• Media — аватары, изображения, видео, иконки\n` +
+    `• Form — поля ввода, селекты, textarea\n` +
+    `• Data — таблицы, графики, прогресс-бары\n` +
+    `• Overlay — модалки, drawer, диалоги\n` +
+    `• Special — код, цитаты, callout\n\n` +
+    `💡 ПРИНЦИПЫ\n` +
+    `• Интерактивные элементы: 4-6px (subtle focus)\n` +
+    `• Контейнеры: 8-12px (мягкие границы)\n` +
+    `• Круглые элементы: full (аватары, badges)\n` +
+    `• Sharp: 0px (баннеры, drawers, cells)`,
+    0, 0, 12, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  archFrame.appendChild(archDesc);
+  
+  page.appendChild(archFrame);
+  yOffset += archFrame.height + 48;
+  framesCreated++;
+  
+  // Main frame
+  const mainFrame = figma.createFrame();
+  mainFrame.name = 'Radius Overview';
+  mainFrame.x = 0;
+  mainFrame.y = yOffset;
+  mainFrame.layoutMode = 'VERTICAL';
+  mainFrame.itemSpacing = 32;
+  mainFrame.paddingTop = 32;
+  mainFrame.paddingBottom = 32;
+  mainFrame.paddingLeft = 32;
+  mainFrame.paddingRight = 32;
+  mainFrame.primaryAxisSizingMode = 'AUTO';
+  mainFrame.counterAxisSizingMode = 'AUTO';
+  mainFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+  mainFrame.cornerRadius = 16;
+  mainFrame.minWidth = 800;
+  
+  // Title
+  const title = createStyledText('⬜ Система Radius', 0, 0, 32, 'Bold');
+  mainFrame.appendChild(title);
+  
+  // Stats
+  const stats = createStyledText(
+    `Всего переменных: ${radiusVars.length}`,
+    0, 0, 14, 'Regular', { r: 0.5, g: 0.5, b: 0.5 }
+  );
+  mainFrame.appendChild(stats);
+  
+  // Group by collection
+  const varsByCollection = new Map<string, Variable[]>();
+  for (const v of radiusVars) {
+    const list = varsByCollection.get(v.variableCollectionId) || [];
+    list.push(v);
+    varsByCollection.set(v.variableCollectionId, list);
+  }
+  
+  for (const coll of collections) {
+    const vars = varsByCollection.get(coll.id);
+    if (!vars || vars.length === 0) continue;
+    
+    // Collection section
+    const collSection = figma.createFrame();
+    collSection.name = coll.name;
+    collSection.layoutMode = 'VERTICAL';
+    collSection.itemSpacing = 16;
+    collSection.primaryAxisSizingMode = 'AUTO';
+    collSection.counterAxisSizingMode = 'AUTO';
+    collSection.fills = [];
+    
+    // Collection title
+    const collTitle = createStyledText(`📦 ${coll.name}`, 0, 0, 20, 'Medium');
+    collSection.appendChild(collTitle);
+    
+    // Radius visualization - group by category
+    const categories: { [key: string]: Variable[] } = {};
+    for (const variable of vars) {
+      const parts = variable.name.split('/');
+      const category = parts.length > 2 ? parts[1] : 'primitives';
+      if (!categories[category]) categories[category] = [];
+      categories[category].push(variable);
+    }
+    
+    for (const [category, catVars] of Object.entries(categories)) {
+      // Category header
+      const catHeader = createStyledText(
+        category.charAt(0).toUpperCase() + category.slice(1),
+        0, 0, 14, 'Medium', { r: 0.4, g: 0.4, b: 0.4 }
+      );
+      collSection.appendChild(catHeader);
+      
+      // Items grid
+      const grid = figma.createFrame();
+      grid.name = `${category}-grid`;
+      grid.layoutMode = 'HORIZONTAL';
+      grid.layoutWrap = 'WRAP';
+      grid.itemSpacing = 16;
+      grid.counterAxisSpacing = 16;
+      grid.primaryAxisSizingMode = 'FIXED';
+      grid.resize(760, 10);
+      grid.counterAxisSizingMode = 'AUTO';
+      grid.fills = [];
+      
+      for (const variable of catVars.slice(0, 20)) {
+        const mode = coll.modes[0];
+        const resolved = await resolveVariableValue(variable, mode.modeId);
+        const numValue = typeof resolved === 'number' ? resolved : 0;
+        
+        const item = figma.createFrame();
+        item.name = variable.name;
+        item.layoutMode = 'VERTICAL';
+        item.itemSpacing = 8;
+        item.counterAxisAlignItems = 'CENTER';
+        item.primaryAxisSizingMode = 'AUTO';
+        item.counterAxisSizingMode = 'AUTO';
+        item.fills = [];
+        item.paddingTop = 8;
+        item.paddingBottom = 8;
+        
+        // Visual radius preview
+        const preview = figma.createRectangle();
+        preview.resize(56, 56);
+        // Cap radius at 28 for visual (half of box)
+        const visualRadius = numValue >= 9999 ? 28 : Math.min(numValue, 28);
+        preview.cornerRadius = visualRadius;
+        preview.fills = [{ type: 'SOLID', color: { r: 0.6, g: 0.3, b: 0.9 } }];
+        item.appendChild(preview);
+        
+        // Token name (short version)
+        const shortName = variable.name.split('/').slice(-1)[0];
+        const nameText = createStyledText(shortName, 0, 0, 11, 'Medium');
+        item.appendChild(nameText);
+        
+        // Value
+        const valueLabel = numValue >= 9999 ? 'full' : `${numValue}px`;
+        const valueText = createStyledText(valueLabel, 0, 0, 10, 'Regular', { r: 0.5, g: 0.5, b: 0.5 });
+        item.appendChild(valueText);
+        
+        grid.appendChild(item);
+      }
+      
+      collSection.appendChild(grid);
+    }
+    
+    mainFrame.appendChild(collSection);
+    framesCreated++;
+  }
+  
+  page.appendChild(mainFrame);
+  await figma.setCurrentPageAsync(page);
+  
+  return { pageName, framesCreated: framesCreated || 1 };
+}
+
 // ============================================
 // MESSAGE HANDLING
 // ============================================
@@ -4851,6 +5184,58 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       }
 
       // ========================================
+      // RADIUS HANDLERS
+      // ========================================
+
+      case 'create-radius-primitives': {
+        const primitives = msg.primitives as Array<{ name: string; value: number }>;
+        
+        figma.notify(`⏳ Создание ${primitives.length} примитивов radius...`);
+        
+        const result = await createRadiusPrimitives(primitives);
+        
+        figma.ui.postMessage({
+          type: 'radius-primitives-created',
+          count: result.created + result.updated
+        });
+        
+        figma.notify(`✅ Radius примитивы: ${result.created} создано, ${result.updated} обновлено`);
+        break;
+      }
+
+      case 'create-radius-semantic': {
+        const tokens = (msg.tokens || []) as unknown as Array<{ 
+          id: string; 
+          path: string;
+          primitiveRef: string;
+        }>;
+        
+        figma.notify(`⏳ Создание ${tokens.length} семантических токенов radius...`);
+        
+        try {
+          const result = await createRadiusSemanticCollection({ tokens });
+          
+          figma.ui.postMessage({
+            type: 'radius-semantic-created',
+            count: result.created
+          });
+          
+          if (result.errors.length > 0) {
+            figma.notify(`⚠️ Radius: ${result.created} создано, ${result.aliased} алиасов, ${result.errors.length} ошибок`);
+          } else {
+            figma.notify(`✅ Radius: ${result.created} создано, ${result.aliased} алиасов`);
+          }
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'radius-error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      // ========================================
       // SPACING HANDLERS
       // ========================================
 
@@ -5004,6 +5389,18 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           const result = await generateGapDocumentation();
           figma.notify(`✅ Документация создана: страница "${result.pageName}"`);
           figma.ui.postMessage({ type: 'docs-gap-created', pageName: result.pageName });
+        } catch (error) {
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      case 'generate-radius-documentation': {
+        figma.notify('📖 Создание документации по Radius...');
+        try {
+          const result = await generateRadiusDocumentation();
+          figma.notify(`✅ Документация создана: страница "${result.pageName}"`);
+          figma.ui.postMessage({ type: 'docs-radius-created', pageName: result.pageName });
         } catch (error) {
           figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
