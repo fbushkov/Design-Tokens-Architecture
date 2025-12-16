@@ -331,26 +331,15 @@ function deleteSemanticToken(tokenId: string): void {
 // STORAGE
 // ============================================
 
-const SPACING_STORAGE_KEY = 'figma_spacing_state_v2';
-
 function saveSpacingState(): void {
-  try {
-    localStorage.setItem(SPACING_STORAGE_KEY, JSON.stringify(spacingState));
-  } catch (e) {
-    console.warn('Failed to save spacing state:', e);
-  }
+  // localStorage is disabled in Figma plugin iframes
+  // State changes are kept in memory only during current session
 }
 
 function loadSpacingState(): void {
-  try {
-    const saved = localStorage.getItem(SPACING_STORAGE_KEY);
-    if (saved) {
-      spacingState = JSON.parse(saved);
-    }
-  } catch (e) {
-    console.warn('Failed to load spacing state:', e);
-    spacingState = createDefaultSpacingState();
-  }
+  // localStorage is disabled in Figma plugin iframes - always use defaults
+  // State is kept in memory during session only
+  spacingState = createDefaultSpacingState();
 }
 
 // ============================================

@@ -363,39 +363,20 @@ export function initializePrimitives(): void {
 // ============================================
 
 export function saveState(): void {
-  try {
-    const stateToSave = {
-      tokens: state.tokens,
-      settings: state.settings,
-      expandedPaths: state.expandedPaths,
-    };
-    localStorage.setItem(STORAGE_KEYS.STATE, JSON.stringify(stateToSave));
-    state.hasUnsavedChanges = false;
-  } catch (e) {
-    console.error('Failed to save state:', e);
-  }
+  // localStorage is disabled in Figma plugin iframes
+  // State changes are kept in memory only during current session
+  state.hasUnsavedChanges = false;
 }
 
 export function loadState(): boolean {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEYS.STATE);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      state.tokens = parsed.tokens || [];
-      state.settings = { ...INITIAL_STATE.settings, ...parsed.settings };
-      state.expandedPaths = parsed.expandedPaths || [];
-      updateCollectionCounts();
-      return true;
-    }
-  } catch (e) {
-    console.error('Failed to load state:', e);
-  }
+  // localStorage is disabled in Figma plugin iframes
+  // State is initialized with defaults, no persistence available
   return false;
 }
 
 export function resetState(): void {
   state = { ...INITIAL_STATE };
-  localStorage.removeItem(STORAGE_KEYS.STATE);
+  // localStorage is disabled in Figma plugin iframes
 }
 
 // ============================================

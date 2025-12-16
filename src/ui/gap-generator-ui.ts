@@ -24,68 +24,86 @@ import {
 let gapState: GapState = createDefaultGapState();
 let activeGapCategory: GapCategory = 'inline';
 let activeGapTab: 'primitives' | 'semantic' | 'export' = 'primitives';
-let gapInitialized = false;
 
 // ============================================
 // INIT
 // ============================================
 
 export function initGapUI(): void {
-  // Always reload state and re-render
+  console.log('initGapUI called');
+  
+  // Always reload state
   loadGapState();
+  console.log('Gap state loaded, primitives:', gapState.primitives.length);
   
   const container = document.getElementById('prim-gap');
+  console.log('Gap container found:', !!container);
+  
   if (!container) {
-    console.warn('Gap: container #prim-gap not found');
     return;
   }
   
-  // Render content
+  // Render content FIRST
   renderGapPrimitives();
   renderGapCategoryTabs();
   renderGapSemanticTokens();
   
-  // Only attach event listeners once
-  if (gapInitialized) return;
-  gapInitialized = true;
-  
-  // Tab switching (scoped to #prim-gap container)
-  const tabBtns = container.querySelectorAll('.typo-tab[data-gap-tab]');
-  
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tabId = btn.getAttribute('data-gap-tab');
+  // Setup tab switching using event delegation on container
+  container.onclick = (e) => {
+    const target = e.target as HTMLElement;
+    
+    // Tab button click
+    const tabBtn = target.closest('.typo-tab[data-gap-tab]') as HTMLElement;
+    if (tabBtn) {
+      e.preventDefault();
+      const tabId = tabBtn.getAttribute('data-gap-tab');
+      console.log('Tab clicked:', tabId);
       if (tabId) {
         const tab = tabId.replace('gap-', '') as 'primitives' | 'semantic' | 'export';
         setActiveGapTab(tab);
       }
-    });
-  });
-  
-  // Export buttons
-  const exportPrimBtn = document.getElementById('export-gap-primitives');
-  if (exportPrimBtn) {
-    exportPrimBtn.addEventListener('click', () => exportGapPrimitivesToFigma());
-  }
-  
-  const exportSemanticBtn = document.getElementById('export-gap-semantic');
-  if (exportSemanticBtn) {
-    exportSemanticBtn.addEventListener('click', () => exportGapSemanticToFigma());
-  }
-  
-  const exportAllBtn = document.getElementById('export-gap-all');
-  if (exportAllBtn) {
-    exportAllBtn.addEventListener('click', () => {
+      return;
+    }
+    
+    // Primitive item click
+    const primItem = target.closest('.spacing-primitive-item[data-gap-primitive]') as HTMLElement;
+    if (primItem) {
+      const name = primItem.getAttribute('data-gap-primitive');
+      if (name) {
+        toggleGapPrimitive(name);
+      }
+      return;
+    }
+    
+    // Category tab click
+    const catTab = target.closest('.spacing-category-tab[data-gap-category]') as HTMLElement;
+    if (catTab) {
+      const catId = catTab.getAttribute('data-gap-category') as GapCategory;
+      if (catId) {
+        activeGapCategory = catId;
+        renderGapCategoryTabs();
+        renderGapSemanticTokens();
+      }
+      return;
+    }
+    
+    // Export buttons
+    if (target.id === 'btn-generate-gap-primitives' || target.id === 'export-gap-primitives') {
+      exportGapPrimitivesToFigma();
+      return;
+    }
+    if (target.id === 'export-gap-semantic') {
+      exportGapSemanticToFigma();
+      return;
+    }
+    if (target.id === 'export-gap-all') {
       exportGapPrimitivesToFigma();
       setTimeout(() => exportGapSemanticToFigma(), 500);
-    });
-  }
+      return;
+    }
+  };
   
-  // Generate primitives button
-  const generatePrimBtn = document.getElementById('btn-generate-gap-primitives');
-  if (generatePrimBtn) {
-    generatePrimBtn.addEventListener('click', () => exportGapPrimitivesToFigma());
-  }
+  console.log('Gap UI initialized');
 }
 
 // ============================================
@@ -119,28 +137,14 @@ function setActiveGapTab(tab: 'primitives' | 'semantic' | 'export'): void {
 // ============================================
 
 function loadGapState(): void {
-  const saved = localStorage.getItem('gapState');
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-      // Validate that primitives exist
-      if (parsed.primitives && parsed.primitives.length > 0) {
-        gapState = parsed;
-      } else {
-        gapState = createDefaultGapState();
-      }
-    } catch (e) {
-      console.error('Failed to load gap state:', e);
-      gapState = createDefaultGapState();
-    }
-  } else {
-    // No saved state, use defaults
-    gapState = createDefaultGapState();
-  }
+  // localStorage is disabled in Figma plugin iframes - always use defaults
+  // State is kept in memory during session only
+  gapState = createDefaultGapState();
 }
 
 function saveGapState(): void {
-  localStorage.setItem('gapState', JSON.stringify(gapState));
+  // localStorage is disabled in Figma plugin iframes
+  // State changes are kept in memory only during current session
 }
 
 // ============================================
@@ -149,9 +153,10 @@ function saveGapState(): void {
 
 function renderGapPrimitives(): void {
   const grid = document.getElementById('gap-primitives-grid');
+  console.log('renderGapPrimitives, grid found:', !!grid);
   if (!grid) return;
   
-  grid.innerHTML = gapState.primitives.map(prim => `
+  const html = gapState.primitives.map(prim => `
     <div class="spacing-primitive-item ${prim.enabled ? 'active' : ''}" 
          data-gap-primitive="${prim.name}"
          title="gap.${prim.name} = ${prim.value}px">
@@ -159,15 +164,8 @@ function renderGapPrimitives(): void {
     </div>
   `).join('');
   
-  // Click handlers
-  grid.querySelectorAll('.spacing-primitive-item').forEach(item => {
-    item.addEventListener('click', () => {
-      const name = item.getAttribute('data-gap-primitive');
-      if (name) {
-        toggleGapPrimitive(name);
-      }
-    });
-  });
+  console.log('Generated HTML length:', html.length);
+  grid.innerHTML = html;
   
   updateGapPrimitivesCount();
 }
@@ -206,18 +204,6 @@ function renderGapCategoryTabs(): void {
       ${cat.icon} ${cat.label}
     </button>
   `).join('');
-  
-  // Click handlers
-  container.querySelectorAll('.spacing-category-tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const catId = btn.getAttribute('data-gap-category') as GapCategory;
-      if (catId) {
-        activeGapCategory = catId;
-        renderGapCategoryTabs();
-        renderGapSemanticTokens();
-      }
-    });
-  });
 }
 
 // ============================================
