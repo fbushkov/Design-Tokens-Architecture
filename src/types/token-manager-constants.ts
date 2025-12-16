@@ -68,10 +68,8 @@ export const DEFAULT_COLLECTIONS: CollectionConfig[] = [
   },
   {
     name: 'Components',
-    modes: [
-      { id: 'light', name: 'light', isDefault: true },
-      { id: 'dark', name: 'dark', isDefault: false },
-    ],
+    // Components have no modes - they reference Tokens which handle theme switching
+    modes: [{ id: 'default', name: 'Default', isDefault: true }],
     tokenCount: 0,
   },
 ];

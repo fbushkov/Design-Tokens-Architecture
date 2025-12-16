@@ -1105,10 +1105,29 @@ const SEMANTIC_COLOR_MAPPINGS_DARK: SemanticColorMapping[] = [
   { category: 'selection', subcategory: 'highlight', states: ['default'], sourceColor: 'warning', sourceStep: 700 },
 ];
 
+// Theme configuration interface
+interface ThemeConfig {
+  id: string;
+  name: string;
+  brandColor: string;
+  hasLightMode: boolean;
+  hasDarkMode: boolean;
+}
+
 async function createColorVariablesWithStructure(
-  variables: Array<{ name: string; value: { r: number; g: number; b: number; a: number }; description: string }>
+  variables: Array<{ name: string; value: { r: number; g: number; b: number; a: number }; description: string }>,
+  themes?: ThemeConfig[]
 ): Promise<void> {
   const collections = await getLocalVariableCollections();
+  
+  // Default themes if none provided
+  const allThemes: ThemeConfig[] = themes && themes.length > 0 ? themes : [{
+    id: 'default',
+    name: 'Default',
+    brandColor: '#3B82F6',
+    hasLightMode: true,
+    hasDarkMode: true
+  }];
   
   // Create or get Primitives collection (default mode only)
   let primitivesCollection = collections.find(c => c.name === 'Primitives');
@@ -1116,46 +1135,63 @@ async function createColorVariablesWithStructure(
     primitivesCollection = await createVariableCollection('Primitives');
   }
   
-  // Create or get Tokens collection with light/dark modes
+  // Create or get Tokens collection with modes for all themes
   let tokensCollection = collections.find(c => c.name === 'Tokens');
   if (!tokensCollection) {
     tokensCollection = await createVariableCollection('Tokens');
   }
   
-  // Ensure Tokens collection has light and dark modes
-  let lightModeId = tokensCollection.modes.find(m => m.name === 'light')?.modeId;
-  let darkModeId = tokensCollection.modes.find(m => m.name === 'dark')?.modeId;
+  // Build mode map for all themes
+  const tokenModeIds: Map<string, string> = new Map();
   
-  // Rename default mode to 'light' if needed, add 'dark' mode
-  if (!lightModeId) {
-    // Rename default mode to 'light'
-    tokensCollection.renameMode(tokensCollection.defaultModeId, 'light');
-    lightModeId = tokensCollection.defaultModeId;
+  // Ensure Tokens collection has modes for all themes
+  let isFirstMode = true;
+  for (const theme of allThemes) {
+    if (theme.hasLightMode) {
+      const modeName = theme.id === 'default' ? 'light' : `${theme.id}-light`;
+      let modeId = tokensCollection.modes.find(m => m.name === modeName)?.modeId;
+      
+      if (!modeId) {
+        if (isFirstMode) {
+          // Rename default mode
+          tokensCollection.renameMode(tokensCollection.defaultModeId, modeName);
+          modeId = tokensCollection.defaultModeId;
+          isFirstMode = false;
+        } else {
+          // Add new mode
+          modeId = tokensCollection.addMode(modeName);
+        }
+      }
+      tokenModeIds.set(modeName, modeId);
+    }
+    
+    if (theme.hasDarkMode) {
+      const modeName = theme.id === 'default' ? 'dark' : `${theme.id}-dark`;
+      let modeId = tokensCollection.modes.find(m => m.name === modeName)?.modeId;
+      
+      if (!modeId) {
+        if (isFirstMode) {
+          tokensCollection.renameMode(tokensCollection.defaultModeId, modeName);
+          modeId = tokensCollection.defaultModeId;
+          isFirstMode = false;
+        } else {
+          modeId = tokensCollection.addMode(modeName);
+        }
+      }
+      tokenModeIds.set(modeName, modeId);
+    }
   }
   
-  if (!darkModeId) {
-    // Add 'dark' mode
-    darkModeId = tokensCollection.addMode('dark');
-  }
-  
-  // Create or get Components collection with light/dark modes
+  // Create or get Components collection - NO MODES (single default mode)
+  // Components reference Tokens via aliases, theme switching happens at Tokens level
   let componentsCollection = collections.find(c => c.name === 'Components');
   if (!componentsCollection) {
     componentsCollection = await createVariableCollection('Components');
   }
   
-  // Ensure Components collection has light and dark modes
-  let compLightModeId = componentsCollection.modes.find(m => m.name === 'light')?.modeId;
-  let compDarkModeId = componentsCollection.modes.find(m => m.name === 'dark')?.modeId;
-  
-  if (!compLightModeId) {
-    componentsCollection.renameMode(componentsCollection.defaultModeId, 'light');
-    compLightModeId = componentsCollection.defaultModeId;
-  }
-  
-  if (!compDarkModeId) {
-    compDarkModeId = componentsCollection.addMode('dark');
-  }
+  // Components only use the default mode - no light/dark needed
+  // Theme switching is handled by Tokens collection
+  const compDefaultModeId = componentsCollection.defaultModeId;
   
   const existingVariables = await getLocalVariables();
   const createdPrimitives: Map<string, Variable> = new Map();
@@ -1292,20 +1328,31 @@ async function createColorVariablesWithStructure(
         tokenVar = await createVariable(tokenName, tokensCollection, 'COLOR');
       }
       
-      // Set light mode value
-      const lightAlias: VariableAlias = {
-        type: 'VARIABLE_ALIAS',
-        id: lightPrimitive.id
-      };
-      tokenVar.setValueForMode(lightModeId!, lightAlias);
-      
-      // Set dark mode value
-      if (darkPrimitive) {
-        const darkAlias: VariableAlias = {
-          type: 'VARIABLE_ALIAS',
-          id: darkPrimitive.id
-        };
-        tokenVar.setValueForMode(darkModeId!, darkAlias);
+      // Set values for all theme modes
+      for (const theme of allThemes) {
+        if (theme.hasLightMode) {
+          const modeName = theme.id === 'default' ? 'light' : `${theme.id}-light`;
+          const modeId = tokenModeIds.get(modeName);
+          if (modeId) {
+            const lightAlias: VariableAlias = {
+              type: 'VARIABLE_ALIAS',
+              id: lightPrimitive.id
+            };
+            tokenVar.setValueForMode(modeId, lightAlias);
+          }
+        }
+        
+        if (theme.hasDarkMode) {
+          const modeName = theme.id === 'default' ? 'dark' : `${theme.id}-dark`;
+          const modeId = tokenModeIds.get(modeName);
+          if (modeId && darkPrimitive) {
+            const darkAlias: VariableAlias = {
+              type: 'VARIABLE_ALIAS',
+              id: darkPrimitive.id
+            };
+            tokenVar.setValueForMode(modeId, darkAlias);
+          }
+        }
       }
       
       tokenVar.description = mapping.variant 
@@ -1314,7 +1361,7 @@ async function createColorVariablesWithStructure(
     }
   }
   
-  // 3. Create Component Token Variables with light/dark modes
+  // 3. Create Component Token Variables with all theme modes
   // Structure: component/variant/variant-property-state
   const componentMappings = [
     // ============================================
@@ -1555,9 +1602,9 @@ async function createColorVariablesWithStructure(
       id: sourceToken.id
     };
     
-    // Components reference tokens (which handle light/dark internally)
-    compVar.setValueForMode(compLightModeId!, aliasValue);
-    compVar.setValueForMode(compDarkModeId!, aliasValue);
+    // Components reference tokens - only default mode
+    // Theme switching is handled at Tokens level via aliases
+    compVar.setValueForMode(compDefaultModeId, aliasValue);
     compVar.description = `Component token for ${comp.name.replace(/\//g, ' ')}`;
   }
 }
@@ -1936,9 +1983,16 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         const payload = msg.payload as { 
           collection: string;
           variables: Array<{ name: string; value: { r: number; g: number; b: number; a: number }; description: string }>;
+          themes?: Array<{
+            id: string;
+            name: string;
+            brandColor: string;
+            hasLightMode: boolean;
+            hasDarkMode: boolean;
+          }>;
         };
         
-        await createColorVariablesWithStructure(payload.variables);
+        await createColorVariablesWithStructure(payload.variables, payload.themes);
         
         // Also create base tokens (spacing, radius, typography, etc.)
         await createBaseTokens();

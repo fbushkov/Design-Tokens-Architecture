@@ -17,6 +17,7 @@ import {
 import {
   initPrimitivesGenerator,
   getGeneratedPalettes,
+  getThemes,
 } from './primitives-generator-ui';
 
 import {
@@ -276,6 +277,15 @@ if (elements.tokenManagerContainer) {
       v.value && typeof v.value === 'object' && 'r' in v.value
     );
     
+    // Get current themes configuration
+    const themes = getThemes().map(t => ({
+      id: t.id,
+      name: t.name,
+      brandColor: t.brandColor,
+      hasLightMode: t.hasLightMode,
+      hasDarkMode: t.hasDarkMode,
+    }));
+    
     // Group by collection
     const collections = colorVariables.reduce((acc, v) => {
       if (!acc[v.collection]) acc[v.collection] = [];
@@ -283,7 +293,7 @@ if (elements.tokenManagerContainer) {
       return acc;
     }, {} as Record<string, typeof colorVariables>);
     
-    // Send each collection to Figma
+    // Send each collection to Figma with themes
     for (const [collection, variables] of Object.entries(collections)) {
       postMessage('create-color-variables', { 
         collection, 
@@ -291,11 +301,12 @@ if (elements.tokenManagerContainer) {
           name: v.name,
           value: v.value,
           description: v.description,
-        }))
+        })),
+        themes: themes,
       });
     }
     
-    showNotification(`📤 Синхронизирую ${colorVariables.length} цветовых переменных с Figma...`);
+    showNotification(`📤 Синхронизирую ${colorVariables.length} цветовых переменных с Figma... (${themes.length} тем)`);
   });
   
   elements.tokenManagerContainer.addEventListener('export-json', () => {

@@ -6,7 +6,7 @@
 
 import { getState, createToken, getTokens } from '../types/token-manager-state';
 import { TokenDefinition } from '../types/token-manager';
-import { productState, getCurrentProduct } from './primitives-generator-ui';
+import { productState, getCurrentProduct, getThemes, ThemeConfig } from './primitives-generator-ui';
 
 // ============================================
 // ВАЛИДАЦИЯ ПРИМИТИВОВ
@@ -140,6 +140,44 @@ export const tokensState = {
 // ФУНКЦИИ РАБОТЫ С ТЕМАМИ
 // ============================================
 
+/**
+ * Синхронизирует темы из Primitives с вкладкой Tokens
+ */
+function syncThemesFromPrimitives(): void {
+  const primitivesThemes = getThemes();
+  
+  // Очищаем текущие темы и добавляем все режимы из примитивов
+  tokensState.themes = [];
+  
+  for (const theme of primitivesThemes) {
+    if (theme.hasLightMode) {
+      const modeName = theme.id === 'default' ? 'light' : `${theme.id}-light`;
+      const displayName = theme.id === 'default' ? 'Light' : `${theme.name} Light`;
+      tokensState.themes.push({
+        id: modeName,
+        name: displayName,
+        isDefault: theme.isSystem && modeName === 'light',
+      });
+    }
+    if (theme.hasDarkMode) {
+      const modeName = theme.id === 'default' ? 'dark' : `${theme.id}-dark`;
+      const displayName = theme.id === 'default' ? 'Dark' : `${theme.name} Dark`;
+      tokensState.themes.push({
+        id: modeName,
+        name: displayName,
+        isDefault: theme.isSystem && modeName === 'dark',
+      });
+    }
+  }
+  
+  // Убедимся что выбранная тема существует
+  if (!tokensState.themes.find(t => t.id === tokensState.currentTheme)) {
+    tokensState.currentTheme = tokensState.themes[0]?.id || 'light';
+  }
+  
+  renderThemeChips();
+}
+
 export function addTheme(name: string): ThemeDefinition {
   const id = name.toLowerCase().replace(/\s+/g, '-');
   const theme: ThemeDefinition = { id, name };
@@ -169,24 +207,21 @@ function renderThemeChips(): void {
   const container = document.getElementById('theme-chips-container');
   if (!container) return;
   
-  container.innerHTML = tokensState.themes.map(theme => `
+  container.innerHTML = tokensState.themes.map(theme => {
+    const isLight = theme.id.includes('light') || theme.id === 'light';
+    const icon = isLight ? '☀️' : '🌙';
+    
+    return `
     <button class="theme-chip ${theme.id === tokensState.currentTheme ? 'active' : ''}" 
             data-theme-id="${theme.id}">
-      ${theme.name}
-      ${!theme.isDefault ? '<span class="remove-theme" data-remove-theme="' + theme.id + '">×</span>' : ''}
+      <span class="theme-chip-icon">${icon}</span>
+      <span class="theme-chip-label">${theme.name}</span>
     </button>
-  `).join('');
+  `}).join('');
   
   // Добавляем обработчики
   container.querySelectorAll('.theme-chip').forEach(chip => {
     chip.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      if (target.classList.contains('remove-theme')) {
-        const themeId = target.getAttribute('data-remove-theme');
-        if (themeId) removeTheme(themeId);
-        e.stopPropagation();
-        return;
-      }
       const themeId = (chip as HTMLElement).getAttribute('data-theme-id');
       if (themeId) setCurrentTheme(themeId);
     });
@@ -325,18 +360,23 @@ function showNotification(message: string, isError = false): void {
 }
 
 export function initTokensTab(): void {
-  // Рендерим тему-чипсы
-  renderThemeChips();
+  // Синхронизируем темы из примитивов при инициализации
+  syncThemesFromPrimitives();
   
-  // Обработчик добавления темы
+  // Слушаем события изменения тем в примитивах
+  window.addEventListener('themes-updated', () => {
+    syncThemesFromPrimitives();
+    showNotification('🎨 Темы синхронизированы');
+  });
+  
+  // Обработчик добавления темы - теперь редиректим на примитивы
   const btnAddTheme = document.getElementById('btn-add-token-theme');
   if (btnAddTheme) {
     btnAddTheme.addEventListener('click', () => {
-      const name = prompt('Введите название темы:');
-      if (name && name.trim()) {
-        addTheme(name.trim());
-        showNotification(`✅ Тема "${name.trim()}" добавлена`);
-      }
+      showNotification('💡 Добавьте новую тему во вкладке Примитивы', false);
+      // Можно добавить автопереключение на вкладку примитивов
+      const primitivesTab = document.querySelector('[data-tab="primitives"]') as HTMLButtonElement;
+      if (primitivesTab) primitivesTab.click();
     });
   }
   

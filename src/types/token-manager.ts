@@ -78,8 +78,25 @@ export interface TokenDefinition {
 
 export interface CollectionMode {
   id: string;
-  name: string;               // 'light', 'dark'
+  name: string;               // 'light', 'dark', 'green-light', 'green-dark'
   isDefault: boolean;
+}
+
+// ============================================
+// THEME CONFIGURATION
+// ============================================
+
+export interface ThemeConfig {
+  id: string;                 // 'default', 'green', 'purple'
+  name: string;               // 'Default', 'Green Theme', 'Purple Theme'
+  brandColor: string;         // Base brand color hex for this theme
+  accentColor?: string;       // Optional accent color
+  neutralTint?: 'none' | 'warm' | 'cool' | 'custom';  // Tint for neutral colors
+  customNeutralHex?: string;  // Custom neutral tint color
+  hasLightMode: boolean;      // Whether to create light variant
+  hasDarkMode: boolean;       // Whether to create dark variant
+  isSystem: boolean;          // System themes (default) cannot be deleted
+  createdAt: number;
 }
 
 export interface CollectionConfig {

@@ -427,10 +427,26 @@ interface ColorConfig {
   enabledShades: Set<number>;
 }
 
-// Theme state
+// ============================================
+// THEME MANAGEMENT
+// ============================================
+
+export interface ThemeConfig {
+  id: string;
+  name: string;
+  brandColor: string;
+  accentColor?: string;
+  neutralTint: 'none' | 'warm' | 'cool' | 'custom';
+  customNeutralHex?: string;
+  hasLightMode: boolean;
+  hasDarkMode: boolean;
+  isSystem: boolean;
+  createdAt: number;
+}
+
 interface ThemeState {
   activeTheme: string;
-  themes: string[];
+  themes: ThemeConfig[];
 }
 
 // Color state management
@@ -439,13 +455,107 @@ interface ColorState {
   themes: ThemeState;
 }
 
+// Default themes
+const DEFAULT_THEMES: ThemeConfig[] = [
+  {
+    id: 'default',
+    name: 'Default',
+    brandColor: '#3B82F6',
+    accentColor: '#8B5CF6',
+    neutralTint: 'none',
+    hasLightMode: true,
+    hasDarkMode: true,
+    isSystem: true,
+    createdAt: Date.now()
+  }
+];
+
 const colorState: ColorState = {
   colors: new Map(),
   themes: {
     activeTheme: 'light',
-    themes: ['light', 'dark']
+    themes: [...DEFAULT_THEMES]
   }
 };
+
+// ============================================
+// THEME GETTERS & SETTERS
+// ============================================
+
+export function getThemes(): ThemeConfig[] {
+  return colorState.themes.themes;
+}
+
+export function getThemeById(id: string): ThemeConfig | undefined {
+  return colorState.themes.themes.find(t => t.id === id);
+}
+
+export function addTheme(config: Omit<ThemeConfig, 'id' | 'createdAt' | 'isSystem'>): ThemeConfig {
+  const id = config.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  const theme: ThemeConfig = {
+    ...config,
+    id,
+    isSystem: false,
+    createdAt: Date.now()
+  };
+  colorState.themes.themes.push(theme);
+  
+  // Notify about theme change
+  window.dispatchEvent(new CustomEvent('themes-updated', { detail: { themes: colorState.themes.themes } }));
+  
+  return theme;
+}
+
+export function updateTheme(id: string, updates: Partial<ThemeConfig>): ThemeConfig | undefined {
+  const index = colorState.themes.themes.findIndex(t => t.id === id);
+  if (index === -1) return undefined;
+  
+  // Don't allow changing system theme's id or isSystem flag
+  if (colorState.themes.themes[index].isSystem) {
+    delete updates.id;
+    delete updates.isSystem;
+  }
+  
+  colorState.themes.themes[index] = { ...colorState.themes.themes[index], ...updates };
+  
+  // Notify about theme change
+  window.dispatchEvent(new CustomEvent('themes-updated', { detail: { themes: colorState.themes.themes } }));
+  
+  return colorState.themes.themes[index];
+}
+
+export function deleteTheme(id: string): boolean {
+  const theme = getThemeById(id);
+  if (!theme || theme.isSystem) return false;
+  
+  const index = colorState.themes.themes.findIndex(t => t.id === id);
+  if (index !== -1) {
+    colorState.themes.themes.splice(index, 1);
+    
+    // Notify about theme change
+    window.dispatchEvent(new CustomEvent('themes-updated', { detail: { themes: colorState.themes.themes } }));
+    return true;
+  }
+  return false;
+}
+
+// Get all theme modes for Figma Variables
+export function getAllThemeModes(): Array<{ themeId: string; themeName: string; mode: 'light' | 'dark'; modeName: string }> {
+  const modes: Array<{ themeId: string; themeName: string; mode: 'light' | 'dark'; modeName: string }> = [];
+  
+  for (const theme of colorState.themes.themes) {
+    if (theme.hasLightMode) {
+      const modeName = theme.id === 'default' ? 'light' : `${theme.id}-light`;
+      modes.push({ themeId: theme.id, themeName: theme.name, mode: 'light', modeName });
+    }
+    if (theme.hasDarkMode) {
+      const modeName = theme.id === 'default' ? 'dark' : `${theme.id}-dark`;
+      modes.push({ themeId: theme.id, themeName: theme.name, mode: 'dark', modeName });
+    }
+  }
+  
+  return modes;
+}
 
 function parseHexToRgba(hex: string): RGBAColor {
   const cleanHex = hex.replace('#', '');
@@ -1203,16 +1313,332 @@ function setupThemeManagement(): void {
     });
   });
   
-  // Add theme button
+  // Add theme button - opens modal
   const btnAddTheme = document.getElementById('btn-add-theme');
   if (btnAddTheme) {
     btnAddTheme.addEventListener('click', () => {
-      const themeName = prompt('Введите название темы:');
-      if (themeName && themeName.trim()) {
-        addThemeTab(themeName.trim());
-      }
+      openThemeModal();
     });
   }
+  
+  // Render initial theme tabs
+  renderThemeTabs();
+}
+
+// ============================================
+// THEME MODAL
+// ============================================
+
+function openThemeModal(editThemeId?: string): void {
+  const existingModal = document.getElementById('theme-modal');
+  if (existingModal) existingModal.remove();
+  
+  const editTheme = editThemeId ? getThemeById(editThemeId) : undefined;
+  const isEditing = !!editTheme;
+  
+  const modal = document.createElement('div');
+  modal.id = 'theme-modal';
+  modal.className = 'modal-overlay';
+  modal.innerHTML = `
+    <div class="modal-content theme-modal-content">
+      <div class="modal-header">
+        <h3>${isEditing ? '✏️ Редактировать тему' : '🎨 Добавить новую тему'}</h3>
+        <button class="btn-icon btn-modal-close" id="btn-theme-modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Название темы</label>
+          <input type="text" class="form-input" id="theme-name-input" 
+                 value="${editTheme?.name || ''}" 
+                 placeholder="Например: Green Theme"
+                 ${editTheme?.isSystem ? 'disabled' : ''}>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">🎨 Основной цвет бренда</label>
+          <div class="color-input-group">
+            <input type="color" class="color-picker" id="theme-brand-color" 
+                   value="${editTheme?.brandColor || '#22C55E'}">
+            <input type="text" class="form-input color-hex" id="theme-brand-hex" 
+                   value="${editTheme?.brandColor || '#22C55E'}">
+          </div>
+          <p class="form-hint">Этот цвет заменит brand-палитру для данной темы</p>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">💜 Акцентный цвет (опционально)</label>
+          <div class="color-input-group">
+            <input type="color" class="color-picker" id="theme-accent-color" 
+                   value="${editTheme?.accentColor || '#8B5CF6'}">
+            <input type="text" class="form-input color-hex" id="theme-accent-hex" 
+                   value="${editTheme?.accentColor || '#8B5CF6'}">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">🎛️ Оттенок нейтральных цветов</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="neutral-tint" value="none" 
+                     ${(!editTheme || editTheme.neutralTint === 'none') ? 'checked' : ''}>
+              Нет оттенка
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="neutral-tint" value="warm" 
+                     ${editTheme?.neutralTint === 'warm' ? 'checked' : ''}>
+              Тёплый
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="neutral-tint" value="cool" 
+                     ${editTheme?.neutralTint === 'cool' ? 'checked' : ''}>
+              Холодный
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="neutral-tint" value="custom" 
+                     ${editTheme?.neutralTint === 'custom' ? 'checked' : ''}>
+              Кастомный
+            </label>
+          </div>
+          <div class="color-input-group custom-tint-input" id="custom-tint-group" 
+               style="display: ${editTheme?.neutralTint === 'custom' ? 'flex' : 'none'}; margin-top: 8px;">
+            <input type="color" class="color-picker" id="theme-custom-tint-color" 
+                   value="${editTheme?.customNeutralHex || '#6B7280'}">
+            <input type="text" class="form-input color-hex" id="theme-custom-tint-hex" 
+                   value="${editTheme?.customNeutralHex || '#6B7280'}">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">🌓 Варианты темы</label>
+          <div class="checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="theme-has-light" 
+                     ${(!editTheme || editTheme.hasLightMode) ? 'checked' : ''}>
+              Light (светлый вариант)
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="theme-has-dark" 
+                     ${(!editTheme || editTheme.hasDarkMode) ? 'checked' : ''}>
+              Dark (тёмный вариант)
+            </label>
+          </div>
+          <p class="form-hint">Каждый вариант создаст отдельную колонку в Figma Variables</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        ${isEditing && !editTheme?.isSystem ? `
+          <button class="btn btn-danger" id="btn-delete-theme">🗑️ Удалить</button>
+        ` : ''}
+        <div class="modal-footer-right">
+          <button class="btn btn-secondary" id="btn-theme-cancel">Отмена</button>
+          <button class="btn btn-primary" id="btn-theme-save">
+            ${isEditing ? '💾 Сохранить' : '✨ Создать тему'}
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Setup event listeners
+  setupThemeModalListeners(modal, editThemeId);
+}
+
+function setupThemeModalListeners(modal: HTMLElement, editThemeId?: string): void {
+  // Close modal
+  const closeModal = () => modal.remove();
+  
+  modal.querySelector('#btn-theme-modal-close')?.addEventListener('click', closeModal);
+  modal.querySelector('#btn-theme-cancel')?.addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+  
+  // Sync color pickers with hex inputs
+  const syncColorInputs = (pickerId: string, hexId: string) => {
+    const picker = modal.querySelector(`#${pickerId}`) as HTMLInputElement;
+    const hex = modal.querySelector(`#${hexId}`) as HTMLInputElement;
+    if (picker && hex) {
+      picker.addEventListener('input', () => hex.value = picker.value.toUpperCase());
+      hex.addEventListener('input', () => {
+        if (/^#[0-9A-Fa-f]{6}$/.test(hex.value)) {
+          picker.value = hex.value;
+        }
+      });
+    }
+  };
+  
+  syncColorInputs('theme-brand-color', 'theme-brand-hex');
+  syncColorInputs('theme-accent-color', 'theme-accent-hex');
+  syncColorInputs('theme-custom-tint-color', 'theme-custom-tint-hex');
+  
+  // Show/hide custom tint input
+  modal.querySelectorAll('input[name="neutral-tint"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      const customGroup = modal.querySelector('#custom-tint-group') as HTMLElement;
+      if (customGroup) {
+        customGroup.style.display = (radio as HTMLInputElement).value === 'custom' ? 'flex' : 'none';
+      }
+    });
+  });
+  
+  // Delete theme
+  modal.querySelector('#btn-delete-theme')?.addEventListener('click', () => {
+    if (editThemeId && confirm('Удалить эту тему? Это действие нельзя отменить.')) {
+      if (deleteTheme(editThemeId)) {
+        showNotification('🗑️ Тема удалена');
+        renderThemeTabs();
+        closeModal();
+      }
+    }
+  });
+  
+  // Save theme
+  modal.querySelector('#btn-theme-save')?.addEventListener('click', () => {
+    const nameInput = modal.querySelector('#theme-name-input') as HTMLInputElement;
+    const brandColorInput = modal.querySelector('#theme-brand-hex') as HTMLInputElement;
+    const accentColorInput = modal.querySelector('#theme-accent-hex') as HTMLInputElement;
+    const neutralTintRadio = modal.querySelector('input[name="neutral-tint"]:checked') as HTMLInputElement;
+    const customTintInput = modal.querySelector('#theme-custom-tint-hex') as HTMLInputElement;
+    const hasLightCheckbox = modal.querySelector('#theme-has-light') as HTMLInputElement;
+    const hasDarkCheckbox = modal.querySelector('#theme-has-dark') as HTMLInputElement;
+    
+    const name = nameInput?.value.trim();
+    if (!name) {
+      showNotification('⚠️ Введите название темы', true);
+      return;
+    }
+    
+    if (!hasLightCheckbox?.checked && !hasDarkCheckbox?.checked) {
+      showNotification('⚠️ Выберите хотя бы один вариант (Light или Dark)', true);
+      return;
+    }
+    
+    const themeConfig = {
+      name,
+      brandColor: brandColorInput?.value || '#22C55E',
+      accentColor: accentColorInput?.value || undefined,
+      neutralTint: (neutralTintRadio?.value as 'none' | 'warm' | 'cool' | 'custom') || 'none',
+      customNeutralHex: neutralTintRadio?.value === 'custom' ? customTintInput?.value : undefined,
+      hasLightMode: hasLightCheckbox?.checked ?? true,
+      hasDarkMode: hasDarkCheckbox?.checked ?? true,
+    };
+    
+    if (editThemeId) {
+      updateTheme(editThemeId, themeConfig);
+      showNotification(`✅ Тема "${name}" обновлена`);
+    } else {
+      // Check if theme with this name already exists
+      const existingId = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      if (getThemeById(existingId)) {
+        showNotification(`⚠️ Тема с таким именем уже существует`, true);
+        return;
+      }
+      addTheme(themeConfig);
+      showNotification(`✅ Тема "${name}" создана`);
+    }
+    
+    renderThemeTabs();
+    closeModal();
+  });
+}
+
+// ============================================
+// THEME TABS RENDERING
+// ============================================
+
+function renderThemeTabs(): void {
+  const themeTabs = document.querySelector('.theme-tabs');
+  if (!themeTabs) return;
+  
+  // Clear existing tabs except the add button
+  const addButton = document.getElementById('btn-add-theme');
+  themeTabs.innerHTML = '';
+  
+  // Render theme tabs
+  for (const theme of colorState.themes.themes) {
+    // For each theme, show modes as tabs
+    if (theme.hasLightMode) {
+      const lightTab = createThemeTabElement(theme, 'light');
+      themeTabs.appendChild(lightTab);
+    }
+    if (theme.hasDarkMode) {
+      const darkTab = createThemeTabElement(theme, 'dark');
+      themeTabs.appendChild(darkTab);
+    }
+  }
+  
+  // Add the "+ Тема" button back
+  const newAddButton = document.createElement('button');
+  newAddButton.id = 'btn-add-theme';
+  newAddButton.className = 'theme-tab add-theme-tab';
+  newAddButton.textContent = '+ Тема';
+  newAddButton.addEventListener('click', () => openThemeModal());
+  themeTabs.appendChild(newAddButton);
+  
+  // Set first tab as active if none selected
+  const firstTab = themeTabs.querySelector('.theme-tab:not(.add-theme-tab)');
+  if (firstTab && !themeTabs.querySelector('.theme-tab.active')) {
+    firstTab.classList.add('active');
+    const mode = firstTab.getAttribute('data-mode') || 'light';
+    colorState.themes.activeTheme = mode;
+  }
+}
+
+function createThemeTabElement(theme: ThemeConfig, mode: 'light' | 'dark'): HTMLElement {
+  const tab = document.createElement('button');
+  const modeName = theme.id === 'default' ? mode : `${theme.id}-${mode}`;
+  
+  tab.className = 'theme-tab';
+  if (colorState.themes.activeTheme === modeName) {
+    tab.classList.add('active');
+  }
+  
+  tab.setAttribute('data-theme', theme.id);
+  tab.setAttribute('data-mode', modeName);
+  
+  // Icon and label
+  const icon = mode === 'light' ? '☀️' : '🌙';
+  const label = theme.id === 'default' 
+    ? (mode === 'light' ? 'Light' : 'Dark')
+    : `${theme.name} ${mode === 'light' ? 'Light' : 'Dark'}`;
+  
+  tab.innerHTML = `
+    <span class="theme-tab-icon">${icon}</span>
+    <span class="theme-tab-label">${label}</span>
+    ${!theme.isSystem ? `<button class="theme-tab-edit" data-theme-id="${theme.id}" title="Редактировать">✏️</button>` : ''}
+  `;
+  
+  // Color indicator
+  if (theme.brandColor) {
+    const indicator = document.createElement('span');
+    indicator.className = 'theme-color-indicator';
+    indicator.style.backgroundColor = theme.brandColor;
+    tab.insertBefore(indicator, tab.firstChild);
+  }
+  
+  // Tab click - select theme
+  tab.addEventListener('click', (e) => {
+    // Don't trigger if edit button clicked
+    if ((e.target as HTMLElement).classList.contains('theme-tab-edit')) return;
+    
+    document.querySelectorAll('.theme-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    colorState.themes.activeTheme = modeName;
+    showNotification(`🎨 Тема "${label}" выбрана`);
+  });
+  
+  // Edit button click
+  const editBtn = tab.querySelector('.theme-tab-edit');
+  if (editBtn) {
+    editBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openThemeModal(theme.id);
+    });
+  }
+  
+  return tab;
 }
 
 function generateColorName(prefix: string): string {
@@ -1293,35 +1719,18 @@ function removeColorCard(colorName: string): void {
   }
 }
 
+// Legacy function - now using modal-based theme creation
 function addThemeTab(themeName: string): void {
-  const themeTabs = document.querySelector('.theme-tabs');
-  const addButton = document.getElementById('btn-add-theme');
+  // Open theme modal with pre-filled name
+  openThemeModal();
   
-  if (!themeTabs || !addButton) return;
-  
-  // Check if theme already exists
-  if (colorState.themes.themes.includes(themeName.toLowerCase())) {
-    showNotification(`Тема "${themeName}" уже существует`, true);
-    return;
-  }
-  
-  const tab = document.createElement('button');
-  tab.className = 'theme-tab';
-  tab.setAttribute('data-theme', themeName.toLowerCase());
-  tab.textContent = `🎨 ${themeName}`;
-  
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.theme-tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    colorState.themes.activeTheme = themeName.toLowerCase();
-    showNotification(`🎨 Тема "${themeName}" выбрана`);
-  });
-  
-  // Insert before add button
-  themeTabs.insertBefore(tab, addButton);
-  colorState.themes.themes.push(themeName.toLowerCase());
-  
-  showNotification(`✅ Тема "${themeName}" добавлена`);
+  // Set the name input value after modal is created
+  setTimeout(() => {
+    const nameInput = document.getElementById('theme-name-input') as HTMLInputElement;
+    if (nameInput) {
+      nameInput.value = themeName;
+    }
+  }, 100);
 }
 
 function capitalizeFirst(str: string): string {
