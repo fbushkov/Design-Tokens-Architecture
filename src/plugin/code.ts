@@ -2683,6 +2683,178 @@ async function createTextStyles(payload: TextStylePayload): Promise<{ created: n
 }
 
 // ============================================
+// SEMANTIC TYPOGRAPHY VARIABLES
+// ============================================
+
+interface SemanticTypographyVariablesPayload {
+  semanticTokens: Array<{
+    id: string;
+    name: string;
+    path: string[];
+    fontFamily: string;
+    fontSize: string;
+    fontWeight: string;
+    lineHeight: string;
+    letterSpacing: string;
+    textDecoration?: string;
+    textTransform?: string;
+    fontStyle?: string;
+    description?: string;
+    category: string;
+    subcategory?: string;
+  }>;
+  primitives: {
+    fontSizes: Array<{ name: string; value: number }>;
+    lineHeights: Array<{ name: string; value: number }>;
+    letterSpacings: Array<{ name: string; value: number }>;
+    fontWeights: Array<{ name: string; value: number }>;
+  };
+}
+
+async function createSemanticTypographyVariables(payload: SemanticTypographyVariablesPayload): Promise<{ created: number; aliased: number; errors: string[] }> {
+  const result = { created: 0, aliased: 0, errors: [] as string[] };
+  
+  // Получаем или создаём коллекции
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  
+  let primitivesCollection = collections.find(c => c.name === 'Primitives');
+  if (!primitivesCollection) {
+    primitivesCollection = figma.variables.createVariableCollection('Primitives');
+  }
+  
+  let tokensCollection = collections.find(c => c.name === 'Tokens');
+  if (!tokensCollection) {
+    tokensCollection = figma.variables.createVariableCollection('Tokens');
+  }
+  
+  // Получаем все существующие Variables
+  const existingVariables = await figma.variables.getLocalVariablesAsync();
+  
+  // Создаём Maps для быстрого поиска примитивов
+  const primitiveVarMap = new Map<string, Variable>();
+  existingVariables.forEach(v => {
+    if (v.variableCollectionId === primitivesCollection!.id) {
+      primitiveVarMap.set(v.name, v);
+    }
+  });
+  
+  // Создаём семантические Variables со ссылками на примитивы
+  for (const token of payload.semanticTokens) {
+    try {
+      // Имя семантической переменной: typography/page/hero/fontSize
+      const tokenPath = token.path.join('/');
+      
+      // fontSize
+      const fontSizeKey = parseTokenReference(token.fontSize);
+      const fontSizePrimitiveName = `font/size/${fontSizeKey}`;
+      const fontSizePrimitive = primitiveVarMap.get(fontSizePrimitiveName);
+      
+      if (fontSizePrimitive) {
+        const varName = `${tokenPath}/fontSize`;
+        let existingVar = existingVariables.find(v => 
+          v.name === varName && v.variableCollectionId === tokensCollection!.id
+        );
+        
+        if (!existingVar) {
+          existingVar = figma.variables.createVariable(varName, tokensCollection!, 'FLOAT');
+          result.created++;
+        }
+        
+        // Создаём alias на примитив
+        const alias: VariableAlias = {
+          type: 'VARIABLE_ALIAS',
+          id: fontSizePrimitive.id
+        };
+        existingVar.setValueForMode(tokensCollection!.defaultModeId, alias);
+        existingVar.description = `${token.description || token.name} - Font size`;
+        result.aliased++;
+      }
+      
+      // lineHeight
+      const lineHeightKey = parseTokenReference(token.lineHeight);
+      const lineHeightPrimitiveName = `font/lineHeight/${lineHeightKey}`;
+      const lineHeightPrimitive = primitiveVarMap.get(lineHeightPrimitiveName);
+      
+      if (lineHeightPrimitive) {
+        const varName = `${tokenPath}/lineHeight`;
+        let existingVar = existingVariables.find(v => 
+          v.name === varName && v.variableCollectionId === tokensCollection!.id
+        );
+        
+        if (!existingVar) {
+          existingVar = figma.variables.createVariable(varName, tokensCollection!, 'FLOAT');
+          result.created++;
+        }
+        
+        const alias: VariableAlias = {
+          type: 'VARIABLE_ALIAS',
+          id: lineHeightPrimitive.id
+        };
+        existingVar.setValueForMode(tokensCollection!.defaultModeId, alias);
+        existingVar.description = `${token.description || token.name} - Line height`;
+        result.aliased++;
+      }
+      
+      // letterSpacing
+      const letterSpacingKey = parseTokenReference(token.letterSpacing);
+      const letterSpacingPrimitiveName = `font/letterSpacing/${letterSpacingKey}`;
+      const letterSpacingPrimitive = primitiveVarMap.get(letterSpacingPrimitiveName);
+      
+      if (letterSpacingPrimitive) {
+        const varName = `${tokenPath}/letterSpacing`;
+        let existingVar = existingVariables.find(v => 
+          v.name === varName && v.variableCollectionId === tokensCollection!.id
+        );
+        
+        if (!existingVar) {
+          existingVar = figma.variables.createVariable(varName, tokensCollection!, 'FLOAT');
+          result.created++;
+        }
+        
+        const alias: VariableAlias = {
+          type: 'VARIABLE_ALIAS',
+          id: letterSpacingPrimitive.id
+        };
+        existingVar.setValueForMode(tokensCollection!.defaultModeId, alias);
+        existingVar.description = `${token.description || token.name} - Letter spacing`;
+        result.aliased++;
+      }
+      
+      // fontWeight
+      const fontWeightKey = parseTokenReference(token.fontWeight);
+      const fontWeightPrimitiveName = `font/weight/${fontWeightKey}`;
+      const fontWeightPrimitive = primitiveVarMap.get(fontWeightPrimitiveName);
+      
+      if (fontWeightPrimitive) {
+        const varName = `${tokenPath}/fontWeight`;
+        let existingVar = existingVariables.find(v => 
+          v.name === varName && v.variableCollectionId === tokensCollection!.id
+        );
+        
+        if (!existingVar) {
+          existingVar = figma.variables.createVariable(varName, tokensCollection!, 'FLOAT');
+          result.created++;
+        }
+        
+        const alias: VariableAlias = {
+          type: 'VARIABLE_ALIAS',
+          id: fontWeightPrimitive.id
+        };
+        existingVar.setValueForMode(tokensCollection!.defaultModeId, alias);
+        existingVar.description = `${token.description || token.name} - Font weight`;
+        result.aliased++;
+      }
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания переменных для "${token.name}": ${errorMessage}`);
+    }
+  }
+  
+  return result;
+}
+
+// ============================================
 // MESSAGE HANDLING
 // ============================================
 
@@ -2862,6 +3034,31 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           figma.notify(`⚠️ Text Styles: ${result.created} создано, ${result.updated} обновлено, ${result.errors.length} ошибок`);
         } else {
           figma.notify(`✅ Text Styles: ${result.created} создано, ${result.updated} обновлено`);
+        }
+        break;
+      }
+
+      case 'create-semantic-typography-variables': {
+        const payload = msg.payload as SemanticTypographyVariablesPayload;
+        
+        figma.notify('⏳ Создание семантических Variables...');
+        
+        const result = await createSemanticTypographyVariables(payload);
+        
+        figma.ui.postMessage({
+          type: 'semantic-typography-variables-created',
+          payload: { 
+            success: result.errors.length === 0,
+            created: result.created,
+            aliased: result.aliased,
+            errors: result.errors
+          }
+        });
+        
+        if (result.errors.length > 0) {
+          figma.notify(`⚠️ Variables: ${result.created} создано, ${result.aliased} алиасов, ${result.errors.length} ошибок`);
+        } else {
+          figma.notify(`✅ Variables: ${result.created} создано, ${result.aliased} алиасов на примитивы`);
         }
         break;
       }

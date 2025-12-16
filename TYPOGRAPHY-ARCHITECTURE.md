@@ -88,40 +88,68 @@ font.style.normal, italic
 
 Контекстное применение примитивов. Ссылаются на примитивы через синтаксис `{font.category.value}`.
 
-### Категории
+### Категории (17 категорий, 90+ токенов)
 
-| Категория | Описание | Примеры подкатегорий |
-|-----------|----------|---------------------|
+| Категория | Описание | Подкатегории |
+|-----------|----------|--------------|
 | `page` | Заголовки страниц | hero, title, subtitle |
 | `section` | Заголовки секций | heading, subheading |
-| `card` | Карточки | title, subtitle, body |
-| `modal` | Модальные окна | title, body |
-| `sidebar` | Боковые панели | title, item |
-| `paragraph` | Текстовые блоки | lead, default, compact |
-| `helper` | Вспомогательный текст | hint, caption |
-| `action` | Кнопки и ссылки | button.primary, button.compact, link |
-| `form` | Формы | label, input, validation |
-| `data` | Данные и таблицы | table.header, table.cell, metric.value |
-| `status` | Статусы | badge, tag |
-| `notification` | Уведомления | toast.title, alert.message |
-| `navigation` | Навигация | menu.item, tab.label, breadcrumb |
-| `code` | Код | inline, block |
+| `card` | Карточки | title, subtitle, body, meta |
+| `modal` | Модальные окна | title, subtitle |
+| `sidebar` | Боковые панели | groupTitle (UPPERCASE), itemLabel |
+| `paragraph` | Текстовые блоки | lead, default, compact, dense |
+| `helper` | Вспомогательный текст | hint, caption, footnote |
+| `action` | Кнопки и ссылки | button.primary/compact/large, link.inline/standalone/navigation |
+| `form` | Формы | label.default/floating/required, input.value/placeholder, textarea.value, validation.error/success/warning, helpText |
+| `data` | Данные и таблицы | table.header/cell/cellNumeric/footer, metric.value/valueCompact/label/delta/unit |
+| `status` | Статусы | badge.default/counter, tag |
+| `notification` | Уведомления | toast.title/message, banner.title/message, alert.title/description |
+| `navigation` | Навигация | menu.item/itemActive/groupLabel, breadcrumb.item/current, tab.label/labelActive/badge, pagination.item/info |
+| `code` | Код | inline, block, lineNumber, comment |
+| `content` | Контент | blockquote.text/citation, list.item/itemCompact, timestamp.absolute/relative |
+| `empty` | Пустые состояния | title, description, action |
+| `loading` | Загрузка | label, percentage, status |
 
 ### Структура токена
 
 ```typescript
-typography.{category}.{subcategory?}.{name}
+typography.{category}.{subcategory}.{variant?}
 ```
 
-Примеры:
+### Примеры токенов с контекстом
+
 ```
-typography.page.hero           → 56px, Bold, 1.1, -0.025em
-typography.page.title          → 40px, Bold, 1.2, -0.02em
-typography.card.title          → 18px, Semibold, 1.3, 0
-typography.form.label.default  → 14px, Medium, 1.0, 0
-typography.data.table.header   → 12px, Semibold, 1.2, 0.025em, UPPERCASE
-typography.data.table.cell     → 14px, Regular, 1.4, 0
-typography.code.inline         → 13px, Regular (Mono), 1.4, 0
+// Страничные заголовки
+typography.page.hero           → 56px, Bold, 110%, -2.5% - Landing pages, main CTAs
+typography.page.title          → 40px, Bold, 120%, -2% - Page title H1
+typography.page.subtitle       → 24px, Semibold, 130%, -1.5% - Page subtitle
+
+// Карточки
+typography.card.title          → 18px, Semibold, 130%, 0 - Card title
+typography.card.body           → 14px, Regular, 150%, 0 - Card body text
+typography.card.meta           → 11px, Regular, 130%, 1.5% - Date, author info
+
+// Формы
+typography.form.label.default  → 14px, Medium, 100%, 0 - Standard label
+typography.form.label.floating → 12px, Medium, 100%, 1% - Floating label
+typography.form.input.placeholder → 14px, Regular, 140%, 0, italic - Placeholder
+
+// Данные
+typography.data.table.header   → 12px, Semibold, 120%, 2.5%, UPPERCASE - Table header
+typography.data.table.cellNumeric → 13px, Regular (Mono), 140%, 0 - Numbers
+typography.data.metric.value   → 36px, Bold, 100%, -2% - KPI value
+
+// Навигация
+typography.navigation.menu.groupLabel → 11px, Semibold, 100%, 7.5%, UPPERCASE - Menu group
+typography.navigation.breadcrumb.current → 13px, Medium, 100%, 0 - Current page
+
+// Код
+typography.code.inline         → 13px, Regular (Mono), 140%, 0 - Inline code
+typography.code.comment        → 13px, Regular (Mono), 160%, 0, italic - Comments
+
+// Специальные состояния
+typography.empty.title         → 20px, Semibold, 130%, -1% - Empty state title
+typography.loading.percentage  → 12px, Medium (Mono), 100%, 0 - Loading %
 ```
 
 ## 3. Компонентные токены (Components)
@@ -222,20 +250,53 @@ src/
 3. Выберите категорию, подкатегорию и настройте свойства
 4. Нажмите "Сгенерировать семантику"
 
-### Синхронизация с Figma
+### Синхронизация с Figma (3 варианта экспорта)
 
-#### Вариант 1: Figma Variables (частичная типографика)
-1. Перейдите на вкладку "Превью"
-2. Нажмите "🔄 Синхронизировать с Figma Variables"
-3. Создаются только числовые переменные (size, line-height, letter-spacing)
+#### Вариант 1: Primitives → Figma Variables
+Создаёт базовые числовые переменные (size, line-height, letter-spacing).
 
-#### Вариант 2: Text Styles (полная типографика) ⭐
-1. Перейдите на вкладку "Превью"
-2. Нажмите "🎨 Создать Text Styles в Figma"
-3. Создаются полноценные Text Styles со всеми свойствами
+```
+font/size/12, font/size/14, font/size/16, ...
+font/lineHeight/100, font/lineHeight/120, ...
+font/letterSpacing/-2.5, font/letterSpacing/0, ...
+```
 
-**Рекомендация:** Используйте Text Styles для типографики, так как они поддерживают все необходимые свойства.
+**Когда использовать:** Для создания основы системы, на которую будут ссылаться семантические переменные.
+
+#### Вариант 2: Semantic → Figma Variables (aliases) ⭐ NEW
+Создаёт семантические переменные с **алиасами** на примитивы.
+
+```
+typography/page/hero/fontSize → {font/size/56}
+typography/page/hero/lineHeight → {font/lineHeight/110}
+typography/page/hero/letterSpacing → {font/letterSpacing/-2.5}
+typography/card/title/fontSize → {font/size/18}
+...
+```
+
+**Когда использовать:** Для создания полной системы переменных. Позволяет менять значения в одном месте (примитивах), и все семантические токены обновятся автоматически.
+
+**Важно:** Требует, чтобы примитивы были уже созданы в Figma.
+
+#### Вариант 3: Text Styles (полная типографика) ⭐
+Создаёт полноценные Figma Text Styles со всеми свойствами.
+
+```
+typography/page/hero         → 56px, Inter Bold, 110%, -2.5%
+typography/card/title        → 18px, Inter Semibold, 130%, 0%
+typography/form/label/default → 14px, Inter Medium, 100%, 0%
+```
+
+**Когда использовать:** Для прямого применения типографики к текстовым элементам. Включает font-family, font-weight, text-transform, которые недоступны в Variables.
+
+### Рекомендуемый workflow
+
+1. **Создайте Primitives Variables** — базовые значения
+2. **Создайте Semantic Variables** — алиасы с контекстом
+3. **Создайте Text Styles** — для применения к элементам
+
+Все три варианта работают вместе и дополняют друг друга.
 
 ---
 
-*Документ обновлён: 16 декабря 2025*
+*Документ обновлён: 19 января 2025*

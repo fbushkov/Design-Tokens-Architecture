@@ -29,92 +29,129 @@ import { TMTokenType, TMCollectionType } from '../types/token-manager';
 let typographyState: TypographyState = createDefaultTypographyState();
 
 // ============================================
-// CATEGORY → SUBCATEGORY MAPPING
+// CATEGORY → SUBCATEGORY MAPPING (Полная структура)
 // ============================================
 
-const CATEGORY_SUBCATEGORIES: Record<string, { value: string; label: string }[]> = {
+const CATEGORY_SUBCATEGORIES: Record<string, { value: string; label: string; description: string }[]> = {
   page: [
-    { value: 'hero', label: 'Hero' },
-    { value: 'title', label: 'Title' },
-    { value: 'subtitle', label: 'Subtitle' },
-    { value: 'description', label: 'Description' },
+    { value: 'hero', label: 'Hero', description: 'Главный заголовок страницы, лендинга' },
+    { value: 'title', label: 'Title', description: 'Заголовок страницы H1' },
+    { value: 'subtitle', label: 'Subtitle', description: 'Подзаголовок страницы' },
+    { value: 'description', label: 'Description', description: 'Описание страницы под заголовком' },
   ],
   section: [
-    { value: 'heading', label: 'Heading' },
-    { value: 'subheading', label: 'Subheading' },
-    { value: 'description', label: 'Description' },
+    { value: 'heading', label: 'Heading', description: 'Заголовок секции H2' },
+    { value: 'subheading', label: 'Subheading', description: 'Подзаголовок секции H3' },
+    { value: 'description', label: 'Description', description: 'Описание секции' },
   ],
   card: [
-    { value: 'title', label: 'Title' },
-    { value: 'subtitle', label: 'Subtitle' },
-    { value: 'body', label: 'Body' },
-    { value: 'meta', label: 'Meta' },
-    { value: 'caption', label: 'Caption' },
+    { value: 'title', label: 'Title', description: 'Заголовок карточки' },
+    { value: 'subtitle', label: 'Subtitle', description: 'Подзаголовок карточки' },
+    { value: 'body', label: 'Body', description: 'Основной текст карточки' },
+    { value: 'meta', label: 'Meta', description: 'Мета-информация (дата, автор)' },
+    { value: 'caption', label: 'Caption', description: 'Подпись к изображению' },
   ],
   modal: [
-    { value: 'title', label: 'Title' },
-    { value: 'body', label: 'Body' },
-    { value: 'action', label: 'Action' },
+    { value: 'title', label: 'Title', description: 'Заголовок модального окна' },
+    { value: 'subtitle', label: 'Subtitle', description: 'Подзаголовок модального окна' },
+    { value: 'body', label: 'Body', description: 'Текст в модальном окне' },
+    { value: 'action', label: 'Action', description: 'Текст кнопок действий' },
   ],
   sidebar: [
-    { value: 'title', label: 'Title' },
-    { value: 'item', label: 'Item' },
-    { value: 'caption', label: 'Caption' },
+    { value: 'groupTitle', label: 'Group Title', description: 'Заголовок группы в сайдбаре (UPPERCASE)' },
+    { value: 'itemLabel', label: 'Item Label', description: 'Текст пункта меню' },
+    { value: 'caption', label: 'Caption', description: 'Подпись/описание пункта' },
   ],
   paragraph: [
-    { value: 'lead', label: 'Lead' },
-    { value: 'default', label: 'Default' },
-    { value: 'compact', label: 'Compact' },
-    { value: 'small', label: 'Small' },
+    { value: 'lead', label: 'Lead', description: 'Лид-абзац, вводный текст' },
+    { value: 'default', label: 'Default', description: 'Стандартный текст статьи' },
+    { value: 'compact', label: 'Compact', description: 'Компактный текст в UI' },
+    { value: 'dense', label: 'Dense', description: 'Плотный текст, таблицы' },
   ],
   helper: [
-    { value: 'hint', label: 'Hint' },
-    { value: 'caption', label: 'Caption' },
-    { value: 'label', label: 'Label' },
-    { value: 'error', label: 'Error' },
+    { value: 'hint', label: 'Hint', description: 'Подсказка к элементу' },
+    { value: 'caption', label: 'Caption', description: 'Подпись к изображению/элементу' },
+    { value: 'footnote', label: 'Footnote', description: 'Сноска, примечание' },
   ],
   action: [
-    { value: 'button.primary', label: 'Button Primary' },
-    { value: 'button.secondary', label: 'Button Secondary' },
-    { value: 'button.compact', label: 'Button Compact' },
-    { value: 'link', label: 'Link' },
+    { value: 'button.primary', label: 'Button Primary', description: 'Основная кнопка' },
+    { value: 'button.compact', label: 'Button Compact', description: 'Компактная кнопка' },
+    { value: 'button.large', label: 'Button Large', description: 'Большая кнопка CTA' },
+    { value: 'link.inline', label: 'Link Inline', description: 'Ссылка внутри текста' },
+    { value: 'link.standalone', label: 'Link Standalone', description: 'Отдельная ссылка' },
+    { value: 'link.navigation', label: 'Link Navigation', description: 'Навигационная ссылка' },
   ],
   form: [
-    { value: 'label', label: 'Label' },
-    { value: 'input', label: 'Input Value' },
-    { value: 'placeholder', label: 'Placeholder' },
-    { value: 'validation', label: 'Validation' },
-    { value: 'help', label: 'Help Text' },
+    { value: 'label.default', label: 'Label Default', description: 'Стандартный лейбл поля' },
+    { value: 'label.floating', label: 'Label Floating', description: 'Плавающий лейбл' },
+    { value: 'label.required', label: 'Label Required', description: 'Обязательное поле' },
+    { value: 'input.value', label: 'Input Value', description: 'Введённое значение' },
+    { value: 'input.placeholder', label: 'Input Placeholder', description: 'Плейсхолдер' },
+    { value: 'textarea.value', label: 'Textarea Value', description: 'Текст в textarea' },
+    { value: 'validation.error', label: 'Validation Error', description: 'Сообщение об ошибке' },
+    { value: 'validation.success', label: 'Validation Success', description: 'Сообщение об успехе' },
+    { value: 'validation.warning', label: 'Validation Warning', description: 'Предупреждение' },
+    { value: 'helpText', label: 'Help Text', description: 'Вспомогательный текст под полем' },
   ],
   data: [
-    { value: 'table.header', label: 'Table Header' },
-    { value: 'table.cell', label: 'Table Cell' },
-    { value: 'metric.value', label: 'Metric Value' },
-    { value: 'metric.label', label: 'Metric Label' },
-    { value: 'metric.delta', label: 'Metric Delta' },
-    { value: 'chart.title', label: 'Chart Title' },
-    { value: 'chart.label', label: 'Chart Label' },
+    { value: 'table.header', label: 'Table Header', description: 'Заголовок столбца таблицы' },
+    { value: 'table.cell', label: 'Table Cell', description: 'Ячейка таблицы' },
+    { value: 'table.cellNumeric', label: 'Table Cell Numeric', description: 'Числовая ячейка (моноширинный)' },
+    { value: 'table.footer', label: 'Table Footer', description: 'Футер таблицы (итоги)' },
+    { value: 'metric.value', label: 'Metric Value', description: 'Значение KPI/метрики' },
+    { value: 'metric.valueCompact', label: 'Metric Value Compact', description: 'Компактное значение метрики' },
+    { value: 'metric.label', label: 'Metric Label', description: 'Название метрики' },
+    { value: 'metric.delta', label: 'Metric Delta', description: 'Изменение метрики (+12%)' },
+    { value: 'metric.unit', label: 'Metric Unit', description: 'Единица измерения' },
   ],
   status: [
-    { value: 'badge', label: 'Badge' },
-    { value: 'tag', label: 'Tag' },
-    { value: 'indicator', label: 'Indicator' },
+    { value: 'badge.default', label: 'Badge Default', description: 'Стандартный бейдж' },
+    { value: 'badge.counter', label: 'Badge Counter', description: 'Счётчик уведомлений' },
+    { value: 'tag', label: 'Tag', description: 'Тег/метка' },
   ],
   notification: [
-    { value: 'toast.title', label: 'Toast Title' },
-    { value: 'toast.message', label: 'Toast Message' },
-    { value: 'alert.title', label: 'Alert Title' },
-    { value: 'alert.message', label: 'Alert Message' },
+    { value: 'toast.title', label: 'Toast Title', description: 'Заголовок тоста' },
+    { value: 'toast.message', label: 'Toast Message', description: 'Текст тоста' },
+    { value: 'banner.title', label: 'Banner Title', description: 'Заголовок баннера' },
+    { value: 'banner.message', label: 'Banner Message', description: 'Текст баннера' },
+    { value: 'alert.title', label: 'Alert Title', description: 'Заголовок алерта' },
+    { value: 'alert.description', label: 'Alert Description', description: 'Описание алерта' },
   ],
   navigation: [
-    { value: 'menu.item', label: 'Menu Item' },
-    { value: 'menu.title', label: 'Menu Title' },
-    { value: 'tab.label', label: 'Tab Label' },
-    { value: 'breadcrumb', label: 'Breadcrumb' },
+    { value: 'menu.item', label: 'Menu Item', description: 'Пункт меню' },
+    { value: 'menu.itemActive', label: 'Menu Item Active', description: 'Активный пункт меню' },
+    { value: 'menu.groupLabel', label: 'Menu Group Label', description: 'Группа меню (UPPERCASE)' },
+    { value: 'breadcrumb.item', label: 'Breadcrumb Item', description: 'Элемент хлебных крошек' },
+    { value: 'breadcrumb.current', label: 'Breadcrumb Current', description: 'Текущая страница' },
+    { value: 'tab.label', label: 'Tab Label', description: 'Название вкладки' },
+    { value: 'tab.labelActive', label: 'Tab Label Active', description: 'Активная вкладка' },
+    { value: 'tab.badge', label: 'Tab Badge', description: 'Бейдж на вкладке' },
+    { value: 'pagination.item', label: 'Pagination Item', description: 'Номер страницы' },
+    { value: 'pagination.info', label: 'Pagination Info', description: 'Информация о страницах' },
   ],
   code: [
-    { value: 'inline', label: 'Inline' },
-    { value: 'block', label: 'Block' },
+    { value: 'inline', label: 'Inline', description: 'Код внутри текста' },
+    { value: 'block', label: 'Block', description: 'Блок кода' },
+    { value: 'lineNumber', label: 'Line Number', description: 'Номера строк' },
+    { value: 'comment', label: 'Comment', description: 'Комментарии в коде' },
+  ],
+  content: [
+    { value: 'blockquote.text', label: 'Blockquote Text', description: 'Текст цитаты' },
+    { value: 'blockquote.citation', label: 'Blockquote Citation', description: 'Автор цитаты' },
+    { value: 'list.item', label: 'List Item', description: 'Элемент списка' },
+    { value: 'list.itemCompact', label: 'List Item Compact', description: 'Компактный список' },
+    { value: 'timestamp.absolute', label: 'Timestamp Absolute', description: 'Абсолютная дата (12.05.2024)' },
+    { value: 'timestamp.relative', label: 'Timestamp Relative', description: 'Относительная дата (5 мин назад)' },
+  ],
+  empty: [
+    { value: 'title', label: 'Title', description: 'Заголовок пустого состояния' },
+    { value: 'description', label: 'Description', description: 'Описание пустого состояния' },
+    { value: 'action', label: 'Action', description: 'Текст кнопки действия' },
+  ],
+  loading: [
+    { value: 'label', label: 'Label', description: 'Текст загрузки' },
+    { value: 'percentage', label: 'Percentage', description: 'Процент загрузки' },
+    { value: 'status', label: 'Status', description: 'Статус загрузки' },
   ],
 };
 
@@ -229,9 +266,11 @@ function renderLetterSpacings(): void {
 // ============================================
 
 function loadDefaultSemanticTokens(): void {
-  // Pre-defined semantic tokens based on the spec
+  // Complete semantic tokens based on the full typography specification
   const defaultTokens: TypographySemanticToken[] = [
-    // Page headings
+    // ============================================
+    // PAGE HEADINGS
+    // ============================================
     {
       id: 'typography.page.hero',
       path: ['typography', 'page', 'hero'],
@@ -242,7 +281,8 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.110}',
       letterSpacing: '{font.letterSpacing.n025}',
       category: 'page',
-      description: 'Hero page heading',
+      subcategory: 'hero',
+      description: 'Hero page heading - Landing pages, main CTAs',
     },
     {
       id: 'typography.page.title',
@@ -254,7 +294,8 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.120}',
       letterSpacing: '{font.letterSpacing.n020}',
       category: 'page',
-      description: 'Page title',
+      subcategory: 'title',
+      description: 'Page title H1',
     },
     {
       id: 'typography.page.subtitle',
@@ -266,10 +307,13 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.130}',
       letterSpacing: '{font.letterSpacing.n015}',
       category: 'page',
+      subcategory: 'subtitle',
       description: 'Page subtitle',
     },
     
-    // Section headings
+    // ============================================
+    // SECTION HEADINGS
+    // ============================================
     {
       id: 'typography.section.heading',
       path: ['typography', 'section', 'heading'],
@@ -280,7 +324,8 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.125}',
       letterSpacing: '{font.letterSpacing.n015}',
       category: 'section',
-      description: 'Section heading',
+      subcategory: 'heading',
+      description: 'Section heading H2',
     },
     {
       id: 'typography.section.subheading',
@@ -292,10 +337,13 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.140}',
       letterSpacing: '{font.letterSpacing.000}',
       category: 'section',
-      description: 'Section subheading',
+      subcategory: 'subheading',
+      description: 'Section subheading H3',
     },
     
-    // Card typography
+    // ============================================
+    // CARD TYPOGRAPHY
+    // ============================================
     {
       id: 'typography.card.title',
       path: ['typography', 'card', 'title'],
@@ -306,6 +354,7 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.130}',
       letterSpacing: '{font.letterSpacing.000}',
       category: 'card',
+      subcategory: 'title',
       description: 'Card title',
     },
     {
@@ -318,10 +367,100 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.140}',
       letterSpacing: '{font.letterSpacing.000}',
       category: 'card',
+      subcategory: 'subtitle',
       description: 'Card subtitle',
     },
+    {
+      id: 'typography.card.body',
+      path: ['typography', 'card', 'body'],
+      name: 'body',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.150}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'card',
+      subcategory: 'body',
+      description: 'Card body text',
+    },
+    {
+      id: 'typography.card.meta',
+      path: ['typography', 'card', 'meta'],
+      name: 'meta',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.11}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.130}',
+      letterSpacing: '{font.letterSpacing.015}',
+      category: 'card',
+      subcategory: 'meta',
+      description: 'Card meta info (date, author)',
+    },
     
-    // Paragraph text
+    // ============================================
+    // MODAL TYPOGRAPHY
+    // ============================================
+    {
+      id: 'typography.modal.title',
+      path: ['typography', 'modal', 'title'],
+      name: 'title',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.20}',
+      fontWeight: '{font.weight.600}',
+      lineHeight: '{font.lineHeight.130}',
+      letterSpacing: '{font.letterSpacing.n010}',
+      category: 'modal',
+      subcategory: 'title',
+      description: 'Modal dialog title',
+    },
+    {
+      id: 'typography.modal.subtitle',
+      path: ['typography', 'modal', 'subtitle'],
+      name: 'subtitle',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.150}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'modal',
+      subcategory: 'subtitle',
+      description: 'Modal subtitle',
+    },
+    
+    // ============================================
+    // SIDEBAR TYPOGRAPHY
+    // ============================================
+    {
+      id: 'typography.sidebar.groupTitle',
+      path: ['typography', 'sidebar', 'groupTitle'],
+      name: 'groupTitle',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.11}',
+      fontWeight: '{font.weight.600}',
+      lineHeight: '{font.lineHeight.120}',
+      letterSpacing: '{font.letterSpacing.075}',
+      textTransform: '{font.transform.uppercase}',
+      category: 'sidebar',
+      subcategory: 'groupTitle',
+      description: 'Sidebar group title (UPPERCASE)',
+    },
+    {
+      id: 'typography.sidebar.itemLabel',
+      path: ['typography', 'sidebar', 'itemLabel'],
+      name: 'itemLabel',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.500}',
+      lineHeight: '{font.lineHeight.140}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'sidebar',
+      subcategory: 'itemLabel',
+      description: 'Sidebar menu item',
+    },
+    
+    // ============================================
+    // PARAGRAPH TEXT
+    // ============================================
     {
       id: 'typography.paragraph.lead',
       path: ['typography', 'paragraph', 'lead'],
@@ -332,7 +471,8 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.160}',
       letterSpacing: '{font.letterSpacing.000}',
       category: 'paragraph',
-      description: 'Lead paragraph',
+      subcategory: 'lead',
+      description: 'Lead paragraph - intro text',
     },
     {
       id: 'typography.paragraph.default',
@@ -344,7 +484,8 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.160}',
       letterSpacing: '{font.letterSpacing.000}',
       category: 'paragraph',
-      description: 'Default paragraph',
+      subcategory: 'default',
+      description: 'Standard body text',
     },
     {
       id: 'typography.paragraph.compact',
@@ -356,10 +497,26 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.150}',
       letterSpacing: '{font.letterSpacing.000}',
       category: 'paragraph',
-      description: 'Compact paragraph',
+      subcategory: 'compact',
+      description: 'Compact paragraph - UI text',
+    },
+    {
+      id: 'typography.paragraph.dense',
+      path: ['typography', 'paragraph', 'dense'],
+      name: 'dense',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.13}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.150}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'paragraph',
+      subcategory: 'dense',
+      description: 'Dense paragraph - tables, lists',
     },
     
-    // Helper text
+    // ============================================
+    // HELPER TEXT
+    // ============================================
     {
       id: 'typography.helper.hint',
       path: ['typography', 'helper', 'hint'],
@@ -370,7 +527,8 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.140}',
       letterSpacing: '{font.letterSpacing.010}',
       category: 'helper',
-      description: 'Hint text',
+      subcategory: 'hint',
+      description: 'Hint text - tooltips, helpers',
     },
     {
       id: 'typography.helper.caption',
@@ -382,51 +540,26 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.130}',
       letterSpacing: '{font.letterSpacing.015}',
       category: 'helper',
-      description: 'Caption text',
-    },
-    
-    // Form elements
-    {
-      id: 'typography.form.label.default',
-      path: ['typography', 'form', 'label', 'default'],
-      name: 'default',
-      fontFamily: '{font.family.roboto}',
-      fontSize: '{font.size.14}',
-      fontWeight: '{font.weight.500}',
-      lineHeight: '{font.lineHeight.100}',
-      letterSpacing: '{font.letterSpacing.000}',
-      category: 'form',
-      subcategory: 'label',
-      description: 'Form label',
+      subcategory: 'caption',
+      description: 'Caption - image captions',
     },
     {
-      id: 'typography.form.input.value',
-      path: ['typography', 'form', 'input', 'value'],
-      name: 'value',
+      id: 'typography.helper.footnote',
+      path: ['typography', 'helper', 'footnote'],
+      name: 'footnote',
       fontFamily: '{font.family.roboto}',
-      fontSize: '{font.size.14}',
+      fontSize: '{font.size.10}',
       fontWeight: '{font.weight.400}',
       lineHeight: '{font.lineHeight.140}',
-      letterSpacing: '{font.letterSpacing.000}',
-      category: 'form',
-      subcategory: 'input',
-      description: 'Input value text',
-    },
-    {
-      id: 'typography.form.validation.error',
-      path: ['typography', 'form', 'validation', 'error'],
-      name: 'error',
-      fontFamily: '{font.family.roboto}',
-      fontSize: '{font.size.12}',
-      fontWeight: '{font.weight.500}',
-      lineHeight: '{font.lineHeight.130}',
-      letterSpacing: '{font.letterSpacing.010}',
-      category: 'form',
-      subcategory: 'validation',
-      description: 'Validation error message',
+      letterSpacing: '{font.letterSpacing.020}',
+      category: 'helper',
+      subcategory: 'footnote',
+      description: 'Footnote - legal text, notes',
     },
     
-    // Button text
+    // ============================================
+    // ACTION - BUTTONS
+    // ============================================
     {
       id: 'typography.action.button.primary',
       path: ['typography', 'action', 'button', 'primary'],
@@ -437,8 +570,8 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.100}',
       letterSpacing: '{font.letterSpacing.010}',
       category: 'action',
-      subcategory: 'button',
-      description: 'Primary button text',
+      subcategory: 'button.primary',
+      description: 'Primary button',
     },
     {
       id: 'typography.action.button.compact',
@@ -450,11 +583,213 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.100}',
       letterSpacing: '{font.letterSpacing.015}',
       category: 'action',
-      subcategory: 'button',
-      description: 'Compact button text',
+      subcategory: 'button.compact',
+      description: 'Compact/small button',
+    },
+    {
+      id: 'typography.action.button.large',
+      path: ['typography', 'action', 'button', 'large'],
+      name: 'large',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.16}',
+      fontWeight: '{font.weight.600}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.010}',
+      category: 'action',
+      subcategory: 'button.large',
+      description: 'Large CTA button',
     },
     
-    // Data/Table
+    // ============================================
+    // ACTION - LINKS
+    // ============================================
+    {
+      id: 'typography.action.link.inline',
+      path: ['typography', 'action', 'link', 'inline'],
+      name: 'inline',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.16}',
+      fontWeight: '{font.weight.500}',
+      lineHeight: '{font.lineHeight.160}',
+      letterSpacing: '{font.letterSpacing.000}',
+      textDecoration: '{font.decoration.underline}',
+      category: 'action',
+      subcategory: 'link.inline',
+      description: 'Inline link in text',
+    },
+    {
+      id: 'typography.action.link.standalone',
+      path: ['typography', 'action', 'link', 'standalone'],
+      name: 'standalone',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.500}',
+      lineHeight: '{font.lineHeight.140}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'action',
+      subcategory: 'link.standalone',
+      description: 'Standalone link',
+    },
+    {
+      id: 'typography.action.link.navigation',
+      path: ['typography', 'action', 'link', 'navigation'],
+      name: 'navigation',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.500}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'action',
+      subcategory: 'link.navigation',
+      description: 'Navigation link',
+    },
+    
+    // ============================================
+    // FORM - LABELS
+    // ============================================
+    {
+      id: 'typography.form.label.default',
+      path: ['typography', 'form', 'label', 'default'],
+      name: 'default',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.500}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'form',
+      subcategory: 'label.default',
+      description: 'Default form label',
+    },
+    {
+      id: 'typography.form.label.floating',
+      path: ['typography', 'form', 'label', 'floating'],
+      name: 'floating',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.12}',
+      fontWeight: '{font.weight.500}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.010}',
+      category: 'form',
+      subcategory: 'label.floating',
+      description: 'Floating label (focused state)',
+    },
+    {
+      id: 'typography.form.label.required',
+      path: ['typography', 'form', 'label', 'required'],
+      name: 'required',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.600}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'form',
+      subcategory: 'label.required',
+      description: 'Required field label',
+    },
+    
+    // ============================================
+    // FORM - INPUTS
+    // ============================================
+    {
+      id: 'typography.form.input.value',
+      path: ['typography', 'form', 'input', 'value'],
+      name: 'value',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.140}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'form',
+      subcategory: 'input.value',
+      description: 'Input value text',
+    },
+    {
+      id: 'typography.form.input.placeholder',
+      path: ['typography', 'form', 'input', 'placeholder'],
+      name: 'placeholder',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.140}',
+      letterSpacing: '{font.letterSpacing.000}',
+      fontStyle: '{font.style.italic}',
+      category: 'form',
+      subcategory: 'input.placeholder',
+      description: 'Input placeholder (italic)',
+    },
+    {
+      id: 'typography.form.textarea.value',
+      path: ['typography', 'form', 'textarea', 'value'],
+      name: 'value',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.160}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'form',
+      subcategory: 'textarea.value',
+      description: 'Textarea value',
+    },
+    
+    // ============================================
+    // FORM - VALIDATION
+    // ============================================
+    {
+      id: 'typography.form.validation.error',
+      path: ['typography', 'form', 'validation', 'error'],
+      name: 'error',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.12}',
+      fontWeight: '{font.weight.500}',
+      lineHeight: '{font.lineHeight.130}',
+      letterSpacing: '{font.letterSpacing.010}',
+      category: 'form',
+      subcategory: 'validation.error',
+      description: 'Error message',
+    },
+    {
+      id: 'typography.form.validation.success',
+      path: ['typography', 'form', 'validation', 'success'],
+      name: 'success',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.12}',
+      fontWeight: '{font.weight.500}',
+      lineHeight: '{font.lineHeight.130}',
+      letterSpacing: '{font.letterSpacing.010}',
+      category: 'form',
+      subcategory: 'validation.success',
+      description: 'Success message',
+    },
+    {
+      id: 'typography.form.validation.warning',
+      path: ['typography', 'form', 'validation', 'warning'],
+      name: 'warning',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.12}',
+      fontWeight: '{font.weight.500}',
+      lineHeight: '{font.lineHeight.130}',
+      letterSpacing: '{font.letterSpacing.010}',
+      category: 'form',
+      subcategory: 'validation.warning',
+      description: 'Warning message',
+    },
+    {
+      id: 'typography.form.helpText',
+      path: ['typography', 'form', 'helpText'],
+      name: 'helpText',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.12}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.140}',
+      letterSpacing: '{font.letterSpacing.010}',
+      category: 'form',
+      subcategory: 'helpText',
+      description: 'Help text under input',
+    },
+    
+    // ============================================
+    // DATA - TABLE
+    // ============================================
     {
       id: 'typography.data.table.header',
       path: ['typography', 'data', 'table', 'header'],
@@ -466,8 +801,8 @@ function loadDefaultSemanticTokens(): void {
       letterSpacing: '{font.letterSpacing.025}',
       textTransform: '{font.transform.uppercase}',
       category: 'data',
-      subcategory: 'table',
-      description: 'Table header',
+      subcategory: 'table.header',
+      description: 'Table header (UPPERCASE)',
     },
     {
       id: 'typography.data.table.cell',
@@ -479,11 +814,39 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.140}',
       letterSpacing: '{font.letterSpacing.000}',
       category: 'data',
-      subcategory: 'table',
-      description: 'Table cell',
+      subcategory: 'table.cell',
+      description: 'Table cell text',
+    },
+    {
+      id: 'typography.data.table.cellNumeric',
+      path: ['typography', 'data', 'table', 'cellNumeric'],
+      name: 'cellNumeric',
+      fontFamily: '{font.family.roboto-mono}',
+      fontSize: '{font.size.13}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.140}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'data',
+      subcategory: 'table.cellNumeric',
+      description: 'Numeric cell (monospace)',
+    },
+    {
+      id: 'typography.data.table.footer',
+      path: ['typography', 'data', 'table', 'footer'],
+      name: 'footer',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.12}',
+      fontWeight: '{font.weight.500}',
+      lineHeight: '{font.lineHeight.130}',
+      letterSpacing: '{font.letterSpacing.010}',
+      category: 'data',
+      subcategory: 'table.footer',
+      description: 'Table footer (totals)',
     },
     
-    // Metric/KPI
+    // ============================================
+    // DATA - METRICS
+    // ============================================
     {
       id: 'typography.data.metric.value',
       path: ['typography', 'data', 'metric', 'value'],
@@ -494,8 +857,21 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.100}',
       letterSpacing: '{font.letterSpacing.n020}',
       category: 'data',
-      subcategory: 'metric',
-      description: 'Metric value',
+      subcategory: 'metric.value',
+      description: 'KPI/metric value',
+    },
+    {
+      id: 'typography.data.metric.valueCompact',
+      path: ['typography', 'data', 'metric', 'valueCompact'],
+      name: 'valueCompact',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.24}',
+      fontWeight: '{font.weight.600}',
+      lineHeight: '{font.lineHeight.110}',
+      letterSpacing: '{font.letterSpacing.n015}',
+      category: 'data',
+      subcategory: 'metric.valueCompact',
+      description: 'Compact metric value',
     },
     {
       id: 'typography.data.metric.label',
@@ -508,11 +884,39 @@ function loadDefaultSemanticTokens(): void {
       letterSpacing: '{font.letterSpacing.025}',
       textTransform: '{font.transform.uppercase}',
       category: 'data',
-      subcategory: 'metric',
-      description: 'Metric label',
+      subcategory: 'metric.label',
+      description: 'Metric label (UPPERCASE)',
+    },
+    {
+      id: 'typography.data.metric.delta',
+      path: ['typography', 'data', 'metric', 'delta'],
+      name: 'delta',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.600}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'data',
+      subcategory: 'metric.delta',
+      description: 'Metric change (+12%)',
+    },
+    {
+      id: 'typography.data.metric.unit',
+      path: ['typography', 'data', 'metric', 'unit'],
+      name: 'unit',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.010}',
+      category: 'data',
+      subcategory: 'metric.unit',
+      description: 'Unit of measurement',
     },
     
-    // Badge/Status
+    // ============================================
+    // STATUS - BADGES & TAGS
+    // ============================================
     {
       id: 'typography.status.badge.default',
       path: ['typography', 'status', 'badge', 'default'],
@@ -523,11 +927,129 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.100}',
       letterSpacing: '{font.letterSpacing.020}',
       category: 'status',
-      subcategory: 'badge',
-      description: 'Badge text',
+      subcategory: 'badge.default',
+      description: 'Standard badge',
+    },
+    {
+      id: 'typography.status.badge.counter',
+      path: ['typography', 'status', 'badge', 'counter'],
+      name: 'counter',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.10}',
+      fontWeight: '{font.weight.700}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'status',
+      subcategory: 'badge.counter',
+      description: 'Notification counter',
+    },
+    {
+      id: 'typography.status.tag',
+      path: ['typography', 'status', 'tag'],
+      name: 'tag',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.12}',
+      fontWeight: '{font.weight.500}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.015}',
+      category: 'status',
+      subcategory: 'tag',
+      description: 'Tag/label',
     },
     
-    // Navigation
+    // ============================================
+    // NOTIFICATION - TOAST
+    // ============================================
+    {
+      id: 'typography.notification.toast.title',
+      path: ['typography', 'notification', 'toast', 'title'],
+      name: 'title',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.600}',
+      lineHeight: '{font.lineHeight.130}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'notification',
+      subcategory: 'toast.title',
+      description: 'Toast title',
+    },
+    {
+      id: 'typography.notification.toast.message',
+      path: ['typography', 'notification', 'toast', 'message'],
+      name: 'message',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.13}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.140}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'notification',
+      subcategory: 'toast.message',
+      description: 'Toast message',
+    },
+    
+    // ============================================
+    // NOTIFICATION - BANNER
+    // ============================================
+    {
+      id: 'typography.notification.banner.title',
+      path: ['typography', 'notification', 'banner', 'title'],
+      name: 'title',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.16}',
+      fontWeight: '{font.weight.600}',
+      lineHeight: '{font.lineHeight.130}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'notification',
+      subcategory: 'banner.title',
+      description: 'Banner title',
+    },
+    {
+      id: 'typography.notification.banner.message',
+      path: ['typography', 'notification', 'banner', 'message'],
+      name: 'message',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.150}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'notification',
+      subcategory: 'banner.message',
+      description: 'Banner message',
+    },
+    
+    // ============================================
+    // NOTIFICATION - ALERT
+    // ============================================
+    {
+      id: 'typography.notification.alert.title',
+      path: ['typography', 'notification', 'alert', 'title'],
+      name: 'title',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.600}',
+      lineHeight: '{font.lineHeight.130}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'notification',
+      subcategory: 'alert.title',
+      description: 'Alert title',
+    },
+    {
+      id: 'typography.notification.alert.description',
+      path: ['typography', 'notification', 'alert', 'description'],
+      name: 'description',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.150}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'notification',
+      subcategory: 'alert.description',
+      description: 'Alert description',
+    },
+    
+    // ============================================
+    // NAVIGATION - MENU
+    // ============================================
     {
       id: 'typography.navigation.menu.item',
       path: ['typography', 'navigation', 'menu', 'item'],
@@ -538,9 +1060,70 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.100}',
       letterSpacing: '{font.letterSpacing.000}',
       category: 'navigation',
-      subcategory: 'menu',
+      subcategory: 'menu.item',
       description: 'Menu item',
     },
+    {
+      id: 'typography.navigation.menu.itemActive',
+      path: ['typography', 'navigation', 'menu', 'itemActive'],
+      name: 'itemActive',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.600}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'navigation',
+      subcategory: 'menu.itemActive',
+      description: 'Active menu item',
+    },
+    {
+      id: 'typography.navigation.menu.groupLabel',
+      path: ['typography', 'navigation', 'menu', 'groupLabel'],
+      name: 'groupLabel',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.11}',
+      fontWeight: '{font.weight.600}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.075}',
+      textTransform: '{font.transform.uppercase}',
+      category: 'navigation',
+      subcategory: 'menu.groupLabel',
+      description: 'Menu group label (UPPERCASE)',
+    },
+    
+    // ============================================
+    // NAVIGATION - BREADCRUMB
+    // ============================================
+    {
+      id: 'typography.navigation.breadcrumb.item',
+      path: ['typography', 'navigation', 'breadcrumb', 'item'],
+      name: 'item',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.13}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'navigation',
+      subcategory: 'breadcrumb.item',
+      description: 'Breadcrumb item',
+    },
+    {
+      id: 'typography.navigation.breadcrumb.current',
+      path: ['typography', 'navigation', 'breadcrumb', 'current'],
+      name: 'current',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.13}',
+      fontWeight: '{font.weight.500}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'navigation',
+      subcategory: 'breadcrumb.current',
+      description: 'Current breadcrumb',
+    },
+    
+    // ============================================
+    // NAVIGATION - TABS
+    // ============================================
     {
       id: 'typography.navigation.tab.label',
       path: ['typography', 'navigation', 'tab', 'label'],
@@ -551,11 +1134,69 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.100}',
       letterSpacing: '{font.letterSpacing.000}',
       category: 'navigation',
-      subcategory: 'tab',
+      subcategory: 'tab.label',
       description: 'Tab label',
     },
+    {
+      id: 'typography.navigation.tab.labelActive',
+      path: ['typography', 'navigation', 'tab', 'labelActive'],
+      name: 'labelActive',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.600}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'navigation',
+      subcategory: 'tab.labelActive',
+      description: 'Active tab label',
+    },
+    {
+      id: 'typography.navigation.tab.badge',
+      path: ['typography', 'navigation', 'tab', 'badge'],
+      name: 'badge',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.11}',
+      fontWeight: '{font.weight.600}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'navigation',
+      subcategory: 'tab.badge',
+      description: 'Tab badge',
+    },
     
-    // Code
+    // ============================================
+    // NAVIGATION - PAGINATION
+    // ============================================
+    {
+      id: 'typography.navigation.pagination.item',
+      path: ['typography', 'navigation', 'pagination', 'item'],
+      name: 'item',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.500}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'navigation',
+      subcategory: 'pagination.item',
+      description: 'Pagination page number',
+    },
+    {
+      id: 'typography.navigation.pagination.info',
+      path: ['typography', 'navigation', 'pagination', 'info'],
+      name: 'info',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.13}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'navigation',
+      subcategory: 'pagination.info',
+      description: 'Pagination info text',
+    },
+    
+    // ============================================
+    // CODE
+    // ============================================
     {
       id: 'typography.code.inline',
       path: ['typography', 'code', 'inline'],
@@ -566,7 +1207,8 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.140}',
       letterSpacing: '{font.letterSpacing.000}',
       category: 'code',
-      description: 'Inline code',
+      subcategory: 'inline',
+      description: 'Inline code snippet',
     },
     {
       id: 'typography.code.block',
@@ -578,7 +1220,212 @@ function loadDefaultSemanticTokens(): void {
       lineHeight: '{font.lineHeight.160}',
       letterSpacing: '{font.letterSpacing.000}',
       category: 'code',
+      subcategory: 'block',
       description: 'Code block',
+    },
+    {
+      id: 'typography.code.lineNumber',
+      path: ['typography', 'code', 'lineNumber'],
+      name: 'lineNumber',
+      fontFamily: '{font.family.roboto-mono}',
+      fontSize: '{font.size.11}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.160}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'code',
+      subcategory: 'lineNumber',
+      description: 'Line numbers',
+    },
+    {
+      id: 'typography.code.comment',
+      path: ['typography', 'code', 'comment'],
+      name: 'comment',
+      fontFamily: '{font.family.roboto-mono}',
+      fontSize: '{font.size.13}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.160}',
+      letterSpacing: '{font.letterSpacing.000}',
+      fontStyle: '{font.style.italic}',
+      category: 'code',
+      subcategory: 'comment',
+      description: 'Code comment (italic)',
+    },
+    
+    // ============================================
+    // CONTENT - BLOCKQUOTE
+    // ============================================
+    {
+      id: 'typography.content.blockquote.text',
+      path: ['typography', 'content', 'blockquote', 'text'],
+      name: 'text',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.18}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.170}',
+      letterSpacing: '{font.letterSpacing.000}',
+      fontStyle: '{font.style.italic}',
+      category: 'content',
+      subcategory: 'blockquote.text',
+      description: 'Quote text (italic)',
+    },
+    {
+      id: 'typography.content.blockquote.citation',
+      path: ['typography', 'content', 'blockquote', 'citation'],
+      name: 'citation',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.500}',
+      lineHeight: '{font.lineHeight.140}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'content',
+      subcategory: 'blockquote.citation',
+      description: 'Quote author',
+    },
+    
+    // ============================================
+    // CONTENT - LISTS
+    // ============================================
+    {
+      id: 'typography.content.list.item',
+      path: ['typography', 'content', 'list', 'item'],
+      name: 'item',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.16}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.160}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'content',
+      subcategory: 'list.item',
+      description: 'List item',
+    },
+    {
+      id: 'typography.content.list.itemCompact',
+      path: ['typography', 'content', 'list', 'itemCompact'],
+      name: 'itemCompact',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.150}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'content',
+      subcategory: 'list.itemCompact',
+      description: 'Compact list item',
+    },
+    
+    // ============================================
+    // CONTENT - TIMESTAMP
+    // ============================================
+    {
+      id: 'typography.content.timestamp.absolute',
+      path: ['typography', 'content', 'timestamp', 'absolute'],
+      name: 'absolute',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.12}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.010}',
+      category: 'content',
+      subcategory: 'timestamp.absolute',
+      description: 'Absolute date (12.05.2024)',
+    },
+    {
+      id: 'typography.content.timestamp.relative',
+      path: ['typography', 'content', 'timestamp', 'relative'],
+      name: 'relative',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.12}',
+      fontWeight: '{font.weight.500}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.010}',
+      category: 'content',
+      subcategory: 'timestamp.relative',
+      description: 'Relative date (5 min ago)',
+    },
+    
+    // ============================================
+    // EMPTY STATES
+    // ============================================
+    {
+      id: 'typography.empty.title',
+      path: ['typography', 'empty', 'title'],
+      name: 'title',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.20}',
+      fontWeight: '{font.weight.600}',
+      lineHeight: '{font.lineHeight.130}',
+      letterSpacing: '{font.letterSpacing.n010}',
+      category: 'empty',
+      subcategory: 'title',
+      description: 'Empty state title',
+    },
+    {
+      id: 'typography.empty.description',
+      path: ['typography', 'empty', 'description'],
+      name: 'description',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.160}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'empty',
+      subcategory: 'description',
+      description: 'Empty state description',
+    },
+    {
+      id: 'typography.empty.action',
+      path: ['typography', 'empty', 'action'],
+      name: 'action',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.600}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.010}',
+      category: 'empty',
+      subcategory: 'action',
+      description: 'Empty state CTA',
+    },
+    
+    // ============================================
+    // LOADING STATES
+    // ============================================
+    {
+      id: 'typography.loading.label',
+      path: ['typography', 'loading', 'label'],
+      name: 'label',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.14}',
+      fontWeight: '{font.weight.500}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'loading',
+      subcategory: 'label',
+      description: 'Loading text',
+    },
+    {
+      id: 'typography.loading.percentage',
+      path: ['typography', 'loading', 'percentage'],
+      name: 'percentage',
+      fontFamily: '{font.family.roboto-mono}',
+      fontSize: '{font.size.12}',
+      fontWeight: '{font.weight.500}',
+      lineHeight: '{font.lineHeight.100}',
+      letterSpacing: '{font.letterSpacing.000}',
+      category: 'loading',
+      subcategory: 'percentage',
+      description: 'Loading percentage',
+    },
+    {
+      id: 'typography.loading.status',
+      path: ['typography', 'loading', 'status'],
+      name: 'status',
+      fontFamily: '{font.family.roboto}',
+      fontSize: '{font.size.12}',
+      fontWeight: '{font.weight.400}',
+      lineHeight: '{font.lineHeight.130}',
+      letterSpacing: '{font.letterSpacing.010}',
+      category: 'loading',
+      subcategory: 'status',
+      description: 'Loading status text',
     },
   ];
   
@@ -978,6 +1825,12 @@ function setupTypographyEvents(): void {
   const btnCreateTextStyles = document.getElementById('btn-create-text-styles');
   if (btnCreateTextStyles) {
     btnCreateTextStyles.addEventListener('click', createTextStylesInFigma);
+  }
+  
+  // Create Semantic Variables button
+  const btnCreateSemanticVars = document.getElementById('btn-create-semantic-variables');
+  if (btnCreateSemanticVars) {
+    btnCreateSemanticVars.addEventListener('click', createSemanticVariablesInFigma);
   }
   
   // Category filter
@@ -1492,6 +2345,60 @@ function createTextStylesInFigma(): void {
   }, '*');
   
   showNotification('🎨 Создание Text Styles в Figma...');
+}
+
+function createSemanticVariablesInFigma(): void {
+  // Подготавливаем данные для создания семантических Variables
+  const semanticTokens = typographyState.semanticTokens.map(token => ({
+    id: token.id,
+    name: token.name,
+    path: token.path,
+    fontFamily: token.fontFamily,
+    fontSize: token.fontSize,
+    fontWeight: token.fontWeight,
+    lineHeight: token.lineHeight,
+    letterSpacing: token.letterSpacing,
+    textDecoration: token.textDecoration,
+    textTransform: token.textTransform,
+    fontStyle: token.fontStyle,
+    description: token.description,
+    category: token.category,
+    subcategory: token.subcategory,
+  }));
+  
+  const primitives = {
+    fontSizes: typographyState.fontSizes.map(s => ({
+      name: s.name,
+      value: s.value,
+    })),
+    lineHeights: typographyState.lineHeights.map(lh => ({
+      name: lh.name,
+      value: lh.value,
+    })),
+    letterSpacings: typographyState.letterSpacings.map(ls => ({
+      name: ls.name,
+      value: ls.value,
+    })),
+    fontWeights: typographyState.fontWeights.map(fw => ({
+      name: fw.name,
+      value: fw.value,
+    })),
+  };
+  
+  if (semanticTokens.length === 0) {
+    showNotification('⚠️ Нет семантических токенов для создания Variables');
+    return;
+  }
+  
+  // Отправляем в Figma
+  parent.postMessage({
+    pluginMessage: {
+      type: 'create-semantic-typography-variables',
+      payload: { semanticTokens, primitives },
+    },
+  }, '*');
+  
+  showNotification('📊 Создание семантических Variables...');
 }
 
 // ============================================

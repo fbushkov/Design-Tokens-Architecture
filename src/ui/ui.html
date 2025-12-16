@@ -3305,17 +3305,29 @@
         </div>
 
         <div class="section">
-          <button class="btn btn-primary" id="btn-sync-typography-figma">
-            🔄 Синхронизировать с Figma Variables
-          </button>
-          <button class="btn btn-secondary" id="btn-create-text-styles" style="margin-top: 8px;">
-            🎨 Создать Text Styles в Figma
-          </button>
-          <div class="info-box" style="margin-top: 12px; padding: 8px 12px;">
+          <div class="section-title">Экспорт в Figma</div>
+          
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn btn-primary" id="btn-sync-typography-figma">
+              🔄 Примитивы → Figma Variables
+            </button>
+            <button class="btn btn-secondary" id="btn-create-semantic-variables">
+              📊 Семантика → Figma Variables (алиасы)
+            </button>
+            <button class="btn btn-secondary" id="btn-create-text-styles">
+              🎨 Семантика → Text Styles (полная типографика)
+            </button>
+          </div>
+          
+          <div class="info-box" style="margin-top: 12px; padding: 10px 12px;">
             <small style="color: var(--color-text-secondary);">
-              <strong>💡 Variables vs Text Styles:</strong><br>
-              <em>Variables</em> — только числовые значения (размер, высота строки, межбуквенный интервал)<br>
-              <em>Text Styles</em> — полная типографика включая шрифт, начертание, декорации
+              <strong>💡 3 типа экспорта:</strong><br><br>
+              <strong>1. Примитивы → Variables</strong><br>
+              Базовые значения: <code>font/size/16</code>, <code>font/lineHeight/140</code><br><br>
+              <strong>2. Семантика → Variables</strong><br>
+              Алиасы на примитивы: <code>typography/page/hero/fontSize</code> → <code>{font/size/56}</code><br><br>
+              <strong>3. Семантика → Text Styles</strong><br>
+              Полные стили: шрифт, начертание, декорации, трансформации
             </small>
           </div>
         </div>
