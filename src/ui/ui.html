@@ -1717,6 +1717,449 @@
       color: white;
     }
 
+    /* Breakpoints Settings */
+    .breakpoints-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: opacity 0.2s;
+    }
+
+    .breakpoint-item {
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 12px;
+    }
+
+    .breakpoint-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .breakpoint-icon {
+      font-size: 16px;
+    }
+
+    .breakpoint-name {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid transparent;
+      color: var(--color-text);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 2px 4px;
+      transition: border-color 0.15s;
+    }
+
+    .breakpoint-name:hover {
+      border-bottom-color: var(--color-border);
+    }
+
+    .breakpoint-name:focus {
+      outline: none;
+      border-bottom-color: var(--color-primary);
+    }
+
+    .breakpoint-fields {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+
+    .breakpoint-field {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--color-text-secondary);
+    }
+
+    .breakpoint-field label {
+      min-width: 55px;
+    }
+
+    .breakpoint-field input {
+      width: 60px;
+      padding: 4px 6px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      color: var(--color-text);
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .breakpoint-field input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+
+    .scale-percent {
+      min-width: 40px;
+      color: var(--color-primary);
+      font-weight: 500;
+    }
+
+    .breakpoint-preview {
+      padding-top: 8px;
+      border-top: 1px dashed var(--color-border);
+    }
+
+    .breakpoint-preview small {
+      color: var(--color-text-tertiary);
+      font-size: 10px;
+    }
+
+    /* Toggle Switch */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--color-bg-tertiary);
+      transition: 0.2s;
+      border-radius: 20px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.2s;
+      border-radius: 50%;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background-color: var(--color-primary);
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(16px);
+    }
+
+    /* ========================================
+       SPACING SYSTEM STYLES
+       ======================================== */
+
+    /* Spacing Tabs */
+    .spacing-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 8px 12px;
+      background: var(--color-bg-secondary);
+      border-bottom: 1px solid var(--color-border);
+      margin: -12px -12px 12px -12px;
+    }
+
+    .spacing-tab {
+      padding: 8px 16px;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-md);
+      color: var(--color-text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .spacing-tab:hover {
+      background: var(--color-bg-tertiary);
+      color: var(--color-text);
+    }
+
+    .spacing-tab.active {
+      background: var(--color-primary);
+      color: white;
+    }
+
+    .spacing-tab .badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+    }
+
+    .spacing-tab-content {
+      display: none;
+    }
+
+    .spacing-tab-content.active {
+      display: block;
+    }
+
+    /* Spacing Primitives Grid */
+    .spacing-primitives-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .spacing-prim-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 48px;
+      padding: 8px 6px;
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      opacity: 0.4;
+      transition: all 0.15s;
+    }
+
+    .spacing-prim-item:hover {
+      opacity: 0.7;
+      border-color: var(--color-primary);
+    }
+
+    .spacing-prim-item.active {
+      opacity: 1;
+      border-color: var(--color-primary);
+      background: rgba(var(--color-primary-rgb), 0.1);
+    }
+
+    .spacing-prim-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    .spacing-prim-label {
+      font-size: 9px;
+      color: var(--color-text-tertiary);
+    }
+
+    /* Spacing Category Filter */
+    .spacing-category-filter {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .spacing-cat-btn {
+      padding: 6px 10px;
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: var(--color-text-secondary);
+    }
+
+    .spacing-cat-btn:hover {
+      border-color: var(--color-primary);
+      color: var(--color-text);
+    }
+
+    .spacing-cat-btn.active {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: white;
+    }
+
+    /* Spacing Semantic List */
+    .spacing-semantic-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .spacing-group {
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .spacing-group-header {
+      padding: 8px 12px;
+      background: var(--color-bg-tertiary);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .spacing-group-tokens {
+      padding: 4px;
+    }
+
+    .spacing-token-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      transition: background 0.15s;
+    }
+
+    .spacing-token-row:hover {
+      background: var(--color-bg-tertiary);
+    }
+
+    .spacing-token-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .spacing-token-path {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--color-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .spacing-token-desc {
+      font-size: 10px;
+      color: var(--color-text-tertiary);
+      margin-top: 2px;
+    }
+
+    .spacing-token-value {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+    }
+
+    .spacing-token-ref {
+      font-family: var(--font-mono);
+      color: var(--color-primary);
+    }
+
+    .spacing-token-resolved {
+      color: var(--color-text-tertiary);
+    }
+
+    .spacing-token-value.invalid .spacing-token-ref {
+      color: var(--color-error);
+    }
+
+    .spacing-token-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .spacing-token-row:hover .spacing-token-actions {
+      opacity: 1;
+    }
+
+    .btn-icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.15s;
+    }
+
+    .btn-icon:hover {
+      background: var(--color-bg-tertiary);
+    }
+
+    /* Section Header */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .section-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    /* Architecture Preview */
+    .architecture-preview {
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+
+    .arch-level {
+      padding: 12px;
+      background: var(--color-bg);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border);
+    }
+
+    .arch-level-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 4px;
+    }
+
+    .arch-level-example {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--color-text-tertiary);
+    }
+
+    .arch-arrow {
+      text-align: center;
+      padding: 8px 0;
+      font-size: 11px;
+      color: var(--color-primary);
+    }
+
+    /* Spacing Empty State */
+    .spacing-empty {
+      text-align: center;
+      padding: 32px;
+      color: var(--color-text-tertiary);
+    }
+
+    .spacing-empty p {
+      margin-bottom: 12px;
+    }
+
+    /* Spacing Modal */
+    .spacing-modal {
+      max-width: 400px;
+    }
+
     /* Text Options Group */
     .typo-option-group {
       display: flex;
@@ -2411,10 +2854,14 @@
       right: 0;
       bottom: 0;
       background: rgba(0, 0, 0, 0.5);
-      display: flex;
+      display: none; /* Hidden by default */
       align-items: center;
       justify-content: center;
       z-index: 1000;
+    }
+
+    .modal-overlay.show {
+      display: flex; /* Show when .show class is added */
     }
 
     .modal {
@@ -2765,6 +3212,181 @@
     .custom-tint-input {
       margin-top: var(--spacing-sm);
     }
+
+    /* ================================================
+       SCALING TOKENS STYLES
+       ================================================ */
+    
+    .scaling-category-tabs {
+      display: flex;
+      gap: var(--spacing-xs);
+      padding: var(--spacing-sm) 0;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--color-border);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .category-tab {
+      padding: var(--spacing-sm) var(--spacing-md);
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .category-tab:hover {
+      background: var(--color-bg-tertiary);
+    }
+
+    .category-tab.active {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+
+    .category-tab .count {
+      opacity: 0.7;
+      font-size: 10px;
+    }
+
+    .scaling-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .scaling-table {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .scaling-table-header {
+      display: grid;
+      grid-template-columns: 1fr 80px 80px 80px 40px;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-sm) var(--spacing-md);
+      background: var(--color-bg-tertiary);
+      font-weight: 600;
+      font-size: 11px;
+      color: var(--color-text-secondary);
+    }
+
+    .scaling-token-row {
+      display: grid;
+      grid-template-columns: 1fr 80px 80px 80px 40px;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-sm) var(--spacing-md);
+      align-items: center;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .scaling-token-row:last-child {
+      border-bottom: none;
+    }
+
+    .scaling-token-row:hover {
+      background: var(--color-bg-secondary);
+    }
+
+    .token-name-input {
+      width: 100%;
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--color-bg);
+    }
+
+    .device-value-input {
+      width: 100%;
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      text-align: center;
+      background: var(--color-bg);
+    }
+
+    .device-value-input:focus,
+    .token-name-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+
+    .btn-icon {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--color-text-secondary);
+      transition: all 0.2s ease;
+    }
+
+    .btn-icon:hover {
+      background: var(--color-bg-tertiary);
+      border-color: var(--color-border);
+      color: var(--color-error);
+    }
+
+    .empty-state {
+      padding: var(--spacing-xl);
+      text-align: center;
+      color: var(--color-text-secondary);
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-md);
+    }
+
+    .empty-state p {
+      margin-bottom: var(--spacing-md);
+    }
+
+    .export-description {
+      color: var(--color-text-secondary);
+      margin-bottom: var(--spacing-md);
+      line-height: 1.6;
+    }
+
+    .export-preview {
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .preview-header {
+      display: grid;
+      grid-template-columns: 1fr 70px 70px 70px;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-sm) var(--spacing-md);
+      background: var(--color-bg-tertiary);
+      font-weight: 600;
+      font-size: 10px;
+      color: var(--color-text-secondary);
+      position: sticky;
+      top: 0;
+    }
+
+    .export-status {
+      margin-top: var(--spacing-md);
+      padding: var(--spacing-sm) var(--spacing-md);
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+    }
+
   </style>
 </head>
 <body>
@@ -2776,6 +3398,7 @@
   <div class="tabs">
     <button class="tab active" data-tab="primitives">🎨 Примитивы</button>
     <button class="tab" data-tab="tokens">🏷 Токены</button>
+    <button class="tab" data-tab="scaling">📐 Spacing</button>
     <button class="tab" data-tab="components">🧩 Компоненты</button>
     <button class="tab" data-tab="token-manager">🗂 Token Manager</button>
     <button class="tab" data-tab="export">📦 Экспорт</button>
@@ -2788,7 +3411,6 @@
       <button class="sub-tab active" data-subtab="prim-all">Все</button>
       <button class="sub-tab" data-subtab="prim-colors">🎨 Цвета</button>
       <button class="sub-tab" data-subtab="prim-typography">📝 Типографика</button>
-      <button class="sub-tab" data-subtab="prim-spacing">📏 Отступы</button>
       <button class="sub-tab" data-subtab="prim-radius">⬜ Радиусы</button>
       <button class="sub-tab" data-subtab="prim-shadows">🌑 Тени</button>
       <button class="sub-tab" data-subtab="prim-borders">🔲 Границы</button>
@@ -2811,11 +3433,6 @@
           <div class="prim-card-icon">📝</div>
           <div class="prim-card-title">Типографика</div>
           <div class="prim-card-count" id="count-typography">12 стилей</div>
-        </div>
-        <div class="prim-category-card" data-goto="prim-spacing">
-          <div class="prim-card-icon">📏</div>
-          <div class="prim-card-title">Отступы</div>
-          <div class="prim-card-count" id="count-spacing">12 значений</div>
         </div>
         <div class="prim-category-card" data-goto="prim-radius">
           <div class="prim-card-icon">⬜</div>
@@ -3304,6 +3921,91 @@
           </div>
         </div>
 
+        <!-- Adaptive Modes Settings -->
+        <div class="section" id="breakpoint-settings">
+          <div class="section-title" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>📱 Адаптивные режимы (Breakpoints)</span>
+            <label class="toggle-switch" style="margin: 0;">
+              <input type="checkbox" id="responsive-modes-enabled" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          
+          <div class="info-box" style="margin-bottom: 12px; padding: 10px 12px;">
+            <small style="color: var(--color-text-secondary);">
+              <strong>💡 Как работают режимы:</strong><br>
+              Семантические Variables будут иметь разные значения для каждого режима.<br>
+              В Figma: выберите фрейм → присвойте режим → типографика масштабируется автоматически.
+            </small>
+          </div>
+          
+          <div id="breakpoints-list" class="breakpoints-list">
+            <!-- Breakpoint items will be rendered here by JS -->
+            <div class="breakpoint-item" data-index="0">
+              <div class="breakpoint-header">
+                <span class="breakpoint-icon">🖥️</span>
+                <input type="text" class="breakpoint-name" value="Desktop" data-field="label">
+              </div>
+              <div class="breakpoint-fields">
+                <div class="breakpoint-field">
+                  <label>Min width</label>
+                  <input type="number" value="1280" data-field="minWidth" min="0" max="2560"> px
+                </div>
+                <div class="breakpoint-field">
+                  <label>Scale</label>
+                  <input type="number" value="1.0" data-field="scale" min="0.5" max="1.5" step="0.025">
+                  <span class="scale-percent">100%</span>
+                </div>
+              </div>
+              <div class="breakpoint-preview">
+                <small>Пример: 16px → 16px, 140% → 140%</small>
+              </div>
+            </div>
+            
+            <div class="breakpoint-item" data-index="1">
+              <div class="breakpoint-header">
+                <span class="breakpoint-icon">📱</span>
+                <input type="text" class="breakpoint-name" value="Tablet" data-field="label">
+              </div>
+              <div class="breakpoint-fields">
+                <div class="breakpoint-field">
+                  <label>Min width</label>
+                  <input type="number" value="768" data-field="minWidth" min="0" max="2560"> px
+                </div>
+                <div class="breakpoint-field">
+                  <label>Scale</label>
+                  <input type="number" value="0.875" data-field="scale" min="0.5" max="1.5" step="0.025">
+                  <span class="scale-percent">87.5%</span>
+                </div>
+              </div>
+              <div class="breakpoint-preview">
+                <small>Пример: 16px → 14px, 140% → 125%</small>
+              </div>
+            </div>
+            
+            <div class="breakpoint-item" data-index="2">
+              <div class="breakpoint-header">
+                <span class="breakpoint-icon">📲</span>
+                <input type="text" class="breakpoint-name" value="Mobile" data-field="label">
+              </div>
+              <div class="breakpoint-fields">
+                <div class="breakpoint-field">
+                  <label>Min width</label>
+                  <input type="number" value="0" data-field="minWidth" min="0" max="2560"> px
+                </div>
+                <div class="breakpoint-field">
+                  <label>Scale</label>
+                  <input type="number" value="0.75" data-field="scale" min="0.5" max="1.5" step="0.025">
+                  <span class="scale-percent">75%</span>
+                </div>
+              </div>
+              <div class="breakpoint-preview">
+                <small>Пример: 16px → 12px, 140% → 105%</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="section">
           <div class="section-title">Экспорт в Figma</div>
           
@@ -3325,57 +4027,13 @@
               <strong>1. Примитивы → Variables</strong><br>
               Базовые значения: <code>font/size/16</code>, <code>font/lineHeight/140</code><br><br>
               <strong>2. Семантика → Variables</strong><br>
-              Алиасы на примитивы: <code>typography/page/hero/fontSize</code> → <code>{font/size/56}</code><br><br>
+              Алиасы на примитивы с режимами (Desktop/Tablet/Mobile):<br>
+              <code>typography/page/hero/fontSize</code> → Desktop: <code>{font/size/56}</code>, Mobile: <code>{font/size/40}</code><br><br>
               <strong>3. Семантика → Text Styles</strong><br>
               Полные стили: шрифт, начертание, декорации, трансформации
             </small>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- Spacing -->
-    <div id="prim-spacing" class="sub-tab-content">
-      <div class="info-box">
-        <strong>📏 Шкала отступов</strong><br>
-        Настройте базовый модуль и генерируйте консистентную шкалу spacing.
-      </div>
-
-      <div class="section">
-        <div class="form-row">
-          <div class="form-group" style="flex: 1;">
-            <label class="form-label">Base Unit (px)</label>
-            <input type="number" class="form-input" id="spacing-base" value="4" min="2" max="8">
-          </div>
-          <div class="form-group" style="flex: 1;">
-            <label class="form-label">Множитель</label>
-            <select class="form-select" id="spacing-scale">
-              <option value="linear">Линейный (×1, ×2, ×3...)</option>
-              <option value="fibonacci" selected>Фибоначчи (1, 2, 3, 5, 8...)</option>
-              <option value="golden">Золотое сечение (×1.618)</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Превью отступов</div>
-        <div id="spacing-preview" class="spacing-preview">
-          <div class="spacing-item"><span class="spacing-box" style="width: 4px;"></span><span>xs: 4px</span></div>
-          <div class="spacing-item"><span class="spacing-box" style="width: 8px;"></span><span>sm: 8px</span></div>
-          <div class="spacing-item"><span class="spacing-box" style="width: 12px;"></span><span>md: 12px</span></div>
-          <div class="spacing-item"><span class="spacing-box" style="width: 16px;"></span><span>lg: 16px</span></div>
-          <div class="spacing-item"><span class="spacing-box" style="width: 24px;"></span><span>xl: 24px</span></div>
-          <div class="spacing-item"><span class="spacing-box" style="width: 32px;"></span><span>2xl: 32px</span></div>
-          <div class="spacing-item"><span class="spacing-box" style="width: 48px;"></span><span>3xl: 48px</span></div>
-          <div class="spacing-item"><span class="spacing-box" style="width: 64px;"></span><span>4xl: 64px</span></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <button class="btn btn-primary" id="btn-generate-spacing">
-          ✨ Сгенерировать отступы
-        </button>
       </div>
     </div>
 
@@ -3551,6 +4209,89 @@
         <div id="tokens-preview-container"></div>
       </div>
     </div><!-- end tokens-content-section -->
+  </div>
+
+  <!-- Spacing Tab -->
+  <div id="scaling" class="tab-content">
+    <div class="info-box">
+      <strong>📐 Spacing System</strong><br>
+      <strong>Уровень 1:</strong> Примитивы (space.0, space.4...) → коллекция Primitives<br>
+      <strong>Уровень 2:</strong> Семантика (spacing.button.default.paddingX) → коллекция Spacing с режимами Desktop/Tablet/Mobile
+    </div>
+
+    <!-- Sub-tabs -->
+    <div class="sub-tabs" id="scaling-tabs">
+      <button class="tab-btn active" data-tab="primitives">📐 Примитивы <span class="badge" id="spacing-primitives-count">30/30</span></button>
+      <button class="tab-btn" data-tab="semantic">🎯 Семантика <span class="badge" id="spacing-semantic-count">90</span></button>
+      <button class="tab-btn" data-tab="export">📦 Экспорт</button>
+    </div>
+
+    <!-- Primitives Panel -->
+    <div id="spacing-primitives-panel">
+      <div class="section">
+        <div class="section-title">Базовые значения (space.X)</div>
+        <p class="section-desc">Кликните для включения/выключения. Эти значения создаются в коллекции Primitives.</p>
+        <div id="spacing-primitives-grid" class="spacing-primitives-grid">
+          <!-- Dynamic -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Semantic Panel -->
+    <div id="spacing-semantic-panel" style="display: none;">
+      <div class="section">
+        <div class="section-title">Категории</div>
+        <div id="spacing-category-tabs" class="spacing-category-tabs">
+          <!-- Dynamic -->
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">Семантические токены</div>
+        <p class="section-desc">Токены со ссылками на примитивы. Каждый токен имеет разные значения для Desktop/Tablet/Mobile.</p>
+        <div id="spacing-semantic-list">
+          <!-- Dynamic -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Export Panel -->
+    <div id="spacing-export-panel" style="display: none;">
+      <div class="section">
+        <div class="section-title">Архитектура</div>
+        <div class="architecture-preview">
+          <div class="arch-level">
+            <div class="arch-level-title">Primitives (коллекция)</div>
+            <div class="arch-level-example">space.0 = 0px, space.4 = 4px, space.8 = 8px...</div>
+          </div>
+          <div class="arch-arrow">↓ алиасы по режимам</div>
+          <div class="arch-level">
+            <div class="arch-level-title">Spacing (коллекция с режимами)</div>
+            <div class="arch-level-example">
+              spacing.button.default.paddingX:<br>
+              Desktop → {space.16}, Tablet → {space.14}, Mobile → {space.12}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Экспорт в Figma</div>
+        <div class="export-buttons">
+          <button class="btn btn-secondary" id="export-spacing-primitives">
+            📐 Примитивы → Primitives
+          </button>
+          <button class="btn btn-secondary" id="export-spacing-semantic">
+            🎯 Семантика → Spacing (с режимами)
+          </button>
+          <button class="btn btn-primary" id="export-spacing-all">
+            ✨ Экспортировать всё
+          </button>
+        </div>
+        
+        <div id="spacing-export-status" class="export-status" style="display: none;"></div>
+      </div>
+    </div>
   </div>
 
   <!-- Components Tab -->

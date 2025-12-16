@@ -198,7 +198,89 @@ if (themeColorOverride && sourceColor === 'brand') {
 
 ---
 
-## 📁 Файловая структура
+## � Архитектура Spacing (отступы)
+
+### 2-уровневая архитектура:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                 📐 SPACING COLLECTION                           │
+│       Семантические spacing с режимами устройств                │
+│       РЕЖИМЫ: Desktop | Tablet | Mobile                         │
+│                                                                 │
+│       spacing/button/default/paddingX                           │
+│         → Desktop: {space.16}                                   │
+│         → Tablet:  {space.14}                                   │
+│         → Mobile:  {space.12}                                   │
+│                                                                 │
+│       spacing/card/comfortable/padding                          │
+│         → Desktop: {space.24}                                   │
+│         → Tablet:  {space.20}                                   │
+│         → Mobile:  {space.16}                                   │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓ алиасы на
+┌─────────────────────────────────────────────────────────────────┐
+│                 🎨 PRIMITIVES COLLECTION                        │
+│       Примитивные значения spacing                              │
+│       БЕЗ режимов — только значения                             │
+│                                                                 │
+│       space/0  = 0px        space/24 = 24px                     │
+│       space/1  = 1px        space/28 = 28px                     │
+│       space/2  = 2px        space/32 = 32px                     │
+│       space/4  = 4px        space/40 = 40px                     │
+│       space/6  = 6px        space/48 = 48px                     │
+│       space/8  = 8px        space/64 = 64px                     │
+│       space/10 = 10px       space/80 = 80px                     │
+│       space/12 = 12px       space/96 = 96px                     │
+│       space/14 = 14px       space/128 = 128px                   │
+│       space/16 = 16px       space/160 = 160px                   │
+│       space/18 = 18px       space/192 = 192px                   │
+│       space/20 = 20px       space/256 = 256px                   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Примитивы (30 значений):
+`0, 1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48, 56, 64, 72, 80, 96, 112, 128, 160, 192, 224, 256`
+
+### Категории семантических токенов (15 категорий, 90+ токенов):
+
+| # | Категория | Описание | Примеры токенов |
+|---|-----------|----------|-----------------|
+| 1 | **inline** | Инлайн-элементы | icon.paddingX, badge.paddingX, chip.paddingX |
+| 2 | **button** | Кнопки | compact.paddingX/Y, default.paddingX/Y, large.paddingX/Y |
+| 3 | **input** | Поля ввода | default.paddingX/Y, compact.paddingX/Y, textarea.padding |
+| 4 | **card** | Карточки | compact.padding, default.padding, header.paddingX/Y |
+| 5 | **modal** | Модальные окна | compact.padding, default.padding, header/body/footer |
+| 6 | **dropdown** | Выпадающие меню | paddingX/Y, item.paddingX/Y, tooltip.padding |
+| 7 | **list** | Списки | item.paddingX/Y, nested.paddingLeft, group.paddingY |
+| 8 | **table** | Таблицы | cell.paddingX/Y, cellCompact.padding, header.padding |
+| 9 | **navigation** | Навигация | item.paddingX/Y, tab.paddingX/Y, sidebar.padding |
+| 10 | **alert** | Уведомления | compact.paddingX/Y, default.paddingX/Y, toast/banner |
+| 11 | **badge** | Бейджи | paddingX/Y, tag.paddingX/Y, chip.paddingX/Y |
+| 12 | **form** | Формы | field.marginBottom, label.marginBottom, group/section |
+| 13 | **page** | Страницы | paddingX/Y, paddingXWide/YWide, section.marginBottom |
+| 14 | **content** | Контент | paragraph.marginBottom, heading.marginTop/Bottom |
+| 15 | **grid** | Сетка | inset.none/tight/default/relaxed/loose |
+
+### Пример адаптивных значений:
+
+| Токен | Desktop | Tablet | Mobile |
+|-------|---------|--------|--------|
+| spacing.button.default.paddingX | {space.16} | {space.14} | {space.12} |
+| spacing.button.default.paddingY | {space.8} | {space.8} | {space.6} |
+| spacing.card.comfortable.padding | {space.24} | {space.20} | {space.16} |
+| spacing.modal.default.padding | {space.24} | {space.20} | {space.16} |
+| spacing.page.paddingX | {space.24} | {space.20} | {space.16} |
+
+### Использование в Figma:
+
+1. **Создать примитивы** → кнопка "Экспорт примитивов" → коллекция `Primitives` с `space/0..256`
+2. **Создать семантику** → кнопка "Экспорт семантики" → коллекция `Spacing` с режимами Desktop/Tablet/Mobile
+3. **Применить режим** → выбрать фрейм → установить режим (Desktop/Tablet/Mobile) → все spacing автоматически адаптируются
+
+---
+
+## �📁 Файловая структура
 
 ```
 plagin/

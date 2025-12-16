@@ -67,6 +67,7 @@ interface DesignTokens {
 interface PluginMessage {
   type: string;
   payload?: unknown;
+  data?: unknown;
 }
 
 // Show the plugin UI with resize support
@@ -2019,55 +2020,9 @@ async function createBaseTokens(): Promise<void> {
   
   const existingVariables = await getLocalVariables();
   
-  // ============================================
-  // SPACING TOKENS (based on 4px grid)
-  // ============================================
-  const spacingScale: Record<string, number> = {
-    '0': 0,
-    '1': 4,
-    '2': 8,
-    '3': 12,
-    '4': 16,
-    '5': 20,
-    '6': 24,
-    '7': 28,
-    '8': 32,
-    '9': 36,
-    '10': 40,
-    '11': 44,
-    '12': 48,
-    '14': 56,
-    '16': 64,
-    '20': 80,
-    '24': 96,
-    '28': 112,
-    '32': 128,
-    '36': 144,
-    '40': 160,
-    '44': 176,
-    '48': 192,
-    '52': 208,
-    '56': 224,
-    '60': 240,
-    '64': 256,
-    '72': 288,
-    '80': 320,
-    '96': 384,
-  };
-  
-  for (const [name, value] of Object.entries(spacingScale)) {
-    const varName = `spacing/${name}`;
-    let variable = existingVariables.find(v => 
-      v.name === varName && v.variableCollectionId === primitivesCollection!.id
-    );
-    
-    if (!variable) {
-      variable = await createVariable(varName, primitivesCollection, 'FLOAT');
-    }
-    
-    variable.setValueForMode(primitivesCollection.defaultModeId, value);
-    variable.description = `${value}px spacing`;
-  }
+  // NOTE: Spacing tokens are now in a separate "Spacing" collection 
+  // with device modes (Desktop/Tablet/Mobile)
+  // See scaling-generator-ui.ts and create-scaling-collection handler
   
   // ============================================
   // RADIUS TOKENS
@@ -2686,6 +2641,13 @@ async function createTextStyles(payload: TextStylePayload): Promise<{ created: n
 // SEMANTIC TYPOGRAPHY VARIABLES
 // ============================================
 
+interface BreakpointConfig {
+  name: string;
+  label: string;
+  minWidth: number;
+  scale: number;
+}
+
 interface SemanticTypographyVariablesPayload {
   semanticTokens: Array<{
     id: string;
@@ -2709,10 +2671,44 @@ interface SemanticTypographyVariablesPayload {
     letterSpacings: Array<{ name: string; value: number }>;
     fontWeights: Array<{ name: string; value: number }>;
   };
+  breakpoints?: BreakpointConfig[] | null;
 }
 
-async function createSemanticTypographyVariables(payload: SemanticTypographyVariablesPayload): Promise<{ created: number; aliased: number; errors: string[] }> {
-  const result = { created: 0, aliased: 0, errors: [] as string[] };
+// Вспомогательная функция для получения масштабированного значения
+function getScaledValue(baseValue: number, scale: number, step: number = 2): number {
+  const scaled = baseValue * scale;
+  return Math.round(scaled / step) * step;
+}
+
+// Вспомогательная функция для поиска ближайшего примитива
+function findClosestPrimitiveVar(
+  targetValue: number, 
+  primitiveVarMap: Map<string, Variable>,
+  prefix: string
+): Variable | null {
+  let closest: Variable | null = null;
+  let minDiff = Infinity;
+  
+  primitiveVarMap.forEach((variable, name) => {
+    if (name.startsWith(prefix)) {
+      // Извлекаем числовое значение из имени (например, "font/size/16" → 16)
+      const valuePart = name.replace(prefix, '');
+      const value = parseFloat(valuePart);
+      if (!isNaN(value)) {
+        const diff = Math.abs(targetValue - value);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closest = variable;
+        }
+      }
+    }
+  });
+  
+  return closest;
+}
+
+async function createSemanticTypographyVariables(payload: SemanticTypographyVariablesPayload): Promise<{ created: number; aliased: number; modes: number; errors: string[] }> {
+  const result = { created: 0, aliased: 0, modes: 0, errors: [] as string[] };
   
   // Получаем или создаём коллекции
   const collections = await figma.variables.getLocalVariableCollectionsAsync();
@@ -2725,6 +2721,43 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
   let tokensCollection = collections.find(c => c.name === 'Tokens');
   if (!tokensCollection) {
     tokensCollection = figma.variables.createVariableCollection('Tokens');
+  }
+  
+  // Создаём или обновляем режимы если есть breakpoints
+  const modeIds: Map<string, string> = new Map();
+  
+  if (payload.breakpoints && payload.breakpoints.length > 0) {
+    // Получаем существующие режимы
+    const existingModes = tokensCollection.modes;
+    
+    for (let i = 0; i < payload.breakpoints.length; i++) {
+      const bp = payload.breakpoints[i];
+      
+      // Ищем существующий режим или создаём новый
+      let existingMode = existingModes.find(m => m.name === bp.label);
+      
+      if (existingMode) {
+        modeIds.set(bp.name, existingMode.modeId);
+      } else if (i === 0) {
+        // Первый брейкпоинт - переименовываем default mode
+        tokensCollection.renameMode(tokensCollection.defaultModeId, bp.label);
+        modeIds.set(bp.name, tokensCollection.defaultModeId);
+        result.modes++;
+      } else {
+        // Добавляем новый режим
+        try {
+          const newModeId = tokensCollection.addMode(bp.label);
+          modeIds.set(bp.name, newModeId);
+          result.modes++;
+        } catch (error) {
+          // Figma ограничивает количество режимов (4 для бесплатного плана)
+          result.errors.push(`Не удалось создать режим "${bp.label}": лимит режимов Figma`);
+        }
+      }
+    }
+  } else {
+    // Без брейкпоинтов - используем default mode
+    modeIds.set('default', tokensCollection.defaultModeId);
   }
   
   // Получаем все существующие Variables
@@ -2744,105 +2777,150 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
       // Имя семантической переменной: typography/page/hero/fontSize
       const tokenPath = token.path.join('/');
       
-      // fontSize
-      const fontSizeKey = parseTokenReference(token.fontSize);
-      const fontSizePrimitiveName = `font/size/${fontSizeKey}`;
-      const fontSizePrimitive = primitiveVarMap.get(fontSizePrimitiveName);
+      // Извлекаем базовые значения из токена
+      const baseFontSize = parseFloat(parseTokenReference(token.fontSize));
+      const baseLineHeight = parseFloat(parseTokenReference(token.lineHeight));
+      const baseLetterSpacing = parseFloat(parseTokenReference(token.letterSpacing));
+      const fontWeightKey = parseTokenReference(token.fontWeight);
       
-      if (fontSizePrimitive) {
-        const varName = `${tokenPath}/fontSize`;
-        let existingVar = existingVariables.find(v => 
-          v.name === varName && v.variableCollectionId === tokensCollection!.id
-        );
-        
-        if (!existingVar) {
-          existingVar = figma.variables.createVariable(varName, tokensCollection!, 'FLOAT');
-          result.created++;
+      // =============== fontSize ===============
+      const fontSizeVarName = `${tokenPath}/fontSize`;
+      let fontSizeVar = existingVariables.find(v => 
+        v.name === fontSizeVarName && v.variableCollectionId === tokensCollection!.id
+      );
+      
+      if (!fontSizeVar) {
+        fontSizeVar = figma.variables.createVariable(fontSizeVarName, tokensCollection!, 'FLOAT');
+        result.created++;
+      }
+      fontSizeVar.description = `${token.description || token.name} - Font size`;
+      
+      // Устанавливаем значения для каждого режима
+      if (payload.breakpoints && payload.breakpoints.length > 0) {
+        for (const bp of payload.breakpoints) {
+          const modeId = modeIds.get(bp.name);
+          if (!modeId) continue;
+          
+          const scaledValue = getScaledValue(baseFontSize, bp.scale, 2);
+          const closestPrimitive = findClosestPrimitiveVar(scaledValue, primitiveVarMap, 'font/size/');
+          
+          if (closestPrimitive) {
+            const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: closestPrimitive.id };
+            fontSizeVar.setValueForMode(modeId, alias);
+            result.aliased++;
+          }
         }
-        
-        // Создаём alias на примитив
-        const alias: VariableAlias = {
-          type: 'VARIABLE_ALIAS',
-          id: fontSizePrimitive.id
-        };
-        existingVar.setValueForMode(tokensCollection!.defaultModeId, alias);
-        existingVar.description = `${token.description || token.name} - Font size`;
-        result.aliased++;
+      } else {
+        // Без режимов - ищем точное совпадение примитива
+        const fontSizePrimitiveName = `font/size/${baseFontSize}`;
+        const fontSizePrimitive = primitiveVarMap.get(fontSizePrimitiveName);
+        if (fontSizePrimitive) {
+          const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: fontSizePrimitive.id };
+          fontSizeVar.setValueForMode(tokensCollection!.defaultModeId, alias);
+          result.aliased++;
+        }
       }
       
-      // lineHeight
-      const lineHeightKey = parseTokenReference(token.lineHeight);
-      const lineHeightPrimitiveName = `font/lineHeight/${lineHeightKey}`;
-      const lineHeightPrimitive = primitiveVarMap.get(lineHeightPrimitiveName);
+      // =============== lineHeight ===============
+      const lineHeightVarName = `${tokenPath}/lineHeight`;
+      let lineHeightVar = existingVariables.find(v => 
+        v.name === lineHeightVarName && v.variableCollectionId === tokensCollection!.id
+      );
       
-      if (lineHeightPrimitive) {
-        const varName = `${tokenPath}/lineHeight`;
-        let existingVar = existingVariables.find(v => 
-          v.name === varName && v.variableCollectionId === tokensCollection!.id
-        );
-        
-        if (!existingVar) {
-          existingVar = figma.variables.createVariable(varName, tokensCollection!, 'FLOAT');
-          result.created++;
+      if (!lineHeightVar) {
+        lineHeightVar = figma.variables.createVariable(lineHeightVarName, tokensCollection!, 'FLOAT');
+        result.created++;
+      }
+      lineHeightVar.description = `${token.description || token.name} - Line height`;
+      
+      if (payload.breakpoints && payload.breakpoints.length > 0) {
+        for (const bp of payload.breakpoints) {
+          const modeId = modeIds.get(bp.name);
+          if (!modeId) continue;
+          
+          const scaledValue = getScaledValue(baseLineHeight, bp.scale, 5);
+          const closestPrimitive = findClosestPrimitiveVar(scaledValue, primitiveVarMap, 'font/lineHeight/');
+          
+          if (closestPrimitive) {
+            const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: closestPrimitive.id };
+            lineHeightVar.setValueForMode(modeId, alias);
+            result.aliased++;
+          }
         }
-        
-        const alias: VariableAlias = {
-          type: 'VARIABLE_ALIAS',
-          id: lineHeightPrimitive.id
-        };
-        existingVar.setValueForMode(tokensCollection!.defaultModeId, alias);
-        existingVar.description = `${token.description || token.name} - Line height`;
-        result.aliased++;
+      } else {
+        const lineHeightPrimitiveName = `font/lineHeight/${baseLineHeight}`;
+        const lineHeightPrimitive = primitiveVarMap.get(lineHeightPrimitiveName);
+        if (lineHeightPrimitive) {
+          const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: lineHeightPrimitive.id };
+          lineHeightVar.setValueForMode(tokensCollection!.defaultModeId, alias);
+          result.aliased++;
+        }
       }
       
-      // letterSpacing
-      const letterSpacingKey = parseTokenReference(token.letterSpacing);
-      const letterSpacingPrimitiveName = `font/letterSpacing/${letterSpacingKey}`;
+      // =============== letterSpacing ===============
+      const letterSpacingVarName = `${tokenPath}/letterSpacing`;
+      let letterSpacingVar = existingVariables.find(v => 
+        v.name === letterSpacingVarName && v.variableCollectionId === tokensCollection!.id
+      );
+      
+      if (!letterSpacingVar) {
+        letterSpacingVar = figma.variables.createVariable(letterSpacingVarName, tokensCollection!, 'FLOAT');
+        result.created++;
+      }
+      letterSpacingVar.description = `${token.description || token.name} - Letter spacing`;
+      
+      // Letter spacing обычно не масштабируется, используем одинаковое значение для всех режимов
+      const letterSpacingPrimitiveName = `font/letterSpacing/${baseLetterSpacing}`;
       const letterSpacingPrimitive = primitiveVarMap.get(letterSpacingPrimitiveName);
       
       if (letterSpacingPrimitive) {
-        const varName = `${tokenPath}/letterSpacing`;
-        let existingVar = existingVariables.find(v => 
-          v.name === varName && v.variableCollectionId === tokensCollection!.id
-        );
-        
-        if (!existingVar) {
-          existingVar = figma.variables.createVariable(varName, tokensCollection!, 'FLOAT');
-          result.created++;
+        if (payload.breakpoints && payload.breakpoints.length > 0) {
+          for (const bp of payload.breakpoints) {
+            const modeId = modeIds.get(bp.name);
+            if (modeId) {
+              const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: letterSpacingPrimitive.id };
+              letterSpacingVar.setValueForMode(modeId, alias);
+              result.aliased++;
+            }
+          }
+        } else {
+          const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: letterSpacingPrimitive.id };
+          letterSpacingVar.setValueForMode(tokensCollection!.defaultModeId, alias);
+          result.aliased++;
         }
-        
-        const alias: VariableAlias = {
-          type: 'VARIABLE_ALIAS',
-          id: letterSpacingPrimitive.id
-        };
-        existingVar.setValueForMode(tokensCollection!.defaultModeId, alias);
-        existingVar.description = `${token.description || token.name} - Letter spacing`;
-        result.aliased++;
       }
       
-      // fontWeight
-      const fontWeightKey = parseTokenReference(token.fontWeight);
+      // =============== fontWeight ===============
       const fontWeightPrimitiveName = `font/weight/${fontWeightKey}`;
       const fontWeightPrimitive = primitiveVarMap.get(fontWeightPrimitiveName);
       
       if (fontWeightPrimitive) {
-        const varName = `${tokenPath}/fontWeight`;
-        let existingVar = existingVariables.find(v => 
-          v.name === varName && v.variableCollectionId === tokensCollection!.id
+        const fontWeightVarName = `${tokenPath}/fontWeight`;
+        let fontWeightVar = existingVariables.find(v => 
+          v.name === fontWeightVarName && v.variableCollectionId === tokensCollection!.id
         );
         
-        if (!existingVar) {
-          existingVar = figma.variables.createVariable(varName, tokensCollection!, 'FLOAT');
+        if (!fontWeightVar) {
+          fontWeightVar = figma.variables.createVariable(fontWeightVarName, tokensCollection!, 'FLOAT');
           result.created++;
         }
+        fontWeightVar.description = `${token.description || token.name} - Font weight`;
         
-        const alias: VariableAlias = {
-          type: 'VARIABLE_ALIAS',
-          id: fontWeightPrimitive.id
-        };
-        existingVar.setValueForMode(tokensCollection!.defaultModeId, alias);
-        existingVar.description = `${token.description || token.name} - Font weight`;
-        result.aliased++;
+        // Font weight не масштабируется
+        if (payload.breakpoints && payload.breakpoints.length > 0) {
+          for (const bp of payload.breakpoints) {
+            const modeId = modeIds.get(bp.name);
+            if (modeId) {
+              const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: fontWeightPrimitive.id };
+              fontWeightVar.setValueForMode(modeId, alias);
+              result.aliased++;
+            }
+          }
+        } else {
+          const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: fontWeightPrimitive.id };
+          fontWeightVar.setValueForMode(tokensCollection!.defaultModeId, alias);
+          result.aliased++;
+        }
       }
       
     } catch (error) {
@@ -2852,6 +2930,364 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
   }
   
   return result;
+}
+
+// ============================================
+// SPACING VARIABLES
+// ============================================
+
+interface SpacingSemanticPayload {
+  semanticTokens: Array<{
+    id: string;
+    name: string;
+    path: string[];
+    reference: string;
+    description?: string;
+    category: string;
+  }>;
+  primitives: Array<{ name: string; value: number }>;
+}
+
+async function createSpacingPrimitives(primitives: Array<{ name: string; value: number }>): Promise<{ created: number; updated: number; errors: string[] }> {
+  const result = { created: 0, updated: 0, errors: [] as string[] };
+  
+  // Get or create Primitives collection
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  let primitivesCollection = collections.find(c => c.name === 'Primitives');
+  
+  if (!primitivesCollection) {
+    primitivesCollection = figma.variables.createVariableCollection('Primitives');
+  }
+  
+  // Get existing variables
+  const existingVariables = await figma.variables.getLocalVariablesAsync();
+  
+  for (const prim of primitives) {
+    try {
+      const varName = `space/${prim.name}`;
+      
+      // Check if exists
+      let existingVar = existingVariables.find(v => 
+        v.name === varName && v.variableCollectionId === primitivesCollection!.id
+      );
+      
+      if (existingVar) {
+        // Update value
+        existingVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        result.updated++;
+      } else {
+        // Create new
+        const newVar = figma.variables.createVariable(varName, primitivesCollection, 'FLOAT');
+        newVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        newVar.description = `${prim.value}px`;
+        result.created++;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания space/${prim.name}: ${errorMessage}`);
+    }
+  }
+  
+  return result;
+}
+
+async function createSpacingSemanticVariables(payload: SpacingSemanticPayload): Promise<{ created: number; aliased: number; errors: string[] }> {
+  const result = { created: 0, aliased: 0, errors: [] as string[] };
+  
+  // Get collections
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  
+  let primitivesCollection = collections.find(c => c.name === 'Primitives');
+  if (!primitivesCollection) {
+    result.errors.push('Коллекция Primitives не найдена. Сначала создайте примитивы.');
+    return result;
+  }
+  
+  let tokensCollection = collections.find(c => c.name === 'Tokens');
+  if (!tokensCollection) {
+    tokensCollection = figma.variables.createVariableCollection('Tokens');
+  }
+  
+  // Get existing variables
+  const existingVariables = await figma.variables.getLocalVariablesAsync();
+  
+  // Create map of primitives
+  const primitiveVarMap = new Map<string, Variable>();
+  existingVariables.forEach(v => {
+    if (v.variableCollectionId === primitivesCollection!.id) {
+      primitiveVarMap.set(v.name, v);
+    }
+  });
+  
+  // Helper to parse reference
+  function parseSpacingRef(ref: string): string {
+    // "{space.16}" → "16"
+    const match = ref.match(/\{space\.(\d+)\}/);
+    return match ? match[1] : '';
+  }
+  
+  for (const token of payload.semanticTokens) {
+    try {
+      const tokenPath = token.path.join('/');
+      const refValue = parseSpacingRef(token.reference);
+      const primitiveName = `space/${refValue}`;
+      const primitive = primitiveVarMap.get(primitiveName);
+      
+      if (!primitive) {
+        result.errors.push(`Примитив ${primitiveName} не найден для токена ${tokenPath}`);
+        continue;
+      }
+      
+      // Check if variable exists
+      let existingVar = existingVariables.find(v => 
+        v.name === tokenPath && v.variableCollectionId === tokensCollection!.id
+      );
+      
+      if (!existingVar) {
+        existingVar = figma.variables.createVariable(tokenPath, tokensCollection!, 'FLOAT');
+        result.created++;
+      }
+      
+      // Create alias
+      const alias: VariableAlias = {
+        type: 'VARIABLE_ALIAS',
+        id: primitive.id
+      };
+      
+      existingVar.setValueForMode(tokensCollection!.defaultModeId, alias);
+      existingVar.description = token.description || token.name;
+      result.aliased++;
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания ${token.path.join('/')}: ${errorMessage}`);
+    }
+  }
+  
+  return result;
+}
+
+// ============================================
+// SPACING SEMANTIC COLLECTION (with aliases to primitives per device mode)
+// ============================================
+
+interface SpacingSemanticData {
+  collectionName: string;
+  tokens: Array<{
+    path: string;  // e.g. "spacing.button.default.paddingX"
+    desktop: { ref: string; value: number };  // ref: "16", value: 16
+    tablet: { ref: string; value: number };
+    mobile: { ref: string; value: number };
+  }>;
+}
+
+async function createSpacingSemanticCollection(data: SpacingSemanticData): Promise<{ created: number; aliased: number; errors: string[] }> {
+  const result = { created: 0, aliased: 0, errors: [] as string[] };
+  
+  // Get all collections
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  
+  // Find Primitives collection
+  const primitivesCollection = collections.find(c => c.name === 'Primitives');
+  if (!primitivesCollection) {
+    result.errors.push('Коллекция Primitives не найдена. Сначала создайте примитивы.');
+    return result;
+  }
+  
+  // Find or create Spacing collection
+  let spacingCollection = collections.find(c => c.name === data.collectionName);
+  if (!spacingCollection) {
+    spacingCollection = figma.variables.createVariableCollection(data.collectionName);
+  }
+  
+  // Setup modes: Desktop, Tablet, Mobile
+  const modeNames = ['Desktop', 'Tablet', 'Mobile'];
+  const modeIds: { [key: string]: string } = {};
+  
+  // Get existing modes
+  const existingModes = spacingCollection.modes;
+  
+  // Rename first mode to Desktop
+  if (existingModes.length > 0) {
+    spacingCollection.renameMode(existingModes[0].modeId, 'Desktop');
+    modeIds['Desktop'] = existingModes[0].modeId;
+  }
+  
+  // Add Tablet and Mobile modes if they don't exist
+  for (let i = 1; i < modeNames.length; i++) {
+    const modeName = modeNames[i];
+    const existingMode = spacingCollection.modes.find(m => m.name === modeName);
+    
+    if (existingMode) {
+      modeIds[modeName] = existingMode.modeId;
+    } else {
+      const newModeId = spacingCollection.addMode(modeName);
+      modeIds[modeName] = newModeId;
+    }
+  }
+  
+  // Get all existing variables
+  const allVariables = await figma.variables.getLocalVariablesAsync('FLOAT');
+  
+  // Create map of primitive variables
+  const primitiveVarMap = new Map<string, Variable>();
+  allVariables.forEach(v => {
+    if (v.variableCollectionId === primitivesCollection.id) {
+      // v.name is "space/16", extract "16"
+      const match = v.name.match(/space\/(\d+)/);
+      if (match) {
+        primitiveVarMap.set(match[1], v);
+      }
+    }
+  });
+  
+  // Existing semantic variables in this collection
+  const existingSemanticVars = allVariables.filter(v => v.variableCollectionId === spacingCollection!.id);
+  const existingVarMap = new Map<string, Variable>();
+  existingSemanticVars.forEach(v => existingVarMap.set(v.name, v));
+  
+  // Create/update semantic tokens
+  for (const token of data.tokens) {
+    try {
+      // Convert path: "spacing.button.default.paddingX" -> "spacing/button/default/paddingX"
+      const varName = token.path.replace(/\./g, '/');
+      
+      // Get or create variable
+      let variable = existingVarMap.get(varName);
+      if (!variable) {
+        variable = figma.variables.createVariable(varName, spacingCollection!, 'FLOAT');
+        result.created++;
+      }
+      
+      // Set alias for Desktop mode
+      const desktopPrimitive = primitiveVarMap.get(token.desktop.ref);
+      if (desktopPrimitive && modeIds['Desktop']) {
+        const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: desktopPrimitive.id };
+        variable.setValueForMode(modeIds['Desktop'], alias);
+        result.aliased++;
+      } else if (modeIds['Desktop']) {
+        // Fallback to value if primitive not found
+        variable.setValueForMode(modeIds['Desktop'], token.desktop.value);
+      }
+      
+      // Set alias for Tablet mode
+      const tabletPrimitive = primitiveVarMap.get(token.tablet.ref);
+      if (tabletPrimitive && modeIds['Tablet']) {
+        const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: tabletPrimitive.id };
+        variable.setValueForMode(modeIds['Tablet'], alias);
+        result.aliased++;
+      } else if (modeIds['Tablet']) {
+        variable.setValueForMode(modeIds['Tablet'], token.tablet.value);
+      }
+      
+      // Set alias for Mobile mode
+      const mobilePrimitive = primitiveVarMap.get(token.mobile.ref);
+      if (mobilePrimitive && modeIds['Mobile']) {
+        const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: mobilePrimitive.id };
+        variable.setValueForMode(modeIds['Mobile'], alias);
+        result.aliased++;
+      } else if (modeIds['Mobile']) {
+        variable.setValueForMode(modeIds['Mobile'], token.mobile.value);
+      }
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания ${token.path}: ${errorMessage}`);
+    }
+  }
+  
+  return result;
+}
+
+// ============================================
+// SCALING COLLECTION (Desktop/Tablet/Mobile modes)
+// ============================================
+
+interface ScalingCollectionData {
+  collectionName: string;
+  modes: string[];
+  tokens: Array<{
+    name: string;
+    values: { Desktop: number; Tablet: number; Mobile: number };
+    description?: string;
+  }>;
+}
+
+async function createScalingCollection(data: ScalingCollectionData): Promise<{ created: number }> {
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  
+  // Find or create collection
+  let collection = collections.find(c => c.name === data.collectionName);
+  
+  if (!collection) {
+    collection = figma.variables.createVariableCollection(data.collectionName);
+  }
+  
+  // Setup modes: Desktop, Tablet, Mobile
+  // First mode is default (rename it to Desktop)
+  const modeNames = ['Desktop', 'Tablet', 'Mobile'];
+  const modeIds: { [key: string]: string } = {};
+  
+  // Get existing modes
+  const existingModes = collection.modes;
+  
+  // Rename first mode to Desktop
+  if (existingModes.length > 0) {
+    collection.renameMode(existingModes[0].modeId, 'Desktop');
+    modeIds['Desktop'] = existingModes[0].modeId;
+  }
+  
+  // Check if Tablet/Mobile modes exist, if not add them
+  for (let i = 1; i < modeNames.length; i++) {
+    const modeName = modeNames[i];
+    const existingMode = existingModes.find(m => m.name === modeName);
+    
+    if (existingMode) {
+      modeIds[modeName] = existingMode.modeId;
+    } else {
+      const newModeId = collection.addMode(modeName);
+      modeIds[modeName] = newModeId;
+    }
+  }
+  
+  // Get existing variables in this collection
+  const allVariables = await figma.variables.getLocalVariablesAsync('FLOAT');
+  const existingVariables = allVariables.filter(v => v.variableCollectionId === collection!.id);
+  
+  const existingVarMap = new Map<string, Variable>();
+  for (const v of existingVariables) {
+    existingVarMap.set(v.name, v);
+  }
+  
+  let created = 0;
+  
+  // Create/update variables
+  for (const token of data.tokens) {
+    let variable = existingVarMap.get(token.name);
+    
+    if (!variable) {
+      variable = figma.variables.createVariable(token.name, collection!, 'FLOAT');
+      created++;
+    }
+    
+    // Set values for each mode
+    if (modeIds['Desktop']) {
+      variable.setValueForMode(modeIds['Desktop'], token.values.Desktop);
+    }
+    if (modeIds['Tablet']) {
+      variable.setValueForMode(modeIds['Tablet'], token.values.Tablet);
+    }
+    if (modeIds['Mobile']) {
+      variable.setValueForMode(modeIds['Mobile'], token.values.Mobile);
+    }
+    
+    // Set description
+    if (token.description) {
+      variable.description = token.description;
+    }
+  }
+  
+  return { created };
 }
 
 // ============================================
@@ -3041,7 +3477,12 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       case 'create-semantic-typography-variables': {
         const payload = msg.payload as SemanticTypographyVariablesPayload;
         
-        figma.notify('⏳ Создание семантических Variables...');
+        const hasBreakpoints = payload.breakpoints && payload.breakpoints.length > 0;
+        const modeNames = hasBreakpoints 
+          ? payload.breakpoints!.map(b => b.label).join(', ')
+          : 'default';
+        
+        figma.notify(`⏳ Создание семантических Variables${hasBreakpoints ? ` (режимы: ${modeNames})` : ''}...`);
         
         const result = await createSemanticTypographyVariables(payload);
         
@@ -3051,14 +3492,118 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
             success: result.errors.length === 0,
             created: result.created,
             aliased: result.aliased,
+            modes: result.modes,
             errors: result.errors
           }
         });
         
         if (result.errors.length > 0) {
-          figma.notify(`⚠️ Variables: ${result.created} создано, ${result.aliased} алиасов, ${result.errors.length} ошибок`);
+          figma.notify(`⚠️ Variables: ${result.created} создано, ${result.aliased} алиасов, ${result.modes} режимов, ${result.errors.length} ошибок`);
         } else {
-          figma.notify(`✅ Variables: ${result.created} создано, ${result.aliased} алиасов на примитивы`);
+          const modeInfo = result.modes > 0 ? `, ${result.modes} режимов` : '';
+          figma.notify(`✅ Variables: ${result.created} создано, ${result.aliased} алиасов${modeInfo}`);
+        }
+        break;
+      }
+
+      // ========================================
+      // SPACING HANDLERS
+      // ========================================
+
+      case 'create-spacing-primitives': {
+        const payload = msg.payload as {
+          primitives: Array<{ name: string; value: number }>;
+        };
+        
+        figma.notify(`⏳ Создание ${payload.primitives.length} примитивов spacing...`);
+        
+        const result = await createSpacingPrimitives(payload.primitives);
+        
+        figma.ui.postMessage({
+          type: 'spacing-primitives-created',
+          payload: result
+        });
+        
+        figma.notify(`✅ Spacing примитивы: ${result.created} создано, ${result.updated} обновлено`);
+        break;
+      }
+
+      case 'create-spacing-semantic-variables': {
+        const payload = msg.payload as SpacingSemanticPayload;
+        
+        figma.notify(`⏳ Создание ${payload.semanticTokens.length} семантических spacing...`);
+        
+        const result = await createSpacingSemanticVariables(payload);
+        
+        figma.ui.postMessage({
+          type: 'spacing-semantic-created',
+          payload: result
+        });
+        
+        if (result.errors.length > 0) {
+          figma.notify(`⚠️ Spacing: ${result.created} создано, ${result.aliased} алиасов, ${result.errors.length} ошибок`);
+        } else {
+          figma.notify(`✅ Spacing: ${result.created} создано, ${result.aliased} алиасов`);
+        }
+        break;
+      }
+
+      case 'create-spacing-semantic': {
+        const payload = msg.payload as SpacingSemanticData;
+        
+        figma.notify(`⏳ Создание ${payload.tokens.length} семантических токенов в "${payload.collectionName}"...`);
+        
+        try {
+          const result = await createSpacingSemanticCollection(payload);
+          
+          figma.ui.postMessage({
+            type: 'spacing-semantic-created',
+            payload: result
+          });
+          
+          if (result.errors.length > 0) {
+            figma.notify(`⚠️ Spacing: ${result.created} создано, ${result.errors.length} ошибок`);
+          } else {
+            figma.notify(`✅ Spacing: ${result.created} создано, ${result.aliased} алиасов`);
+          }
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'spacing-error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      case 'create-scaling-collection': {
+        const data = msg.data as {
+          collectionName: string;
+          modes: string[];
+          tokens: Array<{
+            name: string;
+            values: { Desktop: number; Tablet: number; Mobile: number };
+            description?: string;
+          }>;
+        };
+        
+        figma.notify(`⏳ Создание коллекции "${data.collectionName}" с ${data.tokens.length} токенами...`);
+        
+        try {
+          const result = await createScalingCollection(data);
+          
+          figma.ui.postMessage({
+            type: 'scaling-export-success',
+            count: result.created,
+          });
+          
+          figma.notify(`✅ Создано ${result.created} переменных в "${data.collectionName}"`);
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'scaling-export-error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
         break;
       }

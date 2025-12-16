@@ -23,6 +23,55 @@ import { createToken } from '../types/token-manager-state';
 import { TMTokenType, TMCollectionType } from '../types/token-manager';
 
 // ============================================
+// BREAKPOINTS & RESPONSIVE SCALES
+// ============================================
+
+export interface BreakpointConfig {
+  name: string;
+  label: string;
+  minWidth: number;
+  scale: number; // Коэффициент масштабирования (1.0 = базовый)
+}
+
+// Настройки по умолчанию для адаптивных режимов
+const DEFAULT_BREAKPOINTS: BreakpointConfig[] = [
+  { name: 'desktop', label: 'Desktop', minWidth: 1280, scale: 1.0 },
+  { name: 'tablet', label: 'Tablet', minWidth: 768, scale: 0.875 },
+  { name: 'mobile', label: 'Mobile', minWidth: 0, scale: 0.75 },
+];
+
+// Текущие настройки брейкпоинтов (можно редактировать через UI)
+let breakpointConfigs: BreakpointConfig[] = [...DEFAULT_BREAKPOINTS];
+
+// Флаг включения адаптивных режимов
+let responsiveModesEnabled = true;
+
+// Функция получения масштабированного значения
+function getScaledValue(baseValue: number, scale: number, step: number = 2): number {
+  // Округляем до ближайшего шага (для font-size: 2px, для line-height: 5%)
+  const scaled = baseValue * scale;
+  return Math.round(scaled / step) * step;
+}
+
+// Функция поиска ближайшего примитива
+function findClosestPrimitive(targetValue: number, primitives: { name: string; value: number }[]): { name: string; value: number } | null {
+  if (primitives.length === 0) return null;
+  
+  let closest = primitives[0];
+  let minDiff = Math.abs(targetValue - closest.value);
+  
+  for (const p of primitives) {
+    const diff = Math.abs(targetValue - p.value);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = p;
+    }
+  }
+  
+  return closest;
+}
+
+// ============================================
 // STATE
 // ============================================
 
@@ -1833,6 +1882,17 @@ function setupTypographyEvents(): void {
     btnCreateSemanticVars.addEventListener('click', createSemanticVariablesInFigma);
   }
   
+  // Responsive modes toggle
+  const responsiveToggle = document.getElementById('responsive-modes-enabled') as HTMLInputElement;
+  if (responsiveToggle) {
+    responsiveToggle.addEventListener('change', () => {
+      toggleResponsiveModes(responsiveToggle.checked);
+    });
+  }
+  
+  // Breakpoint settings handlers
+  setupBreakpointHandlers();
+  
   // Category filter
   document.querySelectorAll('.typo-category-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1863,6 +1923,41 @@ function setupTypographyEvents(): void {
   
   // Setup primitive add buttons
   setupPrimitiveModals();
+}
+
+function setupBreakpointHandlers(): void {
+  const container = document.getElementById('breakpoints-list');
+  if (!container) return;
+  
+  container.querySelectorAll('input').forEach(input => {
+    input.addEventListener('change', handleBreakpointChange);
+    input.addEventListener('input', (e) => {
+      // Обновляем превью при вводе для scale
+      const inputEl = e.target as HTMLInputElement;
+      if (inputEl.getAttribute('data-field') === 'scale') {
+        const scale = parseFloat(inputEl.value) || 1.0;
+        const item = inputEl.closest('.breakpoint-item');
+        const index = parseInt(item?.getAttribute('data-index') || '0', 10);
+        
+        // Обновляем локальный конфиг
+        if (breakpointConfigs[index]) {
+          breakpointConfigs[index].scale = scale;
+        }
+        
+        // Обновляем процент
+        const percentSpan = inputEl.parentElement?.querySelector('.scale-percent');
+        if (percentSpan) {
+          percentSpan.textContent = `${Math.round(scale * 100)}%`;
+        }
+        
+        // Обновляем превью
+        const preview = item?.querySelector('.breakpoint-preview small');
+        if (preview) {
+          preview.textContent = `Пример: 16px → ${getScaledValue(16, scale, 2)}px, 140% → ${getScaledValue(140, scale, 5)}%`;
+        }
+      }
+    });
+  });
 }
 
 // ============================================
@@ -2390,15 +2485,118 @@ function createSemanticVariablesInFigma(): void {
     return;
   }
   
+  // Подготавливаем конфигурацию брейкпоинтов
+  const breakpoints = responsiveModesEnabled ? breakpointConfigs : null;
+  
   // Отправляем в Figma
   parent.postMessage({
     pluginMessage: {
       type: 'create-semantic-typography-variables',
-      payload: { semanticTokens, primitives },
+      payload: { 
+        semanticTokens, 
+        primitives,
+        breakpoints, // Передаём настройки адаптивности
+      },
     },
   }, '*');
   
-  showNotification('📊 Создание семантических Variables...');
+  const modeInfo = responsiveModesEnabled 
+    ? ` с ${breakpointConfigs.length} режимами (${breakpointConfigs.map(b => b.label).join(', ')})` 
+    : '';
+  showNotification(`📊 Создание семантических Variables${modeInfo}...`);
+}
+
+// ============================================
+// BREAKPOINT UI FUNCTIONS
+// ============================================
+
+function renderBreakpointSettings(): void {
+  const container = document.getElementById('breakpoint-settings');
+  if (!container) return;
+  
+  const enabledCheckbox = document.getElementById('responsive-modes-enabled') as HTMLInputElement;
+  if (enabledCheckbox) {
+    enabledCheckbox.checked = responsiveModesEnabled;
+  }
+  
+  const breakpointsContainer = document.getElementById('breakpoints-list');
+  if (!breakpointsContainer) return;
+  
+  breakpointsContainer.innerHTML = breakpointConfigs.map((bp, index) => `
+    <div class="breakpoint-item" data-index="${index}">
+      <div class="breakpoint-header">
+        <span class="breakpoint-icon">${getBreakpointIcon(bp.name)}</span>
+        <input type="text" class="breakpoint-name" value="${bp.label}" data-field="label">
+      </div>
+      <div class="breakpoint-fields">
+        <div class="breakpoint-field">
+          <label>Min width</label>
+          <input type="number" value="${bp.minWidth}" data-field="minWidth" min="0" max="2560"> px
+        </div>
+        <div class="breakpoint-field">
+          <label>Scale</label>
+          <input type="number" value="${bp.scale}" data-field="scale" min="0.5" max="1.5" step="0.025">
+          <span class="scale-percent">${Math.round(bp.scale * 100)}%</span>
+        </div>
+      </div>
+      <div class="breakpoint-preview">
+        <small>Пример: 16px → ${getScaledValue(16, bp.scale, 2)}px, 140% → ${getScaledValue(140, bp.scale, 5)}%</small>
+      </div>
+    </div>
+  `).join('');
+  
+  // Добавляем обработчики
+  breakpointsContainer.querySelectorAll('input').forEach(input => {
+    input.addEventListener('change', handleBreakpointChange);
+  });
+}
+
+function getBreakpointIcon(name: string): string {
+  switch (name) {
+    case 'desktop': return '🖥️';
+    case 'tablet': return '📱';
+    case 'mobile': return '📲';
+    default: return '📐';
+  }
+}
+
+function handleBreakpointChange(e: Event): void {
+  const input = e.target as HTMLInputElement;
+  const item = input.closest('.breakpoint-item');
+  if (!item) return;
+  
+  const index = parseInt(item.getAttribute('data-index') || '0', 10);
+  const field = input.getAttribute('data-field');
+  
+  if (field && breakpointConfigs[index]) {
+    if (field === 'label') {
+      breakpointConfigs[index].label = input.value;
+    } else if (field === 'minWidth') {
+      breakpointConfigs[index].minWidth = parseInt(input.value, 10) || 0;
+    } else if (field === 'scale') {
+      breakpointConfigs[index].scale = parseFloat(input.value) || 1.0;
+      // Обновляем процент
+      const percentSpan = input.parentElement?.querySelector('.scale-percent');
+      if (percentSpan) {
+        percentSpan.textContent = `${Math.round(breakpointConfigs[index].scale * 100)}%`;
+      }
+      // Обновляем превью
+      const preview = item.querySelector('.breakpoint-preview small');
+      if (preview) {
+        const scale = breakpointConfigs[index].scale;
+        preview.textContent = `Пример: 16px → ${getScaledValue(16, scale, 2)}px, 140% → ${getScaledValue(140, scale, 5)}%`;
+      }
+    }
+  }
+}
+
+function toggleResponsiveModes(enabled: boolean): void {
+  responsiveModesEnabled = enabled;
+  const container = document.getElementById('breakpoints-list');
+  if (container) {
+    container.style.opacity = enabled ? '1' : '0.5';
+    container.style.pointerEvents = enabled ? 'auto' : 'none';
+  }
 }
 
 // ============================================

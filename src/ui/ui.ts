@@ -33,6 +33,11 @@ import {
 } from './typography-generator-ui';
 
 import {
+  initSpacingUI,
+  handleSpacingMessage,
+} from './spacing-generator-ui';
+
+import {
   getState,
   getTokens,
   saveState,
@@ -98,6 +103,12 @@ function switchToTab(tabId: string): void {
   if (tab && !tab.classList.contains('disabled')) {
     tab.click();
   }
+}
+
+// Initialize Spacing tabs (deprecated - old system removed)
+function initSpacingTabs(): void {
+  // Old spacing tabs system removed
+  // Now using scaling-generator-ui for Spacing collection with device modes
 }
 
 // ============================================
@@ -239,6 +250,11 @@ window.onmessage = (event: MessageEvent) => {
     case 'error':
       showNotification('❌ ' + msg.payload.error, true);
       break;
+    case 'spacing-primitives-created':
+    case 'spacing-semantic-created':
+    case 'spacing-error':
+      handleSpacingMessage(msg);
+      break;
   }
 };
 
@@ -371,6 +387,9 @@ initComponentsTab();
 
 // Initialize Typography UI
 initTypographyUI();
+
+// Initialize Spacing UI (2-tier with device modes)
+initSpacingUI();
 
 // Listen for token-generated event to refresh Token Manager
 document.addEventListener('tokens-generated', () => {
