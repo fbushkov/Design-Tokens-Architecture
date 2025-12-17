@@ -32,6 +32,8 @@ import {
   filterTokens,
   generateId,
   buildFullPath,
+  importFromProjectSync,
+  clearAllTokens,
 } from '../types/token-manager-state';
 
 import { getCurrentProduct } from './primitives-generator-ui';
@@ -1024,6 +1026,19 @@ function renderSyncOverview(
           </button>
         </div>
         ` : ''}
+        
+        ${summary.managedVariables > 0 ? `
+        <div class="sync-action-card action-highlight">
+          <div class="action-icon">🗂</div>
+          <div class="action-info">
+            <div class="action-title">Импортировать в Token Map</div>
+            <div class="action-desc">${summary.managedVariables} переменных → редактирование, настройки форматирования</div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-import-to-token-map">
+            Импортировать
+          </button>
+        </div>
+        ` : ''}
       </div>
       
       <div class="sync-collections-preview">
@@ -1247,6 +1262,12 @@ export function handleProjectSyncEvents(container: HTMLElement): void {
       createPaintStylesFromVariables();
       return;
     }
+    
+    // Import to Token Map
+    if (target.id === 'btn-import-to-token-map' || target.closest('#btn-import-to-token-map')) {
+      importToTokenMap();
+      return;
+    }
   });
 }
 
@@ -1309,4 +1330,53 @@ function rgbaToHex(color: { r: number; g: number; b: number; a?: number }): stri
   const g = Math.round(color.g * 255).toString(16).padStart(2, '0');
   const b = Math.round(color.b * 255).toString(16).padStart(2, '0');
   return `#${r}${g}${b}`;
+}
+
+/**
+ * Import synced variables to Token Map for management
+ */
+function importToTokenMap(): void {
+  if (!projectSyncData) {
+    alert('Сначала выполните синхронизацию с проектом');
+    return;
+  }
+  
+  const tokensCount = getTokens().length;
+  
+  // Confirm if there are existing tokens
+  if (tokensCount > 0) {
+    const confirm = window.confirm(
+      `В Token Map уже есть ${tokensCount} токенов.\n\n` +
+      `Выберите действие:\n` +
+      `• OK — Добавить к существующим (пропустить дубликаты)\n` +
+      `• Отмена — Отменить импорт`
+    );
+    
+    if (!confirm) {
+      return;
+    }
+  }
+  
+  // Import tokens from sync data
+  const result = importFromProjectSync(projectSyncData);
+  
+  // Show result
+  if (result.imported > 0) {
+    alert(
+      `✅ Импортировано: ${result.imported} токенов\n` +
+      `⏭ Пропущено (уже есть): ${result.skipped}\n\n` +
+      `Переключитесь на вкладку Token Map для управления.`
+    );
+    
+    // Switch to Token Map tab and refresh UI
+    tokenManagerActiveTab = 'tokens';
+    const container = document.querySelector('.token-manager');
+    if (container) {
+      container.innerHTML = renderTokenManager();
+    }
+  } else if (result.skipped > 0) {
+    alert(`Все ${result.skipped} токенов уже существуют в Token Map.`);
+  } else {
+    alert('Нет токенов для импорта.');
+  }
 }

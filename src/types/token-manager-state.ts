@@ -11,6 +11,7 @@ import {
   TMColorValue,
   TMRGBAColor,
   TMSeparator,
+  TMTokenType,
 } from './token-manager';
 
 import {
@@ -377,6 +378,127 @@ export function loadState(): boolean {
 export function resetState(): void {
   state = { ...INITIAL_STATE };
   // localStorage is disabled in Figma plugin iframes
+}
+
+// ============================================
+// IMPORT FROM PROJECT SYNC
+// ============================================
+
+import { ProjectSyncData, ProjectVariable, ProjectCollection, MANAGED_COLLECTIONS } from './token-manager';
+
+/**
+ * Map Figma collection name to TMCollectionType
+ */
+function mapCollectionToType(collectionName: string): TMCollectionType {
+  if (collectionName === 'Primitives') return 'Primitives';
+  if (collectionName === 'Tokens') return 'Tokens';
+  if (collectionName === 'Components') return 'Components';
+  // Numeric collections go to Primitives for now
+  return 'Primitives';
+}
+
+/**
+ * Convert Figma RGBA (0-1) to hex
+ */
+function rgbaToHex(color: { r: number; g: number; b: number; a?: number }): string {
+  const toHex = (n: number): string => {
+    const hex = Math.round(Math.min(1, Math.max(0, n)) * 255).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  };
+  return `#${toHex(color.r)}${toHex(color.g)}${toHex(color.b)}`.toUpperCase();
+}
+
+/**
+ * Import tokens from Project Sync data into Token Map
+ */
+export function importFromProjectSync(syncData: ProjectSyncData): { imported: number; skipped: number } {
+  const separator = state.settings.separator;
+  let imported = 0;
+  let skipped = 0;
+  
+  // Process only managed collections
+  for (const collection of syncData.collections.managed) {
+    const collectionType = mapCollectionToType(collection.name);
+    
+    for (const variable of collection.variables) {
+      // Parse path from variable name (e.g., "colors/brand/brand-500")
+      const pathParts = variable.name.split('/');
+      const name = pathParts.pop() || variable.name;
+      const path = pathParts;
+      const fullPath = variable.name; // Keep original path from Figma
+      
+      // Check if token already exists
+      const existingToken = state.tokens.find(t => 
+        t.fullPath === fullPath && t.collection === collectionType
+      );
+      
+      if (existingToken) {
+        skipped++;
+        continue;
+      }
+      
+      // Create token based on type
+      let tokenValue: TMColorValue | number | string | boolean;
+      let tokenType: TMTokenType = 'STRING';
+      
+      if (variable.resolvedType === 'COLOR' && variable.value) {
+        // Color variable
+        const rgba = variable.value as { r: number; g: number; b: number; a: number };
+        tokenValue = {
+          hex: rgbaToHex(rgba),
+          rgba: { r: rgba.r, g: rgba.g, b: rgba.b, a: rgba.a ?? 1 },
+        };
+        tokenType = 'COLOR';
+      } else if (variable.resolvedType === 'FLOAT') {
+        // Number variable
+        tokenValue = variable.value as number;
+        tokenType = 'NUMBER';
+      } else if (variable.resolvedType === 'BOOLEAN') {
+        tokenValue = variable.value as boolean;
+        tokenType = 'BOOLEAN';
+      } else {
+        tokenValue = String(variable.value || '');
+        tokenType = 'STRING';
+      }
+      
+      // Create token
+      const token: TokenDefinition = {
+        id: generateId(),
+        name,
+        path,
+        fullPath,
+        type: tokenType,
+        value: tokenValue,
+        enabled: true,
+        description: variable.description,
+        tags: [collection.name.toLowerCase(), tokenType.toLowerCase()],
+        collection: collectionType,
+        figmaId: variable.id,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      
+      state.tokens.push(token);
+      imported++;
+    }
+  }
+  
+  if (imported > 0) {
+    state.hasUnsavedChanges = true;
+    updateCollectionCounts();
+  }
+  
+  return { imported, skipped };
+}
+
+/**
+ * Clear all tokens from Token Map
+ */
+export function clearAllTokens(): void {
+  state.tokens = [];
+  state.selectedTokenId = null;
+  state.hasUnsavedChanges = true;
+  updateCollectionCounts();
 }
 
 // ============================================
