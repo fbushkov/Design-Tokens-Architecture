@@ -1,6 +1,7 @@
 /**
  * Token Manager UI Component
  * Left Panel: Token Tree with collections and folders
+ * Project Sync: View and manage project variables and styles
  */
 
 import {
@@ -8,6 +9,9 @@ import {
   TokenManagerState,
   TMCollectionType,
   TMColorValue,
+  ProjectSyncData,
+  ProjectCollection,
+  ProjectStyle,
 } from '../types/token-manager';
 
 import {
@@ -36,6 +40,22 @@ import {
   DEFAULT_PALETTES,
   COLOR_SCALE,
 } from '../types/token-manager-constants';
+
+// ============================================
+// PROJECT SYNC STATE
+// ============================================
+
+let projectSyncData: ProjectSyncData | null = null;
+let projectSyncTab: 'overview' | 'collections' | 'styles' = 'overview';
+let selectedCollectionId: string | null = null;
+
+export function setProjectSyncData(data: ProjectSyncData): void {
+  projectSyncData = data;
+}
+
+export function getProjectSyncData(): ProjectSyncData | null {
+  return projectSyncData;
+}
 
 // ============================================
 // TOKEN TREE NODE STRUCTURE
@@ -509,27 +529,49 @@ export function renderStats(): string {
 // FULL TOKEN MANAGER PANEL
 // ============================================
 
+// Token Manager active tab: 'tokens' or 'sync'
+let tokenManagerActiveTab: 'tokens' | 'sync' = 'sync';
+
+export function setTokenManagerTab(tab: 'tokens' | 'sync'): void {
+  tokenManagerActiveTab = tab;
+}
+
 export function renderTokenManager(): string {
   return `
-    <div class="tm-two-panel" style="position: relative;">
-      <div class="tm-left-panel">
-        <div class="tm-container">
-          ${renderStats()}
-          ${renderToolbar()}
-          <div class="tm-tree-container">
-            ${renderTokenTree()}
-          </div>
-          <div class="tm-footer">
-            <button class="btn btn-primary tm-sync-figma">📤 Синхр. с Figma</button>
-            <button class="btn btn-secondary tm-export-json">📦 Export JSON</button>
+    <div class="tm-main-tabs">
+      <button class="tm-main-tab ${tokenManagerActiveTab === 'sync' ? 'active' : ''}" data-tm-tab="sync">
+        🔄 Project Sync
+      </button>
+      <button class="tm-main-tab ${tokenManagerActiveTab === 'tokens' ? 'active' : ''}" data-tm-tab="tokens">
+        🗂 Token Map
+      </button>
+    </div>
+    
+    ${tokenManagerActiveTab === 'sync' ? `
+      <div class="project-sync-wrapper">
+        ${renderProjectSync()}
+      </div>
+    ` : `
+      <div class="tm-two-panel" style="position: relative;">
+        <div class="tm-left-panel">
+          <div class="tm-container">
+            ${renderStats()}
+            ${renderToolbar()}
+            <div class="tm-tree-container">
+              ${renderTokenTree()}
+            </div>
+            <div class="tm-footer">
+              <button class="btn btn-primary tm-sync-figma">📤 Синхр. с Figma</button>
+              <button class="btn btn-secondary tm-export-json">📦 Export JSON</button>
+            </div>
           </div>
         </div>
+        <div class="tm-right-panel">
+          <div id="token-editor-container"></div>
+        </div>
+        ${renderSettingsPanel()}
       </div>
-      <div class="tm-right-panel">
-        <div id="token-editor-container"></div>
-      </div>
-      ${renderSettingsPanel()}
-    </div>
+    `}
   `;
 }
 
@@ -538,6 +580,23 @@ export function renderTokenManager(): string {
 // ============================================
 
 export function initTokenManagerEvents(container: HTMLElement, refreshCallback: () => void): void {
+  // Main tab switching (sync / tokens)
+  container.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    const tabBtn = target.closest('.tm-main-tab') as HTMLElement;
+    if (tabBtn) {
+      const tab = tabBtn.dataset.tmTab as 'tokens' | 'sync';
+      if (tab) {
+        tokenManagerActiveTab = tab;
+        refreshCallback();
+      }
+      return;
+    }
+  });
+  
+  // Project Sync event handlers
+  handleProjectSyncEvents(container);
+  
   // Search
   container.addEventListener('input', (e) => {
     const target = e.target as HTMLElement;
@@ -824,4 +883,430 @@ export function collapseAllPaths(): void {
 
 export function initTokenManager(): void {
   loadState();
+}
+
+// ============================================
+// PROJECT SYNC UI
+// ============================================
+
+export function renderProjectSync(): string {
+  if (!projectSyncData) {
+    return `
+      <div class="project-sync">
+        <div class="project-sync-empty">
+          <div class="sync-icon">🔄</div>
+          <p>Нажмите кнопку ниже, чтобы загрузить данные из проекта Figma</p>
+          <button class="btn btn-primary" id="btn-sync-from-project">
+            🔄 Синхронизировать с проектом
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  
+  const { summary, collections, styles, syncedAt } = projectSyncData;
+  const syncTime = new Date(syncedAt).toLocaleTimeString();
+  
+  return `
+    <div class="project-sync">
+      <div class="project-sync-header">
+        <div class="sync-status">
+          <span class="sync-badge sync-success">✓ Синхронизировано</span>
+          <span class="sync-time">${syncTime}</span>
+        </div>
+        <button class="btn btn-sm btn-secondary" id="btn-sync-from-project">
+          🔄 Обновить
+        </button>
+      </div>
+      
+      <div class="project-sync-tabs">
+        <button class="sync-tab ${projectSyncTab === 'overview' ? 'active' : ''}" data-sync-tab="overview">
+          Обзор
+        </button>
+        <button class="sync-tab ${projectSyncTab === 'collections' ? 'active' : ''}" data-sync-tab="collections">
+          Коллекции (${summary.totalCollections})
+        </button>
+        <button class="sync-tab ${projectSyncTab === 'styles' ? 'active' : ''}" data-sync-tab="styles">
+          Стили (${summary.totalPaintStyles + summary.totalTextStyles})
+        </button>
+      </div>
+      
+      <div class="project-sync-content">
+        ${projectSyncTab === 'overview' ? renderSyncOverview(summary, collections, styles) : ''}
+        ${projectSyncTab === 'collections' ? renderSyncCollections(collections) : ''}
+        ${projectSyncTab === 'styles' ? renderSyncStyles(styles) : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderSyncOverview(
+  summary: ProjectSyncData['summary'],
+  collections: ProjectSyncData['collections'],
+  styles: ProjectSyncData['styles']
+): string {
+  // Determine available actions - check for component colors (most specific level)
+  const componentsCollection = collections.managed.find(c => c.name === 'Components');
+  const componentColorCount = componentsCollection?.variables.filter(v => v.resolvedType === 'COLOR').length || 0;
+  
+  const hasColorVars = componentColorCount > 0;
+  const hasPaintStyles = styles.paint.managed.length > 0;
+  const hasTypographyVars = collections.managed.some(c => c.name === 'Typography');
+  const hasTextStyles = styles.text.managed.length > 0;
+  
+  return `
+    <div class="sync-overview">
+      <div class="sync-summary-grid">
+        <div class="sync-summary-card">
+          <div class="summary-icon">📦</div>
+          <div class="summary-value">${summary.managedCollections}</div>
+          <div class="summary-label">Коллекций</div>
+          <div class="summary-detail">из ${summary.totalCollections}</div>
+        </div>
+        <div class="sync-summary-card">
+          <div class="summary-icon">🔢</div>
+          <div class="summary-value">${summary.managedVariables}</div>
+          <div class="summary-label">Переменных</div>
+          <div class="summary-detail">из ${summary.totalVariables}</div>
+        </div>
+        <div class="sync-summary-card ${!hasPaintStyles ? 'action-available' : ''}">
+          <div class="summary-icon">🎨</div>
+          <div class="summary-value">${summary.managedPaintStyles}</div>
+          <div class="summary-label">Paint Styles</div>
+          <div class="summary-detail">из ${summary.totalPaintStyles}</div>
+        </div>
+        <div class="sync-summary-card">
+          <div class="summary-icon">🔤</div>
+          <div class="summary-value">${summary.managedTextStyles}</div>
+          <div class="summary-label">Text Styles</div>
+          <div class="summary-detail">из ${summary.totalTextStyles}</div>
+        </div>
+      </div>
+      
+      <div class="sync-actions-section">
+        <div class="section-title">Быстрые действия</div>
+        
+        ${hasColorVars && !hasPaintStyles ? `
+        <div class="sync-action-card action-highlight">
+          <div class="action-icon">🎨</div>
+          <div class="action-info">
+            <div class="action-title">Создать Paint Styles</div>
+            <div class="action-desc">${componentColorCount} компонентных цветов → Paint Styles</div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-create-paint-styles-from-vars">
+            Создать
+          </button>
+        </div>
+        ` : ''}
+        
+        ${hasColorVars && hasPaintStyles ? `
+        <div class="sync-action-card">
+          <div class="action-icon">🔄</div>
+          <div class="action-info">
+            <div class="action-title">Paint Styles синхронизированы</div>
+            <div class="action-desc">${summary.managedPaintStyles} стилей (${componentColorCount} компонентных цветов)</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btn-update-paint-styles">
+            Обновить
+          </button>
+        </div>
+        ` : ''}
+        
+        ${!hasColorVars ? `
+        <div class="sync-action-card action-warning">
+          <div class="action-icon">⚠️</div>
+          <div class="action-info">
+            <div class="action-title">Нет компонентных цветов</div>
+            <div class="action-desc">Сначала сгенерируйте цвета (нужна коллекция Components)</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" disabled>
+            Недоступно
+          </button>
+        </div>
+        ` : ''}
+      </div>
+      
+      <div class="sync-collections-preview">
+        <div class="section-title">Управляемые коллекции</div>
+        <div class="collections-list">
+          ${collections.managed.map(c => `
+            <div class="collection-row">
+              <span class="collection-name">📁 ${c.name}</span>
+              <span class="collection-modes">${c.modes.map(m => m.name).join(', ')}</span>
+              <span class="collection-count">${c.variableCount} vars</span>
+            </div>
+          `).join('')}
+          ${collections.managed.length === 0 ? '<div class="empty-hint">Нет управляемых коллекций</div>' : ''}
+        </div>
+      </div>
+      
+      ${collections.other.length > 0 ? `
+      <div class="sync-other-section">
+        <div class="section-title">Прочее на проекте <span class="badge">read-only</span></div>
+        <div class="other-list">
+          ${collections.other.map(c => `
+            <div class="other-row">
+              <span class="other-name">📁 ${c.name}</span>
+              <span class="other-count">${c.variableCount} vars</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderSyncCollections(collections: ProjectSyncData['collections']): string {
+  const allCollections = [...collections.managed, ...collections.other];
+  const selected = selectedCollectionId 
+    ? allCollections.find(c => c.id === selectedCollectionId) 
+    : null;
+  
+  return `
+    <div class="sync-collections">
+      <div class="collections-sidebar">
+        <div class="collections-group">
+          <div class="group-title">Управляемые</div>
+          ${collections.managed.map(c => `
+            <div class="collection-item ${c.id === selectedCollectionId ? 'selected' : ''}" 
+                 data-collection-id="${c.id}">
+              <span class="collection-icon">📦</span>
+              <span class="collection-name">${c.name}</span>
+              <span class="collection-badge">${c.variableCount}</span>
+            </div>
+          `).join('')}
+        </div>
+        ${collections.other.length > 0 ? `
+        <div class="collections-group">
+          <div class="group-title">Прочее</div>
+          ${collections.other.map(c => `
+            <div class="collection-item other ${c.id === selectedCollectionId ? 'selected' : ''}" 
+                 data-collection-id="${c.id}">
+              <span class="collection-icon">📁</span>
+              <span class="collection-name">${c.name}</span>
+              <span class="collection-badge">${c.variableCount}</span>
+            </div>
+          `).join('')}
+        </div>
+        ` : ''}
+      </div>
+      
+      <div class="collection-detail">
+        ${selected ? renderCollectionDetail(selected) : `
+          <div class="detail-empty">
+            <p>Выберите коллекцию для просмотра переменных</p>
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+function renderCollectionDetail(collection: ProjectCollection): string {
+  return `
+    <div class="collection-detail-header">
+      <h3>${collection.name}</h3>
+      <div class="collection-meta">
+        <span class="meta-item">Режимы: ${collection.modes.map(m => m.name).join(', ')}</span>
+        <span class="meta-item">${collection.variableCount} переменных</span>
+        ${!collection.isManaged ? '<span class="badge badge-warning">read-only</span>' : ''}
+      </div>
+    </div>
+    <div class="variables-list">
+      ${collection.variables.slice(0, 100).map(v => {
+        const valueDisplay = renderVariableValue(v);
+        return `
+          <div class="variable-row">
+            <span class="var-name">${v.name}</span>
+            <span class="var-type">${v.resolvedType}</span>
+            <span class="var-value">${valueDisplay}</span>
+          </div>
+        `;
+      }).join('')}
+      ${collection.variables.length > 100 ? `
+        <div class="variables-more">...и ещё ${collection.variables.length - 100} переменных</div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderVariableValue(v: ProjectSyncData['collections']['managed'][0]['variables'][0]): string {
+  if (v.resolvedType === 'COLOR' && v.value && typeof v.value === 'object') {
+    const r = Math.round(v.value.r * 255);
+    const g = Math.round(v.value.g * 255);
+    const b = Math.round(v.value.b * 255);
+    const hex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    return `<span class="color-swatch" style="background: ${hex}"></span>${hex}`;
+  }
+  if (v.resolvedType === 'FLOAT') {
+    return String(v.value);
+  }
+  return String(v.value || '-');
+}
+
+function renderSyncStyles(styles: ProjectSyncData['styles']): string {
+  return `
+    <div class="sync-styles">
+      <div class="styles-section">
+        <div class="section-title">🎨 Paint Styles</div>
+        <div class="styles-grid">
+          <div class="styles-group">
+            <div class="group-title">Управляемые (color/...)</div>
+            ${styles.paint.managed.length > 0 ? styles.paint.managed.map(s => `
+              <div class="style-item">
+                ${s.color ? `<span class="color-swatch" style="background: rgb(${Math.round(s.color.r*255)},${Math.round(s.color.g*255)},${Math.round(s.color.b*255)})"></span>` : ''}
+                <span class="style-name">${s.name}</span>
+              </div>
+            `).join('') : '<div class="empty-hint">Нет paint styles. Создайте их из Variables!</div>'}
+          </div>
+          ${styles.paint.other.length > 0 ? `
+          <div class="styles-group">
+            <div class="group-title">Прочее <span class="badge">read-only</span></div>
+            ${styles.paint.other.map(s => `
+              <div class="style-item other">
+                ${s.color ? `<span class="color-swatch" style="background: rgb(${Math.round(s.color.r*255)},${Math.round(s.color.g*255)},${Math.round(s.color.b*255)})"></span>` : ''}
+                <span class="style-name">${s.name}</span>
+              </div>
+            `).join('')}
+          </div>
+          ` : ''}
+        </div>
+      </div>
+      
+      <div class="styles-section">
+        <div class="section-title">🔤 Text Styles</div>
+        <div class="styles-grid">
+          <div class="styles-group">
+            <div class="group-title">Управляемые (typography/...)</div>
+            ${styles.text.managed.length > 0 ? styles.text.managed.map(s => `
+              <div class="style-item">
+                <span class="style-preview" style="font-size: ${Math.min(s.fontSize || 14, 16)}px">${s.fontFamily || 'Font'}</span>
+                <span class="style-name">${s.name}</span>
+              </div>
+            `).join('') : '<div class="empty-hint">Нет text styles</div>'}
+          </div>
+          ${styles.text.other.length > 0 ? `
+          <div class="styles-group">
+            <div class="group-title">Прочее <span class="badge">read-only</span></div>
+            ${styles.text.other.slice(0, 20).map(s => `
+              <div class="style-item other">
+                <span class="style-name">${s.name}</span>
+              </div>
+            `).join('')}
+            ${styles.text.other.length > 20 ? `<div class="more-hint">...и ещё ${styles.text.other.length - 20}</div>` : ''}
+          </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================
+// PROJECT SYNC EVENT HANDLERS
+// ============================================
+
+export function handleProjectSyncEvents(container: HTMLElement): void {
+  container.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    
+    // Sync button
+    if (target.id === 'btn-sync-from-project' || target.closest('#btn-sync-from-project')) {
+      parent.postMessage({ pluginMessage: { type: 'sync-from-project' } }, '*');
+      return;
+    }
+    
+    // Tab switching
+    const tabBtn = target.closest('.sync-tab') as HTMLElement;
+    if (tabBtn) {
+      const tab = tabBtn.dataset.syncTab as 'overview' | 'collections' | 'styles';
+      if (tab) {
+        projectSyncTab = tab;
+        refreshProjectSync(container);
+      }
+      return;
+    }
+    
+    // Collection selection
+    const collectionItem = target.closest('.collection-item') as HTMLElement;
+    if (collectionItem) {
+      selectedCollectionId = collectionItem.dataset.collectionId || null;
+      refreshProjectSync(container);
+      return;
+    }
+    
+    // Create paint styles from variables
+    if (target.id === 'btn-create-paint-styles-from-vars' || target.closest('#btn-create-paint-styles-from-vars')) {
+      createPaintStylesFromVariables();
+      return;
+    }
+    
+    // Update paint styles
+    if (target.id === 'btn-update-paint-styles' || target.closest('#btn-update-paint-styles')) {
+      createPaintStylesFromVariables();
+      return;
+    }
+  });
+}
+
+function refreshProjectSync(container: HTMLElement): void {
+  const syncContainer = container.querySelector('.project-sync-wrapper');
+  if (syncContainer) {
+    syncContainer.innerHTML = renderProjectSync();
+  }
+}
+
+function createPaintStylesFromVariables(): void {
+  if (!projectSyncData) return;
+  
+  // Get color variables ONLY from Components collection (most specific level)
+  const componentsCollection = projectSyncData.collections.managed.find(c => c.name === 'Components');
+  
+  if (!componentsCollection) {
+    alert('Коллекция Components не найдена. Сначала сгенерируйте цвета.');
+    return;
+  }
+  
+  const colorVars = componentsCollection.variables.filter(v => 
+    v.resolvedType === 'COLOR' && v.value && typeof v.value === 'object' && 'r' in v.value
+  );
+  
+  if (colorVars.length === 0) {
+    alert('Нет компонентных цветов в Components.');
+    return;
+  }
+  
+  // Prepare colors for paint styles
+  const colors = colorVars.map(v => {
+    const value = v.value as { r: number; g: number; b: number; a: number };
+    return {
+      name: v.name,
+      hex: rgbaToHex(value),
+      r: value.r,
+      g: value.g,
+      b: value.b,
+      a: value.a ?? 1,
+      description: v.description,
+      category: v.name.split('/')[0] || v.name.split('.')[0] || 'color',
+    };
+  });
+  
+  // Send to Figma
+  parent.postMessage({
+    pluginMessage: {
+      type: 'create-color-paint-styles',
+      payload: {
+        colors,
+        structureMode: 'grouped',
+      }
+    }
+  }, '*');
+}
+
+function rgbaToHex(color: { r: number; g: number; b: number; a?: number }): string {
+  const r = Math.round(color.r * 255).toString(16).padStart(2, '0');
+  const g = Math.round(color.g * 255).toString(16).padStart(2, '0');
+  const b = Math.round(color.b * 255).toString(16).padStart(2, '0');
+  return `#${r}${g}${b}`;
 }

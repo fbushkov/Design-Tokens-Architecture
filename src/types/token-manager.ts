@@ -202,3 +202,89 @@ export interface TMFigmaVariable {
   collectionId: string;
   modeValues?: Record<string, any>;
 }
+
+// ============================================
+// PROJECT SYNC TYPES
+// ============================================
+
+/** Known collections managed by the plugin */
+export const MANAGED_COLLECTIONS = [
+  'Primitives',
+  'Tokens', 
+  'Components',
+  'Spacing',
+  'Gap',
+  'Icon Size',
+  'Radius',
+  'Typography',
+] as const;
+
+export type ManagedCollectionName = typeof MANAGED_COLLECTIONS[number];
+
+/** Known style prefixes managed by the plugin */
+export const MANAGED_STYLE_PREFIXES = {
+  paint: ['color/'],
+  text: ['typography/'],
+} as const;
+
+/** Variable info from Figma */
+export interface ProjectVariable {
+  id: string;
+  name: string;
+  resolvedType: 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN';
+  value: any;
+  description?: string;
+}
+
+/** Collection info from Figma */
+export interface ProjectCollection {
+  id: string;
+  name: string;
+  modes: Array<{ modeId: string; name: string }>;
+  variableCount: number;
+  variables: ProjectVariable[];
+  isManaged: boolean; // true if it's one of our collections
+}
+
+/** Style info from Figma */
+export interface ProjectStyle {
+  id: string;
+  name: string;
+  type: 'PAINT' | 'TEXT';
+  description?: string;
+  // For PAINT styles
+  color?: { r: number; g: number; b: number; a: number };
+  // For TEXT styles  
+  fontSize?: number;
+  fontFamily?: string;
+  isManaged: boolean; // true if name starts with managed prefix
+}
+
+/** Full project state from Figma */
+export interface ProjectSyncData {
+  collections: {
+    managed: ProjectCollection[];
+    other: ProjectCollection[];
+  };
+  styles: {
+    paint: {
+      managed: ProjectStyle[];
+      other: ProjectStyle[];
+    };
+    text: {
+      managed: ProjectStyle[];
+      other: ProjectStyle[];
+    };
+  };
+  summary: {
+    totalCollections: number;
+    totalVariables: number;
+    totalPaintStyles: number;
+    totalTextStyles: number;
+    managedCollections: number;
+    managedVariables: number;
+    managedPaintStyles: number;
+    managedTextStyles: number;
+  };
+  syncedAt: number;
+}

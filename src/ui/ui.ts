@@ -7,6 +7,9 @@ import {
   renderTokenManager,
   initTokenManagerEvents,
   initTokenManager,
+  renderProjectSync,
+  handleProjectSyncEvents,
+  setProjectSyncData,
 } from './token-manager-ui';
 
 import {
@@ -267,6 +270,19 @@ window.onmessage = (event: MessageEvent) => {
     case 'spacing-error':
       handleSpacingMessage(msg);
       break;
+    case 'project-synced':
+      setProjectSyncData(msg.payload);
+      refreshTokenManager();
+      showNotification('✅ Синхронизировано с проектом!');
+      break;
+    case 'project-sync-error':
+      showNotification('❌ Ошибка синхронизации: ' + msg.payload.error, true);
+      break;
+    case 'color-paint-styles-created':
+      showNotification(`✅ Paint Styles: ${msg.payload.created} создано, ${msg.payload.updated} обновлено`);
+      // Re-sync to update UI
+      postMessage('sync-from-project', {});
+      break;
   }
 };
 
@@ -438,6 +454,62 @@ document.addEventListener('click', (e) => {
 // ============================================
 // DOCUMENTATION GENERATORS
 // ============================================
+
+// Create Color Paint Styles
+const btnCreateColorStyles = document.getElementById('btn-create-color-styles');
+if (btnCreateColorStyles) {
+  btnCreateColorStyles.addEventListener('click', () => {
+    const figmaVariables = exportToFigmaVariables();
+    
+    // Filter only COLOR variables from Primitives collection
+    const primitiveColorVariables = figmaVariables.filter(v => 
+      v.collection === 'Primitives' &&
+      v.value && typeof v.value === 'object' && 'r' in v.value
+    );
+    
+    if (primitiveColorVariables.length === 0) {
+      showNotification('⚠️ Сначала сгенерируйте цвета');
+      return;
+    }
+    
+    // Prepare colors for Paint Styles
+    const colors = primitiveColorVariables.map(v => {
+      const rgba = v.value as { r: number; g: number; b: number; a: number };
+      // Parse name to get category and shade (e.g., "color.brand.500" -> category: "brand", shade: "500")
+      const parts = v.name.split('.');
+      const category = parts.length >= 2 ? parts[1] : 'other';
+      const shade = parts.length >= 3 ? parts[2] : '';
+      
+      return {
+        name: v.name,
+        hex: rgbaToHex(rgba.r, rgba.g, rgba.b, rgba.a),
+        r: rgba.r,
+        g: rgba.g,
+        b: rgba.b,
+        a: rgba.a,
+        description: v.description || '',
+        category,
+        shade,
+      };
+    });
+    
+    postMessage('create-color-paint-styles', {
+      colors,
+      structureMode: 'grouped',
+    });
+    
+    showNotification(`🎨 Создание ${colors.length} Paint Styles...`);
+  });
+}
+
+// Helper function to convert RGBA (0-1) to HEX
+function rgbaToHex(r: number, g: number, b: number, a: number): string {
+  const toHex = (n: number): string => {
+    const hex = Math.round(Math.min(1, Math.max(0, n)) * 255).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  };
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}${a < 1 ? toHex(a) : ''}`;
+}
 
 // Colors Documentation
 const btnDocsColors = document.getElementById('btn-docs-colors');

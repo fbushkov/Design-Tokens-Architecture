@@ -254,6 +254,274 @@ async function extractLocalStyles(): Promise<{
   };
 }
 
+// ============================================
+// PROJECT SYNC - Read current project state
+// ============================================
+
+/** Collections managed by the plugin */
+const MANAGED_COLLECTIONS = [
+  'Primitives',
+  'Tokens', 
+  'Components',
+  'Spacing',
+  'Gap',
+  'Icon Size',
+  'Radius',
+  'Typography',
+];
+
+/** Style prefixes managed by the plugin */
+const MANAGED_PAINT_PREFIXES = ['color/'];
+const MANAGED_TEXT_PREFIXES = ['typography/'];
+
+interface ProjectVariable {
+  id: string;
+  name: string;
+  resolvedType: 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN';
+  value: any;
+  description?: string;
+}
+
+interface ProjectCollection {
+  id: string;
+  name: string;
+  modes: Array<{ modeId: string; name: string }>;
+  variableCount: number;
+  variables: ProjectVariable[];
+  isManaged: boolean;
+}
+
+interface ProjectStyle {
+  id: string;
+  name: string;
+  type: 'PAINT' | 'TEXT';
+  description?: string;
+  color?: { r: number; g: number; b: number; a: number };
+  fontSize?: number;
+  fontFamily?: string;
+  isManaged: boolean;
+}
+
+interface ProjectSyncData {
+  collections: {
+    managed: ProjectCollection[];
+    other: ProjectCollection[];
+  };
+  styles: {
+    paint: {
+      managed: ProjectStyle[];
+      other: ProjectStyle[];
+    };
+    text: {
+      managed: ProjectStyle[];
+      other: ProjectStyle[];
+    };
+  };
+  summary: {
+    totalCollections: number;
+    totalVariables: number;
+    totalPaintStyles: number;
+    totalTextStyles: number;
+    managedCollections: number;
+    managedVariables: number;
+    managedPaintStyles: number;
+    managedTextStyles: number;
+  };
+  syncedAt: number;
+}
+
+/**
+ * Resolve variable alias to final RGBA value
+ */
+async function resolveVariableAlias(value: VariableValue, resolvedType: string): Promise<VariableValue> {
+  // If it's already a direct value, return it
+  if (typeof value !== 'object' || value === null) {
+    return value;
+  }
+  
+  // Check if it's a VariableAlias (has 'type' and 'id' properties)
+  if ('type' in value && (value as any).type === 'VARIABLE_ALIAS' && 'id' in value) {
+    const aliasId = (value as VariableAlias).id;
+    try {
+      const aliasedVar = await figma.variables.getVariableByIdAsync(aliasId);
+      if (aliasedVar) {
+        // Get value from the aliased variable's default mode
+        const aliasedCollection = await figma.variables.getVariableCollectionByIdAsync(aliasedVar.variableCollectionId);
+        if (aliasedCollection) {
+          const aliasedValue = aliasedVar.valuesByMode[aliasedCollection.defaultModeId];
+          // Recursively resolve if it's another alias
+          return await resolveVariableAlias(aliasedValue, aliasedVar.resolvedType);
+        }
+      }
+    } catch (e) {
+      // If we can't resolve, return null
+      return null as any;
+    }
+  }
+  
+  return value;
+}
+
+/**
+ * Sync from project - get all collections, variables, and styles
+ */
+async function syncFromProject(): Promise<ProjectSyncData> {
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  const paintStyles = await figma.getLocalPaintStylesAsync();
+  const textStyles = await figma.getLocalTextStylesAsync();
+  
+  const managedCollections: ProjectCollection[] = [];
+  const otherCollections: ProjectCollection[] = [];
+  
+  // Process collections
+  for (const collection of collections) {
+    const isManaged = MANAGED_COLLECTIONS.includes(collection.name);
+    const variables: ProjectVariable[] = [];
+    
+    // Get variables for this collection
+    for (const varId of collection.variableIds) {
+      try {
+        const variable = await figma.variables.getVariableByIdAsync(varId);
+        if (variable) {
+          // Get value from default mode
+          const defaultModeId = collection.defaultModeId;
+          const rawValue = variable.valuesByMode[defaultModeId];
+          
+          // Resolve aliases to final values
+          let resolvedValue = await resolveVariableAlias(rawValue, variable.resolvedType);
+          
+          // Format COLOR values
+          if (variable.resolvedType === 'COLOR' && typeof resolvedValue === 'object' && resolvedValue !== null) {
+            if ('r' in resolvedValue) {
+              resolvedValue = {
+                r: (resolvedValue as RGBA).r,
+                g: (resolvedValue as RGBA).g,
+                b: (resolvedValue as RGBA).b,
+                a: (resolvedValue as RGBA).a ?? 1,
+              };
+            }
+          }
+          
+          variables.push({
+            id: variable.id,
+            name: variable.name,
+            resolvedType: variable.resolvedType,
+            value: resolvedValue,
+            description: variable.description || undefined,
+          });
+        }
+      } catch (e) {
+        // Skip variables that can't be accessed
+      }
+    }
+    
+    const collectionData: ProjectCollection = {
+      id: collection.id,
+      name: collection.name,
+      modes: collection.modes.map(m => ({ modeId: m.modeId, name: m.name })),
+      variableCount: variables.length,
+      variables,
+      isManaged,
+    };
+    
+    if (isManaged) {
+      managedCollections.push(collectionData);
+    } else {
+      otherCollections.push(collectionData);
+    }
+  }
+  
+  // Process paint styles
+  const managedPaintStyles: ProjectStyle[] = [];
+  const otherPaintStyles: ProjectStyle[] = [];
+  
+  for (const style of paintStyles) {
+    const isManaged = MANAGED_PAINT_PREFIXES.some(prefix => style.name.startsWith(prefix));
+    
+    let color: { r: number; g: number; b: number; a: number } | undefined;
+    if (style.paints.length > 0 && style.paints[0].type === 'SOLID') {
+      const paint = style.paints[0] as SolidPaint;
+      color = {
+        r: paint.color.r,
+        g: paint.color.g,
+        b: paint.color.b,
+        a: paint.opacity ?? 1,
+      };
+    }
+    
+    const styleData: ProjectStyle = {
+      id: style.id,
+      name: style.name,
+      type: 'PAINT',
+      description: style.description || undefined,
+      color,
+      isManaged,
+    };
+    
+    if (isManaged) {
+      managedPaintStyles.push(styleData);
+    } else {
+      otherPaintStyles.push(styleData);
+    }
+  }
+  
+  // Process text styles
+  const managedTextStyles: ProjectStyle[] = [];
+  const otherTextStyles: ProjectStyle[] = [];
+  
+  for (const style of textStyles) {
+    const isManaged = MANAGED_TEXT_PREFIXES.some(prefix => style.name.startsWith(prefix));
+    
+    const styleData: ProjectStyle = {
+      id: style.id,
+      name: style.name,
+      type: 'TEXT',
+      description: style.description || undefined,
+      fontSize: style.fontSize as number,
+      fontFamily: style.fontName.family,
+      isManaged,
+    };
+    
+    if (isManaged) {
+      managedTextStyles.push(styleData);
+    } else {
+      otherTextStyles.push(styleData);
+    }
+  }
+  
+  // Calculate summary
+  const managedVarsCount = managedCollections.reduce((sum, c) => sum + c.variableCount, 0);
+  const totalVarsCount = managedVarsCount + otherCollections.reduce((sum, c) => sum + c.variableCount, 0);
+  
+  return {
+    collections: {
+      managed: managedCollections,
+      other: otherCollections,
+    },
+    styles: {
+      paint: {
+        managed: managedPaintStyles,
+        other: otherPaintStyles,
+      },
+      text: {
+        managed: managedTextStyles,
+        other: otherTextStyles,
+      },
+    },
+    summary: {
+      totalCollections: collections.length,
+      totalVariables: totalVarsCount,
+      totalPaintStyles: paintStyles.length,
+      totalTextStyles: textStyles.length,
+      managedCollections: managedCollections.length,
+      managedVariables: managedVarsCount,
+      managedPaintStyles: managedPaintStyles.length,
+      managedTextStyles: managedTextStyles.length,
+    },
+    syncedAt: Date.now(),
+  };
+}
+
 async function extractTokensFromFigma(): Promise<DesignTokens> {
   const colors = await extractColorsFromVariables();
   const numbers = await extractNumbersFromVariables();
@@ -2639,6 +2907,89 @@ async function createTextStyles(payload: TextStylePayload): Promise<{ created: n
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       result.errors.push(`Ошибка создания стиля "${token.name}": ${errorMessage}`);
+    }
+  }
+  
+  return result;
+}
+
+// ============================================
+// COLOR PAINT STYLES
+// ============================================
+
+interface ColorPaintStylesPayload {
+  colors: Array<{
+    name: string;
+    hex: string;
+    r: number;
+    g: number;
+    b: number;
+    a: number;
+    description?: string;
+    category: string;
+    shade?: string;
+  }>;
+  includeCategories?: string[];
+  structureMode: 'flat' | 'grouped';
+}
+
+/**
+ * Create Paint Styles for colors
+ * Structure: color/category/shade (e.g., color/brand/500, color/neutral/100)
+ */
+async function createColorPaintStyles(payload: ColorPaintStylesPayload): Promise<{ created: number; updated: number; errors: string[] }> {
+  const result = { created: 0, updated: 0, errors: [] as string[] };
+  
+  // Get existing paint styles
+  const existingStyles = await figma.getLocalPaintStylesAsync();
+  
+  for (const color of payload.colors) {
+    try {
+      // Build style name based on structure mode
+      let styleName: string;
+      if (payload.structureMode === 'flat') {
+        // Flat: color/brand-500
+        styleName = color.name.replace(/\./g, '/');
+      } else {
+        // Grouped: color/brand/500
+        styleName = color.name.replace(/\./g, '/');
+      }
+      
+      // Ensure it starts with color/
+      if (!styleName.startsWith('color/')) {
+        styleName = `color/${styleName}`;
+      }
+      
+      // Check if style already exists
+      let paintStyle = existingStyles.find(s => s.name === styleName);
+      
+      // Create paint object
+      const paint: SolidPaint = {
+        type: 'SOLID',
+        color: { r: color.r, g: color.g, b: color.b },
+        opacity: color.a,
+      };
+      
+      if (paintStyle) {
+        // Update existing style
+        paintStyle.paints = [paint];
+        if (color.description) {
+          paintStyle.description = color.description;
+        }
+        result.updated++;
+      } else {
+        // Create new style
+        paintStyle = figma.createPaintStyle();
+        paintStyle.name = styleName;
+        paintStyle.paints = [paint];
+        if (color.description) {
+          paintStyle.description = color.description;
+        }
+        result.created++;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания стиля "${color.name}": ${errorMessage}`);
     }
   }
   
@@ -5954,6 +6305,35 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         break;
       }
 
+      case 'sync-from-project': {
+        figma.notify('🔄 Синхронизация с проектом...');
+        
+        try {
+          const projectData = await syncFromProject();
+          
+          figma.ui.postMessage({
+            type: 'project-synced',
+            payload: projectData
+          });
+          
+          const { summary } = projectData;
+          figma.notify(
+            `✅ Синхронизировано: ${summary.managedCollections} коллекций, ` +
+            `${summary.managedVariables} переменных, ` +
+            `${summary.managedPaintStyles} paint стилей, ` +
+            `${summary.managedTextStyles} text стилей`
+          );
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          figma.ui.postMessage({
+            type: 'project-sync-error',
+            payload: { error: errorMessage }
+          });
+          figma.notify(`❌ Ошибка синхронизации: ${errorMessage}`);
+        }
+        break;
+      }
+
       case 'export-tokens': {
         const tokens = await extractTokensFromFigma();
         const payload = msg.payload as { format?: string } | undefined;
@@ -6072,6 +6452,31 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           figma.notify(`⚠️ Text Styles: ${result.created} создано, ${result.updated} обновлено, ${result.errors.length} ошибок`);
         } else {
           figma.notify(`✅ Text Styles: ${result.created} создано, ${result.updated} обновлено`);
+        }
+        break;
+      }
+
+      case 'create-color-paint-styles': {
+        const payload = msg.payload as ColorPaintStylesPayload;
+        
+        figma.notify(`⏳ Создание ${payload.colors.length} Paint Styles...`);
+        
+        const result = await createColorPaintStyles(payload);
+        
+        figma.ui.postMessage({
+          type: 'color-paint-styles-created',
+          payload: { 
+            success: result.errors.length === 0,
+            created: result.created,
+            updated: result.updated,
+            errors: result.errors
+          }
+        });
+        
+        if (result.errors.length > 0) {
+          figma.notify(`⚠️ Paint Styles: ${result.created} создано, ${result.updated} обновлено, ${result.errors.length} ошибок`);
+        } else {
+          figma.notify(`✅ Paint Styles: ${result.created} создано, ${result.updated} обновлено`);
         }
         break;
       }
