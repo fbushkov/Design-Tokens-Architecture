@@ -3569,6 +3569,7 @@
       <button class="sub-tab" data-subtab="prim-spacing">📐 Spacing</button>
       <button class="sub-tab" data-subtab="prim-gap">↔️ Gap</button>
       <button class="sub-tab" data-subtab="prim-radius">⬜ Радиусы</button>
+      <button class="sub-tab" data-subtab="prim-icon-size">🎯 Icon Size</button>
       <button class="sub-tab" data-subtab="prim-shadows">🌑 Тени</button>
       <button class="sub-tab" data-subtab="prim-borders">🔲 Границы</button>
     </div>
@@ -4240,6 +4241,115 @@
           </div>
           
           <div id="radius-export-status" class="export-status" style="display: none; margin-top: 12px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Icon Size -->
+    <div id="prim-icon-size" class="sub-tab-content">
+      <!-- Icon Size Sub-navigation -->
+      <div class="typography-nav">
+        <button class="typo-tab active" data-icon-size-tab="icon-size-primitives">Примитивы</button>
+        <button class="typo-tab" data-icon-size-tab="icon-size-semantic">Семантика</button>
+        <button class="typo-tab" data-icon-size-tab="icon-size-export">Экспорт</button>
+      </div>
+
+      <!-- Primitives Section -->
+      <div id="icon-size-primitives" class="typo-tab-content active">
+        <div class="section">
+          <div class="section-title">
+            Базовые значения (iconSize.X)
+            <span class="badge" id="icon-size-primitives-count">16/16</span>
+          </div>
+          <p class="section-desc" style="margin-bottom: 12px; color: var(--color-text-secondary); font-size: 11px;">
+            Кликните для включения/выключения. Эти значения создаются в коллекции Primitives.
+          </p>
+          <div id="icon-size-primitives-grid" class="spacing-primitives-grid">
+            <!-- Dynamic -->
+          </div>
+        </div>
+
+        <div class="section">
+          <button class="btn btn-primary" id="btn-generate-icon-size-primitives">
+            ✨ Сгенерировать примитивы icon size
+          </button>
+        </div>
+      </div>
+
+      <!-- Semantic Section -->
+      <div id="icon-size-semantic" class="typo-tab-content">
+        <div class="info-box info-box-sm">
+          <strong>Семантические токены Icon Size</strong> — контекстное применение для UI-компонентов (button, input, nav, status и т.д.)
+        </div>
+
+        <div class="section">
+          <div class="section-title">Категории</div>
+          <div id="icon-size-category-tabs" class="spacing-category-tabs">
+            <!-- Dynamic -->
+          </div>
+        </div>
+        
+        <div class="section">
+          <div class="section-title">
+            Семантические токены
+            <span class="badge" id="icon-size-semantic-count">90</span>
+          </div>
+          <p class="section-desc" style="margin-bottom: 12px; color: var(--color-text-secondary); font-size: 11px;">
+            Токены со ссылками на примитивы iconSize для контекстного использования.
+          </p>
+          <div id="icon-size-semantic-list">
+            <!-- Dynamic -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Export Section -->
+      <div id="icon-size-export" class="typo-tab-content">
+        <div class="section">
+          <div class="section-title">Архитектура</div>
+          <div class="architecture-preview">
+            <div class="arch-level">
+              <div class="arch-level-title">Primitives (коллекция)</div>
+              <div class="arch-level-example">iconSize.10 = 10px, iconSize.16 = 16px, iconSize.24 = 24px...</div>
+            </div>
+            <div class="arch-arrow">↓ алиасы</div>
+            <div class="arch-level">
+              <div class="arch-level-title">Icon Size (коллекция)</div>
+              <div class="arch-level-example">
+                iconSize.interactive.button → {iconSize.16}<br>
+                iconSize.empty.illustration → {iconSize.96}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Экспорт в Figma</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn btn-primary" id="export-icon-size-primitives">
+              ⬜ Примитивы → Primitives
+            </button>
+            <button class="btn btn-secondary" id="export-icon-size-semantic">
+              🎯 Семантика → Icon Size
+            </button>
+            <button class="btn btn-secondary" id="export-icon-size-all">
+              ✨ Экспортировать всё
+            </button>
+            <button class="btn btn-secondary" id="btn-docs-icon-size">
+              📖 Создать документацию
+            </button>
+          </div>
+          
+          <div id="icon-size-export-status" class="export-status" style="display: none; margin-top: 12px;"></div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Копировать код</div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn btn-secondary" id="export-icon-size-css">CSS</button>
+            <button class="btn btn-secondary" id="export-icon-size-scss">SCSS</button>
+            <button class="btn btn-secondary" id="export-icon-size-json">JSON</button>
+          </div>
         </div>
       </div>
     </div>

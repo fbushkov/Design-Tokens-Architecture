@@ -1,7 +1,7 @@
 # 🏗️ Архитектура плагина Design Tokens Manager
 
 > **Последнее обновление**: 17 декабря 2024
-> **Версия**: 2.4 (Radius System)
+> **Версия**: 2.5 (Icon Size System)
 
 ## 📌 Основная идея
 
@@ -422,6 +422,98 @@ if (themeColorOverride && sourceColor === 'brand') {
 
 ---
 
+## 🎯 Архитектура Icon Size (размеры иконок)
+
+### 2-уровневая архитектура:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    🎯 ICON SIZE COLLECTION                      │
+│       Семантические размеры иконок для UI компонентов           │
+│       БЕЗ режимов — алиасы на примитивы                        │
+│                                                                 │
+│       iconSize/interactive/button       → {iconSize.16}         │
+│       iconSize/interactive/buttonLarge  → {iconSize.20}         │
+│       iconSize/form/checkbox            → {iconSize.16}         │
+│       iconSize/navigation/item          → {iconSize.20}         │
+│       iconSize/empty/illustration       → {iconSize.96}         │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓ алиасы
+┌─────────────────────────────────────────────────────────────────┐
+│                    PRIMITIVES COLLECTION                        │
+│       Примитивные значения размеров иконок                      │
+│       БЕЗ режимов — только значения в px                        │
+│                                                                 │
+│       iconSize/10 = 10px        iconSize/36 = 36px              │
+│       iconSize/12 = 12px        iconSize/40 = 40px              │
+│       iconSize/14 = 14px        iconSize/48 = 48px              │
+│       iconSize/16 = 16px        iconSize/56 = 56px              │
+│       iconSize/18 = 18px        iconSize/64 = 64px              │
+│       iconSize/20 = 20px        iconSize/72 = 72px              │
+│       iconSize/24 = 24px        iconSize/96 = 96px              │
+│       iconSize/28 = 28px                                        │
+│       iconSize/32 = 32px                                        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Категории семантических токенов (14 категорий, 90+ токенов):
+
+| # | Категория | Описание | Примеры токенов |
+|---|-----------|----------|------------------|
+| 1 | **interactive** | Кнопки, ссылки, меню, табы | button, buttonLarge, buttonCompact, link, menuItem, tab |
+| 2 | **form** | Инпуты, чекбоксы, валидация | inputPrefix, checkbox, radio, switch, validation |
+| 3 | **navigation** | Навигация, breadcrumbs | item, breadcrumbSeparator, paginationArrow, back, close |
+| 4 | **status** | Бейджи, теги, индикаторы | badge, tag, chip, indicator, dot |
+| 5 | **notification** | Алерты, тосты, баннеры | alert, alertLarge, toast, banner |
+| 6 | **data** | Таблицы, метрики, графики | tableAction, tableSort, metricTrend, chartLegend |
+| 7 | **media** | Аватары, плееры, placeholder | avatarBadge, placeholder, playButton, controls |
+| 8 | **empty** | Пустые состояния | illustration, illustrationSmall, icon, iconLarge |
+| 9 | **modal** | Модальные окна | close, headerIcon, confirmationIcon |
+| 10 | **card** | Карточки | headerIcon, action, meta, feature |
+| 11 | **list** | Списки | itemIcon, bullet, dragHandle, expandCollapse |
+| 12 | **action** | FAB, контекстное меню | primary, secondary, tertiary, fab, more, contextMenu |
+| 13 | **loading** | Спиннеры | spinner, spinnerCompact, spinnerLarge, buttonSpinner |
+| 14 | **special** | Лого, социальные, рейтинг | logo, logoSmall, social, rating, stepIndicator |
+
+### Примеры значений:
+
+| Токен | Значение | Использование |
+|-------|----------|---------------|
+| iconSize.interactive.button | {iconSize.16} | Иконки в кнопках стандартного размера |
+| iconSize.interactive.buttonLarge | {iconSize.20} | Иконки в крупных кнопках |
+| iconSize.form.checkbox | {iconSize.16} | Галочка в чекбоксах |
+| iconSize.navigation.hamburger | {iconSize.24} | Иконка бургер-меню |
+| iconSize.status.badge | {iconSize.12} | Маленькие иконки в бейджах |
+| iconSize.empty.illustration | {iconSize.96} | Крупные иконки в пустых состояниях |
+| iconSize.action.fab | {iconSize.24} | Иконка в FAB кнопке |
+| iconSize.loading.spinner | {iconSize.20} | Стандартный спиннер |
+
+### Диапазоны размеров:
+
+| Диапазон | Размеры | Применение |
+|----------|---------|------------|
+| **XS** | 10-14px | Индикаторы, стрелки, мелкие UI элементы |
+| **S** | 16-20px | Кнопки, инпуты, меню, навигация |
+| **M** | 24-32px | Заголовки карточек, FAB, значимые действия |
+| **L** | 36-48px | Медиа, пустые состояния, подтверждения |
+| **XL** | 56-96px | Иллюстрации, крупные пустые состояния |
+
+### Отличие от Spacing/Gap/Radius:
+
+| Аспект | Spacing/Gap | Radius | Icon Size |
+|--------|-------------|--------|----------|
+| Режимы | Desktop/Tablet/Mobile | Нет | Нет |
+| Адаптивность | Да | Нет | Нет |
+| Причина | Размеры иконок не должны меняться между устройствами |
+
+### Использование в Figma:
+
+1. **Создать примитивы** → кнопка "Экспорт примитивов" → коллекция `Primitives` с `iconSize/10..96`
+2. **Создать семантику** → кнопка "Экспорт семантики" → коллекция `Icon Size` с алиасами
+3. **Применить к компонентам** → использовать семантические переменные (iconSize/interactive/button) вместо raw values
+
+---
+
 ## 🔢 Общий паттерн для числовых (Number) токенов
 
 ### Архитектура числовых переменных:
@@ -491,6 +583,7 @@ if (themeColorOverride && sourceColor === 'brand') {
 | **Spacing** | 📖 Создать документацию | Архитектура отступов, визуальные бары значений по режимам |
 | **Gap** | 📖 Создать документацию | Архитектура gap, визуализация расстояний между элементами |
 | **Radius** | 📖 Создать документацию | Архитектура радиусов, визуальные превью скруглений |
+| **Icon Size** | 📖 Создать документацию | Архитектура размеров иконок, визуальные превью по категориям |
 
 ### Архитектурные описания:
 

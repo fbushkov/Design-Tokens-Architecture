@@ -46,6 +46,10 @@ import {
 } from './radius-generator-ui';
 
 import {
+  initIconSizeUI,
+} from './icon-size-generator-ui';
+
+import {
   getState,
   getTokens,
   saveState,
@@ -404,6 +408,9 @@ initGapUI();
 
 // Initialize Radius UI (2-tier for border-radius)
 initRadiusUI();
+
+// Initialize Icon Size UI (2-tier for icon sizes)
+initIconSizeUI();
 
 // Listen for token-generated event to refresh Token Manager
 document.addEventListener('tokens-generated', () => {

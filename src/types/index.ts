@@ -5,3 +5,4 @@ export * from './token-manager-state';
 export * from './spacing-tokens';
 export * from './gap-tokens';
 export * from './radius-tokens';
+export * from './icon-size-tokens';

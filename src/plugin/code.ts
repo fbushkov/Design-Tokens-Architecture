@@ -3240,6 +3240,431 @@ async function createRadiusSemanticCollection(data: RadiusSemanticData): Promise
 }
 
 // ============================================
+// ICON SIZE PRIMITIVES & SEMANTIC
+// ============================================
+
+async function createIconSizePrimitives(primitives: Array<{ name: string; value: number }>): Promise<{ created: number; updated: number; errors: string[] }> {
+  const result = { created: 0, updated: 0, errors: [] as string[] };
+  
+  // Get or create Primitives collection
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  let primitivesCollection = collections.find(c => c.name === 'Primitives');
+  
+  if (!primitivesCollection) {
+    primitivesCollection = figma.variables.createVariableCollection('Primitives');
+  }
+  
+  // Get existing variables
+  const existingVariables = await figma.variables.getLocalVariablesAsync();
+  
+  for (const prim of primitives) {
+    try {
+      const varName = `iconSize/${prim.name}`;
+      
+      // Check if exists
+      let existingVar = existingVariables.find(v => 
+        v.name === varName && v.variableCollectionId === primitivesCollection!.id
+      );
+      
+      if (existingVar) {
+        // Update value
+        existingVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        result.updated++;
+      } else {
+        // Create new
+        const newVar = figma.variables.createVariable(varName, primitivesCollection, 'FLOAT');
+        newVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        newVar.description = `Icon size ${prim.value}px`;
+        result.created++;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания iconSize/${prim.name}: ${errorMessage}`);
+    }
+  }
+  
+  return result;
+}
+
+interface IconSizeSemanticData {
+  tokens: Array<{
+    id: string;           // "iconSize.interactive.button"
+    category: string;     // "interactive"
+    subcategory: string;  // "button"
+    name: string;         // "button"
+    primitiveRef: string; // "{iconSize.16}"
+    value: number;        // 16
+    description?: string;
+  }>;
+}
+
+async function createIconSizeSemanticCollection(data: IconSizeSemanticData): Promise<{ created: number; aliased: number; errors: string[] }> {
+  const result = { created: 0, aliased: 0, errors: [] as string[] };
+  
+  // Get all collections
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  
+  // Find Primitives collection
+  const primitivesCollection = collections.find(c => c.name === 'Primitives');
+  if (!primitivesCollection) {
+    result.errors.push('Коллекция Primitives не найдена. Сначала создайте примитивы.');
+    return result;
+  }
+  
+  // Find or create Icon Size collection
+  let iconSizeCollection = collections.find(c => c.name === 'Icon Size');
+  if (!iconSizeCollection) {
+    iconSizeCollection = figma.variables.createVariableCollection('Icon Size');
+  }
+  
+  // Get all existing variables
+  const allVariables = await figma.variables.getLocalVariablesAsync('FLOAT');
+  
+  // Create map of primitive variables (iconSize/16, iconSize/24...)
+  const primitiveVarMap = new Map<string, Variable>();
+  allVariables.forEach(v => {
+    if (v.variableCollectionId === primitivesCollection.id) {
+      // v.name is "iconSize/16", extract "16"
+      const match = v.name.match(/iconSize\/(.+)/);
+      if (match) {
+        primitiveVarMap.set(match[1], v);
+      }
+    }
+  });
+  
+  // Existing semantic variables in Icon Size collection
+  const existingVars = allVariables.filter(v => v.variableCollectionId === iconSizeCollection!.id);
+  const existingVarMap = new Map<string, Variable>();
+  existingVars.forEach(v => existingVarMap.set(v.name, v));
+  
+  // Create/update semantic tokens
+  for (const token of data.tokens) {
+    try {
+      // Convert id: "iconSize.interactive.button" -> "iconSize/interactive/button"
+      const varName = token.id.replace(/\./g, '/');
+      
+      // Get or create variable
+      let variable = existingVarMap.get(varName);
+      if (!variable) {
+        variable = figma.variables.createVariable(varName, iconSizeCollection!, 'FLOAT');
+        result.created++;
+      }
+      
+      // Set description
+      if (token.description) {
+        variable.description = token.description;
+      }
+      
+      // Extract primitive value from primitiveRef: "{iconSize.16}" -> "16"
+      const primitiveMatch = token.primitiveRef.match(/\{iconSize\.(\d+)\}/);
+      const primitiveKey = primitiveMatch ? primitiveMatch[1] : String(token.value);
+      
+      // Set alias to primitive
+      const primitive = primitiveVarMap.get(primitiveKey);
+      if (primitive) {
+        const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: primitive.id };
+        variable.setValueForMode(iconSizeCollection.defaultModeId, alias);
+        result.aliased++;
+      } else {
+        // If primitive not found, set direct value
+        variable.setValueForMode(iconSizeCollection.defaultModeId, token.value);
+        result.errors.push(`Примитив iconSize/${primitiveKey} не найден для ${token.id}, использовано прямое значение ${token.value}px`);
+      }
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания ${token.id}: ${errorMessage}`);
+    }
+  }
+  
+  return result;
+}
+
+async function generateIconSizeDocumentation(): Promise<DocGeneratorResult> {
+  await loadDocFonts();
+  
+  const pageName = '📖 Icon Size Documentation';
+  const page = figma.createPage();
+  page.name = pageName;
+  
+  // Get all float variables
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  const floatVars = await figma.variables.getLocalVariablesAsync('FLOAT');
+  
+  // Filter icon size variables
+  const iconSizeVars = floatVars.filter(v => 
+    v.name.toLowerCase().includes('iconsize')
+  );
+  
+  let xOffset = 0;
+  let framesCreated = 0;
+  
+  // ===== ARCHITECTURE DESCRIPTION FRAME =====
+  const archFrame = figma.createFrame();
+  archFrame.name = 'Архитектура Icon Size';
+  archFrame.x = xOffset;
+  archFrame.y = 0;
+  archFrame.layoutMode = 'VERTICAL';
+  archFrame.itemSpacing = 24;
+  archFrame.paddingTop = 40;
+  archFrame.paddingBottom = 40;
+  archFrame.paddingLeft = 40;
+  archFrame.paddingRight = 40;
+  archFrame.primaryAxisSizingMode = 'AUTO';
+  archFrame.counterAxisSizingMode = 'AUTO';
+  archFrame.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.98, b: 1 } }];
+  archFrame.cornerRadius = 16;
+  archFrame.minWidth = 550;
+  
+  const archTitle = createStyledText('🏗️ Архитектура Icon Size системы', 0, 0, 28, 'Bold');
+  archFrame.appendChild(archTitle);
+  
+  const archIntro = createStyledText(
+    `Icon Size — система размеров иконок для UI элементов.\n` +
+    `2-уровневая архитектура: Primitives → Semantic (без адаптивности).`,
+    0, 0, 13, 'Regular', { r: 0.4, g: 0.4, b: 0.4 }
+  );
+  archFrame.appendChild(archIntro);
+  
+  // Primitives section
+  const primSection = figma.createFrame();
+  primSection.name = 'Primitives section';
+  primSection.layoutMode = 'VERTICAL';
+  primSection.itemSpacing = 8;
+  primSection.fills = [];
+  primSection.primaryAxisSizingMode = 'AUTO';
+  primSection.counterAxisSizingMode = 'AUTO';
+  
+  const primTitle = createStyledText('📦 ПРИМИТИВЫ (16 значений)', 0, 0, 16, 'Bold');
+  primSection.appendChild(primTitle);
+  
+  const primDesc = createStyledText(
+    `Базовая шкала размеров иконок:\n\n` +
+    `iconSize.10  = 10px    iconSize.36 = 36px\n` +
+    `iconSize.12  = 12px    iconSize.40 = 40px\n` +
+    `iconSize.14  = 14px    iconSize.48 = 48px\n` +
+    `iconSize.16  = 16px    iconSize.56 = 56px\n` +
+    `iconSize.18  = 18px    iconSize.64 = 64px\n` +
+    `iconSize.20  = 20px    iconSize.72 = 72px\n` +
+    `iconSize.24  = 24px    iconSize.96 = 96px\n` +
+    `iconSize.28  = 28px\n` +
+    `iconSize.32  = 32px\n\n` +
+    `💡 Размеры согласованы с 4px-grid системой.`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  primSection.appendChild(primDesc);
+  archFrame.appendChild(primSection);
+  
+  // Semantic section
+  const semSection = figma.createFrame();
+  semSection.name = 'Semantic section';
+  semSection.layoutMode = 'VERTICAL';
+  semSection.itemSpacing = 8;
+  semSection.fills = [];
+  semSection.primaryAxisSizingMode = 'AUTO';
+  semSection.counterAxisSizingMode = 'AUTO';
+  
+  const semTitle = createStyledText('🎯 СЕМАНТИЧЕСКИЕ ТОКЕНЫ (14 категорий, 90+ токенов)', 0, 0, 16, 'Bold');
+  semSection.appendChild(semTitle);
+  
+  const semDesc = createStyledText(
+    `Токены с контекстом, ссылающиеся на примитивы {iconSize.X}:\n\n` +
+    `INTERACTIVE — кнопки, ссылки, меню, табы\n` +
+    `  button (16), buttonLarge (20), buttonCompact (14)\n` +
+    `  buttonIconOnly (20), link (16), menuItem (16), tab (18)\n\n` +
+    `FORM — инпуты, чекбоксы, валидация\n` +
+    `  inputPrefix (16), inputSuffix (16), inputAction (18)\n` +
+    `  checkbox (16), radio (16), switch (14), validation (14)\n\n` +
+    `NAVIGATION — навигация, breadcrumbs\n` +
+    `  item (20), breadcrumbSeparator (14), paginationArrow (16)\n` +
+    `  back (20), close (20), hamburger (24)\n\n` +
+    `STATUS — бейджи, теги, чипы\n` +
+    `  badge (12), tag (14), chip (16), indicator (12), dot (10)\n\n` +
+    `NOTIFICATION — алерты, тосты, баннеры\n` +
+    `  alert (20), toast (20), banner (24)\n\n` +
+    `DATA — таблицы, метрики, графики\n` +
+    `  tableAction (16), tableSort (14), metricTrend (16)\n\n` +
+    `MEDIA — аватары, плееры, placeholder\n` +
+    `  avatarBadge (12), placeholder (48), playButton (48)\n\n` +
+    `EMPTY — пустые состояния\n` +
+    `  illustration (96), icon (48)\n\n` +
+    `MODAL — модальные окна\n` +
+    `  close (20), headerIcon (24), confirmationIcon (48)\n\n` +
+    `CARD — карточки\n` +
+    `  headerIcon (24), action (18), meta (14), feature (32)\n\n` +
+    `LIST — списки\n` +
+    `  itemIcon (20), bullet (10), dragHandle (16)\n\n` +
+    `ACTION — FAB, контекстное меню\n` +
+    `  primary (20), secondary (18), fab (24), more (20)\n\n` +
+    `LOADING — спиннеры\n` +
+    `  spinner (20), spinnerCompact (16), spinnerLarge (32)\n\n` +
+    `SPECIAL — лого, социальные, рейтинг\n` +
+    `  logo (32), social (24), rating (18), step (24)`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  semSection.appendChild(semDesc);
+  archFrame.appendChild(semSection);
+  
+  // Principles section
+  const principlesSection = figma.createFrame();
+  principlesSection.name = 'Principles section';
+  principlesSection.layoutMode = 'VERTICAL';
+  principlesSection.itemSpacing = 8;
+  principlesSection.fills = [];
+  principlesSection.primaryAxisSizingMode = 'AUTO';
+  principlesSection.counterAxisSizingMode = 'AUTO';
+  
+  const principlesTitle = createStyledText('💡 ПРИНЦИПЫ ПРИМЕНЕНИЯ', 0, 0, 14, 'Medium');
+  principlesSection.appendChild(principlesTitle);
+  
+  const principlesDesc = createStyledText(
+    `• Маленькие иконки (10-14px): индикаторы, стрелки, мелкие UI\n` +
+    `• Стандартные (16-20px): кнопки, инпуты, меню, навигация\n` +
+    `• Средние (24-32px): заголовки, карточки, FAB\n` +
+    `• Крупные (48-96px): пустые состояния, модалки, иллюстрации\n\n` +
+    `⚠️ БЕЗ АДАПТИВНОСТИ\n` +
+    `Icon Size не меняется для разных устройств.\n` +
+    `Только один режим для всех breakpoints.`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.4, b: 0.5 }
+  );
+  principlesSection.appendChild(principlesDesc);
+  archFrame.appendChild(principlesSection);
+  
+  page.appendChild(archFrame);
+  xOffset += archFrame.width + 48;
+  framesCreated++;
+  
+  // Main frame with visual preview
+  const mainFrame = figma.createFrame();
+  mainFrame.name = 'Icon Size Overview';
+  mainFrame.x = xOffset;
+  mainFrame.y = 0;
+  mainFrame.layoutMode = 'VERTICAL';
+  mainFrame.itemSpacing = 32;
+  mainFrame.paddingTop = 32;
+  mainFrame.paddingBottom = 32;
+  mainFrame.paddingLeft = 32;
+  mainFrame.paddingRight = 32;
+  mainFrame.primaryAxisSizingMode = 'AUTO';
+  mainFrame.counterAxisSizingMode = 'AUTO';
+  mainFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+  mainFrame.cornerRadius = 16;
+  mainFrame.minWidth = 800;
+  
+  // Title
+  const title = createStyledText('🎯 Система Icon Size', 0, 0, 32, 'Bold');
+  mainFrame.appendChild(title);
+  
+  // Stats
+  const stats = createStyledText(
+    `Всего переменных: ${iconSizeVars.length}`,
+    0, 0, 14, 'Regular', { r: 0.5, g: 0.5, b: 0.5 }
+  );
+  mainFrame.appendChild(stats);
+  
+  // Group by collection
+  const varsByCollection = new Map<string, Variable[]>();
+  for (const v of iconSizeVars) {
+    const list = varsByCollection.get(v.variableCollectionId) || [];
+    list.push(v);
+    varsByCollection.set(v.variableCollectionId, list);
+  }
+  
+  for (const coll of collections) {
+    const vars = varsByCollection.get(coll.id);
+    if (!vars || vars.length === 0) continue;
+    
+    // Collection section
+    const collSection = figma.createFrame();
+    collSection.name = coll.name;
+    collSection.layoutMode = 'VERTICAL';
+    collSection.itemSpacing = 16;
+    collSection.primaryAxisSizingMode = 'AUTO';
+    collSection.counterAxisSizingMode = 'AUTO';
+    collSection.fills = [];
+    
+    // Collection title
+    const collTitle = createStyledText(`📦 ${coll.name}`, 0, 0, 20, 'Medium');
+    collSection.appendChild(collTitle);
+    
+    // Icon size visualization - group by category
+    const iconSizeCategories: { [key: string]: Variable[] } = {};
+    for (const variable of vars) {
+      const parts = variable.name.split('/');
+      const category = parts.length > 2 ? parts[1] : 'primitives';
+      if (!iconSizeCategories[category]) iconSizeCategories[category] = [];
+      iconSizeCategories[category].push(variable);
+    }
+    
+    for (const [category, catVars] of Object.entries(iconSizeCategories)) {
+      // Category header
+      const catHeader = createStyledText(
+        category.charAt(0).toUpperCase() + category.slice(1),
+        0, 0, 14, 'Medium', { r: 0.4, g: 0.4, b: 0.4 }
+      );
+      collSection.appendChild(catHeader);
+      
+      // Items grid
+      const grid = figma.createFrame();
+      grid.name = `${category}-grid`;
+      grid.layoutMode = 'HORIZONTAL';
+      grid.layoutWrap = 'WRAP';
+      grid.itemSpacing = 16;
+      grid.counterAxisSpacing = 16;
+      grid.primaryAxisSizingMode = 'FIXED';
+      grid.resize(760, 10);
+      grid.counterAxisSizingMode = 'AUTO';
+      grid.fills = [];
+      
+      for (const variable of catVars.slice(0, 20)) {
+        const mode = coll.modes[0];
+        const resolved = await resolveVariableValue(variable, mode.modeId);
+        const numValue = typeof resolved === 'number' ? resolved : 0;
+        
+        const item = figma.createFrame();
+        item.name = variable.name;
+        item.layoutMode = 'VERTICAL';
+        item.itemSpacing = 8;
+        item.counterAxisAlignItems = 'CENTER';
+        item.primaryAxisSizingMode = 'AUTO';
+        item.counterAxisSizingMode = 'AUTO';
+        item.fills = [];
+        item.paddingTop = 8;
+        item.paddingBottom = 8;
+        
+        // Visual icon size preview (circle placeholder)
+        const previewSize = Math.min(Math.max(numValue, 10), 48);
+        const preview = figma.createEllipse();
+        preview.resize(previewSize, previewSize);
+        preview.fills = [{ type: 'SOLID', color: { r: 0.2, g: 0.5, b: 0.9 } }];
+        item.appendChild(preview);
+        
+        // Token name (short version)
+        const shortName = variable.name.split('/').slice(-1)[0];
+        const nameText = createStyledText(shortName, 0, 0, 11, 'Medium');
+        item.appendChild(nameText);
+        
+        // Value
+        const valueText = createStyledText(`${numValue}px`, 0, 0, 10, 'Regular', { r: 0.5, g: 0.5, b: 0.5 });
+        item.appendChild(valueText);
+        
+        grid.appendChild(item);
+      }
+      
+      collSection.appendChild(grid);
+    }
+    
+    mainFrame.appendChild(collSection);
+    framesCreated++;
+  }
+  
+  page.appendChild(mainFrame);
+  await figma.setCurrentPageAsync(page);
+  
+  return { pageName, framesCreated: framesCreated || 1 };
+}
+
+// ============================================
 // SPACING PRIMITIVES & SEMANTIC
 // ============================================
 
@@ -3921,7 +4346,7 @@ async function generateTypographyDocumentation(): Promise<DocGeneratorResult> {
   archFrame.x = xOffset;
   archFrame.y = 0;
   archFrame.layoutMode = 'VERTICAL';
-  archFrame.itemSpacing = 20;
+  archFrame.itemSpacing = 24;
   archFrame.paddingTop = 40;
   archFrame.paddingBottom = 40;
   archFrame.paddingLeft = 40;
@@ -3930,35 +4355,131 @@ async function generateTypographyDocumentation(): Promise<DocGeneratorResult> {
   archFrame.counterAxisSizingMode = 'AUTO';
   archFrame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 1, b: 0.98 } }];
   archFrame.cornerRadius = 16;
-  archFrame.minWidth = 500;
+  archFrame.minWidth = 550;
   
   const archTitle = createStyledText('🏗️ Архитектура типографики', 0, 0, 28, 'Bold');
   archFrame.appendChild(archTitle);
   
   const archDesc = createStyledText(
-    `Типографика построена по 2-уровневой архитектуре с адаптивностью.\n\n` +
-    `📦 ПРИМИТИВЫ\n` +
-    `Базовые значения без контекста:\n` +
-    `• font-size: 12, 14, 16, 18, 20, 24, 32, 40, 56px\n` +
-    `• line-height: 1.2, 1.4, 1.5, 1.6 (множители)\n` +
-    `• font-weight: 400, 500, 600, 700\n` +
-    `• letter-spacing: -0.02, 0, 0.02em\n\n` +
-    `🎯 СЕМАНТИЧЕСКИЕ СТИЛИ\n` +
-    `Токены с контекстом использования:\n` +
-    `• page/hero — крупные заголовки страниц\n` +
-    `• page/title — основные заголовки\n` +
-    `• card/title — заголовки в карточках\n` +
-    `• body/regular — основной текст\n\n` +
-    `📱 АДАПТИВНОСТЬ (Desktop → Tablet → Mobile)\n` +
-    `Каждый семантический токен имеет разные значения\n` +
-    `для разных устройств. Desktop = 100%, Mobile = 75%.\n\n` +
-    `💡 ИСПОЛЬЗОВАНИЕ\n` +
-    `Компоненты привязываются к семантическим токенам.\n` +
-    `При переключении режима устройства типографика\n` +
-    `масштабируется автоматически.`,
-    0, 0, 12, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+    `Система следует 2-уровневой архитектуре: Primitives → Semantic.\n` +
+    `Семантические токены имеют 3 режима адаптивности.`,
+    0, 0, 13, 'Regular', { r: 0.4, g: 0.4, b: 0.4 }
   );
   archFrame.appendChild(archDesc);
+  
+  // Primitives section
+  const primSection = figma.createFrame();
+  primSection.name = 'Primitives section';
+  primSection.layoutMode = 'VERTICAL';
+  primSection.itemSpacing = 8;
+  primSection.fills = [];
+  primSection.primaryAxisSizingMode = 'AUTO';
+  primSection.counterAxisSizingMode = 'AUTO';
+  
+  const primTitle = createStyledText('📦 ПРИМИТИВЫ (Primitives)', 0, 0, 16, 'Bold');
+  primSection.appendChild(primTitle);
+  
+  const primDesc = createStyledText(
+    `Базовые значения без контекста использования.\n\n` +
+    `Font Sizes (px):\n` +
+    `10 · 11 · 12 · 13 · 14 · 15 · 16 · 18 · 20 · 24 · 28 · 32 · 36 · 40 · 48 · 56 · 64 · 72 · 96\n\n` +
+    `Line Heights (множитель → % в Figma):\n` +
+    `1.0 (100%) · 1.1 (110%) · 1.2 (120%) · 1.25 (125%) · 1.3 (130%)\n` +
+    `1.4 (140%) · 1.5 (150%) · 1.6 (160%) · 1.7 (170%) · 2.0 (200%)\n\n` +
+    `Font Weights:\n` +
+    `100 Thin · 200 ExtraLight · 300 Light · 400 Regular\n` +
+    `500 Medium · 600 Semibold · 700 Bold · 800 ExtraBold · 900 Black\n\n` +
+    `Letter Spacing (em → % в Figma):\n` +
+    `-0.05em (-5%) · -0.025em (-2.5%) · -0.02em (-2%) · 0 · +0.02em (+2%) · +0.05em (+5%)`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  primSection.appendChild(primDesc);
+  archFrame.appendChild(primSection);
+  
+  // Semantic section
+  const semSection = figma.createFrame();
+  semSection.name = 'Semantic section';
+  semSection.layoutMode = 'VERTICAL';
+  semSection.itemSpacing = 8;
+  semSection.fills = [];
+  semSection.primaryAxisSizingMode = 'AUTO';
+  semSection.counterAxisSizingMode = 'AUTO';
+  
+  const semTitle = createStyledText('🎯 СЕМАНТИЧЕСКИЕ ТОКЕНЫ (17 категорий, 90+ токенов)', 0, 0, 16, 'Bold');
+  semSection.appendChild(semTitle);
+  
+  const semDesc = createStyledText(
+    `Контекстное применение примитивов через алиасы {font.size.X}.\n\n` +
+    `КАТЕГОРИИ:\n` +
+    `• page — hero (56px), title (40px), subtitle (24px)\n` +
+    `• section — heading (32px), subheading (20px)\n` +
+    `• card — title (18px), subtitle (14px), body (14px), meta (11px)\n` +
+    `• modal — title (20px), subtitle (14px)\n` +
+    `• sidebar — groupTitle (11px UPPERCASE), itemLabel (14px)\n` +
+    `• paragraph — lead (18px), default (15px), compact (14px), dense (13px)\n` +
+    `• helper — hint (13px), caption (12px), footnote (11px)\n` +
+    `• action — button.primary (14px), button.compact (12px), button.large (16px)\n` +
+    `• form — label (14px), input.value (14px), validation (12px)\n` +
+    `• data — table.header (12px UPPERCASE), table.cell (13px), metric.value (36px)\n` +
+    `• status — badge (11px), tag (12px)\n` +
+    `• notification — toast.title (14px), banner.title (16px)\n` +
+    `• navigation — menu.item (14px), breadcrumb (13px), tab.label (14px)\n` +
+    `• code — inline (13px Mono), block (13px Mono)\n` +
+    `• content — blockquote (16px italic), list.item (15px)\n` +
+    `• empty — title (20px), description (14px)\n` +
+    `• loading — label (13px), percentage (12px Mono)`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  semSection.appendChild(semDesc);
+  archFrame.appendChild(semSection);
+  
+  // Responsive section
+  const respSection = figma.createFrame();
+  respSection.name = 'Responsive section';
+  respSection.layoutMode = 'VERTICAL';
+  respSection.itemSpacing = 8;
+  respSection.fills = [];
+  respSection.primaryAxisSizingMode = 'AUTO';
+  respSection.counterAxisSizingMode = 'AUTO';
+  
+  const respTitle = createStyledText('📱 АДАПТИВНОСТЬ (Breakpoints)', 0, 0, 16, 'Bold');
+  respSection.appendChild(respTitle);
+  
+  const respDesc = createStyledText(
+    `Каждый семантический токен имеет 3 режима:\n\n` +
+    `Desktop (≥1280px) — Scale 100%\n` +
+    `   page/hero: 56px → page/title: 40px → card/title: 18px\n\n` +
+    `Tablet (≥768px) — Scale 87.5%\n` +
+    `   page/hero: 48px → page/title: 36px → card/title: 16px\n\n` +
+    `Mobile (<768px) — Scale 75%\n` +
+    `   page/hero: 40px → page/title: 32px → card/title: 14px\n\n` +
+    `⚠️ Режимы НЕ переключаются автоматически!\n` +
+    `В Figma нужно вручную выбрать режим для фрейма.`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  respSection.appendChild(respDesc);
+  archFrame.appendChild(respSection);
+  
+  // Figma limitations
+  const limitSection = figma.createFrame();
+  limitSection.name = 'Limitations section';
+  limitSection.layoutMode = 'VERTICAL';
+  limitSection.itemSpacing = 8;
+  limitSection.fills = [];
+  limitSection.primaryAxisSizingMode = 'AUTO';
+  limitSection.counterAxisSizingMode = 'AUTO';
+  
+  const limitTitle = createStyledText('⚠️ ОГРАНИЧЕНИЯ FIGMA VARIABLES', 0, 0, 14, 'Medium');
+  limitSection.appendChild(limitTitle);
+  
+  const limitDesc = createStyledText(
+    `Variables поддерживают: Font Size ✓, Line Height ✓, Letter Spacing ✓\n` +
+    `Variables НЕ поддерживают: Font Family ✗, Font Weight ✗, Text Transform ✗\n\n` +
+    `Для полной типографики используйте Text Styles вместо Variables.`,
+    0, 0, 11, 'Regular', { r: 0.5, g: 0.3, b: 0.3 }
+  );
+  limitSection.appendChild(limitDesc);
+  archFrame.appendChild(limitSection);
   
   page.appendChild(archFrame);
   xOffset += archFrame.width + 48;
@@ -4146,18 +4667,46 @@ async function generateTypographyDocumentation(): Promise<DocGeneratorResult> {
     const styleRow = figma.createFrame();
     styleRow.name = styleName;
     styleRow.layoutMode = 'VERTICAL';
-    styleRow.itemSpacing = 4;
+    styleRow.itemSpacing = 6;
     styleRow.primaryAxisSizingMode = 'AUTO';
     styleRow.counterAxisSizingMode = 'AUTO';
     styleRow.fills = [];
+    styleRow.paddingBottom = 8;
+    
+    // Header row with name and size badge
+    const headerRow = figma.createFrame();
+    headerRow.layoutMode = 'HORIZONTAL';
+    headerRow.itemSpacing = 8;
+    headerRow.counterAxisAlignItems = 'CENTER';
+    headerRow.fills = [];
+    headerRow.primaryAxisSizingMode = 'AUTO';
+    headerRow.counterAxisSizingMode = 'AUTO';
+    
+    // Size badge
+    const sizeBadge = figma.createFrame();
+    sizeBadge.layoutMode = 'HORIZONTAL';
+    sizeBadge.paddingTop = 2;
+    sizeBadge.paddingBottom = 2;
+    sizeBadge.paddingLeft = 6;
+    sizeBadge.paddingRight = 6;
+    sizeBadge.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.97, b: 0.98 } }];
+    sizeBadge.cornerRadius = 4;
+    sizeBadge.primaryAxisSizingMode = 'AUTO';
+    sizeBadge.counterAxisSizingMode = 'AUTO';
+    
+    const sizeLabel = createStyledText(`${fontSize}px`, 0, 0, 10, 'Medium', { r: 0.3, g: 0.5, b: 0.6 });
+    sizeBadge.appendChild(sizeLabel);
+    headerRow.appendChild(sizeBadge);
     
     // Style name label
     const shortStyleName = styleName.split('/').slice(1).join(' / ');
     const styleLabel = createStyledText(shortStyleName, 0, 0, 11, 'Regular', { r: 0.5, g: 0.5, b: 0.5 });
-    styleRow.appendChild(styleLabel);
+    headerRow.appendChild(styleLabel);
     
-    // Sample text
-    const displaySize = Math.min(Math.max(fontSize, 12), 56);
+    styleRow.appendChild(headerRow);
+    
+    // Sample text at ACTUAL size
+    const displaySize = Math.min(Math.max(fontSize, 10), 56);
     const fontStyle = fontWeight >= 600 ? 'Bold' : (fontWeight >= 500 ? 'Medium' : 'Regular');
     const sampleText = createStyledText('The quick brown fox jumps', 0, 0, displaySize, fontStyle);
     styleRow.appendChild(sampleText);
@@ -4329,6 +4878,127 @@ async function generateTypographyDocumentation(): Promise<DocGeneratorResult> {
   }
   
   page.appendChild(propsFrame);
+  xOffset += propsFrame.width + 48;
+  framesCreated++;
+  
+  // ===== SECTION 4: Categories Overview =====
+  const categoriesFrame = figma.createFrame();
+  categoriesFrame.name = 'Typography Categories';
+  categoriesFrame.x = xOffset;
+  categoriesFrame.y = 0;
+  categoriesFrame.layoutMode = 'VERTICAL';
+  categoriesFrame.itemSpacing = 16;
+  categoriesFrame.paddingTop = 40;
+  categoriesFrame.paddingBottom = 40;
+  categoriesFrame.paddingLeft = 40;
+  categoriesFrame.paddingRight = 40;
+  categoriesFrame.primaryAxisSizingMode = 'AUTO';
+  categoriesFrame.counterAxisSizingMode = 'AUTO';
+  categoriesFrame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.98, b: 1 } }];
+  categoriesFrame.cornerRadius = 16;
+  categoriesFrame.minWidth = 480;
+  
+  const categoriesTitle = createStyledText('📂 Категории токенов', 0, 0, 24, 'Bold');
+  categoriesFrame.appendChild(categoriesTitle);
+  
+  // Define all categories with their tokens and default sizes
+  const typographyCategories = [
+    { name: 'page', desc: 'Страничные заголовки', tokens: [
+      { name: 'hero', size: 56, weight: 'Bold', desc: 'Landing hero, main CTAs' },
+      { name: 'title', size: 40, weight: 'Bold', desc: 'Page title H1' },
+      { name: 'subtitle', size: 24, weight: 'Semibold', desc: 'Page subtitle' }
+    ]},
+    { name: 'section', desc: 'Заголовки секций', tokens: [
+      { name: 'heading', size: 32, weight: 'Semibold', desc: 'H2 Section heading' },
+      { name: 'subheading', size: 20, weight: 'Semibold', desc: 'H3 Subheading' }
+    ]},
+    { name: 'card', desc: 'Карточки', tokens: [
+      { name: 'title', size: 18, weight: 'Semibold', desc: 'Card title' },
+      { name: 'subtitle', size: 14, weight: 'Medium', desc: 'Card subtitle' },
+      { name: 'body', size: 14, weight: 'Regular', desc: 'Card body text' },
+      { name: 'meta', size: 11, weight: 'Regular', desc: 'Date, author info' }
+    ]},
+    { name: 'paragraph', desc: 'Текстовые блоки', tokens: [
+      { name: 'lead', size: 18, weight: 'Regular', desc: 'Intro paragraph' },
+      { name: 'default', size: 15, weight: 'Regular', desc: 'Standard text' },
+      { name: 'compact', size: 14, weight: 'Regular', desc: 'Compact text' },
+      { name: 'dense', size: 13, weight: 'Regular', desc: 'Dense text' }
+    ]},
+    { name: 'action', desc: 'Кнопки и ссылки', tokens: [
+      { name: 'button.primary', size: 14, weight: 'Medium', desc: 'Primary button' },
+      { name: 'button.compact', size: 12, weight: 'Medium', desc: 'Small button' },
+      { name: 'button.large', size: 16, weight: 'Medium', desc: 'Large button' }
+    ]},
+    { name: 'form', desc: 'Формы', tokens: [
+      { name: 'label', size: 14, weight: 'Medium', desc: 'Form label' },
+      { name: 'input.value', size: 14, weight: 'Regular', desc: 'Input text' },
+      { name: 'validation', size: 12, weight: 'Regular', desc: 'Error/success' }
+    ]},
+    { name: 'data', desc: 'Таблицы и метрики', tokens: [
+      { name: 'table.header', size: 12, weight: 'Semibold', desc: 'TH (UPPERCASE)' },
+      { name: 'table.cell', size: 13, weight: 'Regular', desc: 'TD cell' },
+      { name: 'metric.value', size: 36, weight: 'Bold', desc: 'KPI value' }
+    ]},
+    { name: 'navigation', desc: 'Навигация', tokens: [
+      { name: 'menu.item', size: 14, weight: 'Medium', desc: 'Menu item' },
+      { name: 'breadcrumb', size: 13, weight: 'Regular', desc: 'Breadcrumb' },
+      { name: 'tab.label', size: 14, weight: 'Medium', desc: 'Tab label' }
+    ]}
+  ];
+  
+  for (const category of typographyCategories) {
+    const catRow = figma.createFrame();
+    catRow.name = category.name;
+    catRow.layoutMode = 'VERTICAL';
+    catRow.itemSpacing = 6;
+    catRow.fills = [];
+    catRow.primaryAxisSizingMode = 'AUTO';
+    catRow.counterAxisSizingMode = 'AUTO';
+    catRow.paddingBottom = 12;
+    
+    const catHeader = createStyledText(`${category.name}/ — ${category.desc}`, 0, 0, 13, 'Bold', { r: 0.2, g: 0.4, b: 0.6 });
+    catRow.appendChild(catHeader);
+    
+    for (const token of category.tokens) {
+      const tokenRow = figma.createFrame();
+      tokenRow.layoutMode = 'HORIZONTAL';
+      tokenRow.itemSpacing = 8;
+      tokenRow.counterAxisAlignItems = 'CENTER';
+      tokenRow.fills = [];
+      tokenRow.primaryAxisSizingMode = 'AUTO';
+      tokenRow.counterAxisSizingMode = 'AUTO';
+      
+      // Size badge
+      const sizeBadge = figma.createFrame();
+      sizeBadge.layoutMode = 'HORIZONTAL';
+      sizeBadge.paddingTop = 2;
+      sizeBadge.paddingBottom = 2;
+      sizeBadge.paddingLeft = 6;
+      sizeBadge.paddingRight = 6;
+      sizeBadge.fills = [{ type: 'SOLID', color: { r: 0.9, g: 0.95, b: 1 } }];
+      sizeBadge.cornerRadius = 4;
+      sizeBadge.primaryAxisSizingMode = 'AUTO';
+      sizeBadge.counterAxisSizingMode = 'AUTO';
+      
+      const sizeLabel = createStyledText(`${token.size}px`, 0, 0, 10, 'Medium', { r: 0.2, g: 0.4, b: 0.7 });
+      sizeBadge.appendChild(sizeLabel);
+      tokenRow.appendChild(sizeBadge);
+      
+      // Token name
+      const tokenName = createStyledText(token.name, 0, 0, 11, 'Medium');
+      tokenRow.appendChild(tokenName);
+      
+      // Description
+      const tokenDesc = createStyledText(`— ${token.desc}`, 0, 0, 11, 'Regular', { r: 0.5, g: 0.5, b: 0.5 });
+      tokenRow.appendChild(tokenDesc);
+      
+      catRow.appendChild(tokenRow);
+    }
+    
+    categoriesFrame.appendChild(catRow);
+  }
+  
+  page.appendChild(categoriesFrame);
   framesCreated++;
   
   await figma.setCurrentPageAsync(page);
@@ -4355,15 +5025,16 @@ async function generateSpacingDocumentation(): Promise<DocGeneratorResult> {
   );
   
   let yOffset = 0;
+  let xOffset = 0;
   let framesCreated = 0;
   
   // ===== ARCHITECTURE DESCRIPTION FRAME =====
   const archFrame = figma.createFrame();
   archFrame.name = 'Архитектура Spacing';
-  archFrame.x = 0;
-  archFrame.y = yOffset;
+  archFrame.x = xOffset;
+  archFrame.y = 0;
   archFrame.layoutMode = 'VERTICAL';
-  archFrame.itemSpacing = 20;
+  archFrame.itemSpacing = 24;
   archFrame.paddingTop = 40;
   archFrame.paddingBottom = 40;
   archFrame.paddingLeft = 40;
@@ -4372,44 +5043,137 @@ async function generateSpacingDocumentation(): Promise<DocGeneratorResult> {
   archFrame.counterAxisSizingMode = 'AUTO';
   archFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 0.98, b: 0.95 } }];
   archFrame.cornerRadius = 16;
-  archFrame.minWidth = 700;
+  archFrame.minWidth = 550;
   
-  const archTitle = createStyledText('🏗️ Архитектура системы отступов', 0, 0, 28, 'Bold');
+  const archTitle = createStyledText('🏗️ Архитектура системы Spacing', 0, 0, 28, 'Bold');
   archFrame.appendChild(archTitle);
   
-  const archDesc = createStyledText(
-    `Spacing — это 2-уровневая система отступов с адаптивностью.\n\n` +
-    `📦 ПРИМИТИВЫ (Primitives)\n` +
-    `Базовая шкала значений в пикселях:\n` +
-    `space.0 = 0px, space.4 = 4px, space.8 = 8px, space.12 = 12px...\n` +
-    `Шаг шкалы кратен 4px для соблюдения сетки.\n\n` +
-    `🎯 СЕМАНТИЧЕСКИЕ ТОКЕНЫ (Spacing Collection)\n` +
-    `Токены с контекстом использования, ссылающиеся на примитивы:\n` +
-    `• spacing/button/paddingX — горизонтальные отступы кнопки\n` +
-    `• spacing/card/padding — внутренние отступы карточки\n` +
-    `• spacing/section/gap — расстояние между секциями\n\n` +
-    `📱 АДАПТИВНОСТЬ (Desktop / Tablet / Mobile)\n` +
-    `Каждый семантический токен имеет 3 режима:\n` +
-    `• Desktop: полные значения (16px)\n` +
-    `• Tablet: уменьшенные (14px)\n` +
-    `• Mobile: компактные (12px)\n\n` +
-    `💡 ИСПОЛЬЗОВАНИЕ В FIGMA\n` +
-    `1. Привяжите padding/margin к семантическим токенам\n` +
-    `2. Выберите фрейм и примените режим устройства\n` +
-    `3. Отступы автоматически адаптируются`,
-    0, 0, 12, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  const archIntro = createStyledText(
+    `Spacing — внутренние отступы элементов (padding, margin, inset).\n` +
+    `2-уровневая архитектура: Primitives → Semantic + 3 режима адаптивности.`,
+    0, 0, 13, 'Regular', { r: 0.4, g: 0.4, b: 0.4 }
   );
-  archFrame.appendChild(archDesc);
+  archFrame.appendChild(archIntro);
+  
+  // Primitives section
+  const primSection = figma.createFrame();
+  primSection.name = 'Primitives section';
+  primSection.layoutMode = 'VERTICAL';
+  primSection.itemSpacing = 8;
+  primSection.fills = [];
+  primSection.primaryAxisSizingMode = 'AUTO';
+  primSection.counterAxisSizingMode = 'AUTO';
+  
+  const primTitle = createStyledText('📦 ПРИМИТИВЫ (Primitives)', 0, 0, 16, 'Bold');
+  primSection.appendChild(primTitle);
+  
+  const primDesc = createStyledText(
+    `Базовая шкала значений кратная 4px:\n\n` +
+    `space.0   = 0px      space.24 = 24px\n` +
+    `space.2   = 2px      space.32 = 32px\n` +
+    `space.4   = 4px      space.40 = 40px\n` +
+    `space.6   = 6px      space.48 = 48px\n` +
+    `space.8   = 8px      space.56 = 56px\n` +
+    `space.10  = 10px     space.64 = 64px\n` +
+    `space.12  = 12px     space.80 = 80px\n` +
+    `space.16  = 16px     space.96 = 96px\n` +
+    `space.20  = 20px     space.128 = 128px\n\n` +
+    `💡 Шаг 4px обеспечивает соблюдение 8px-grid системы.`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  primSection.appendChild(primDesc);
+  archFrame.appendChild(primSection);
+  
+  // Semantic section  
+  const semSection = figma.createFrame();
+  semSection.name = 'Semantic section';
+  semSection.layoutMode = 'VERTICAL';
+  semSection.itemSpacing = 8;
+  semSection.fills = [];
+  semSection.primaryAxisSizingMode = 'AUTO';
+  semSection.counterAxisSizingMode = 'AUTO';
+  
+  const semTitle = createStyledText('🎯 СЕМАНТИЧЕСКИЕ ТОКЕНЫ (11 категорий)', 0, 0, 16, 'Bold');
+  semSection.appendChild(semTitle);
+  
+  const semDesc = createStyledText(
+    `Токены с контекстом, ссылающиеся на примитивы через {space.X}:\n\n` +
+    `• button/ — paddingX (12), paddingY (8), iconGap (6)\n` +
+    `• input/ — paddingX (12), paddingY (10), iconGap (8)\n` +
+    `• card/ — padding (16), contentGap (12), headerGap (16)\n` +
+    `• modal/ — padding (24), headerGap (16), footerGap (12)\n` +
+    `• section/ — padding (24), gap (32), marginY (48)\n` +
+    `• list/ — itemPadding (8), itemGap (4), nestedIndent (16)\n` +
+    `• table/ — cellPadding (12), headerPadding (16)\n` +
+    `• form/ — fieldGap (16), labelGap (6), groupGap (24)\n` +
+    `• nav/ — itemPadding (12), itemGap (8), groupGap (24)\n` +
+    `• page/ — margin (16/24/32), contentGap (24)\n` +
+    `• component/ — базовые отступы для любых компонентов`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  semSection.appendChild(semDesc);
+  archFrame.appendChild(semSection);
+  
+  // Responsive section
+  const respSection = figma.createFrame();
+  respSection.name = 'Responsive section';
+  respSection.layoutMode = 'VERTICAL';
+  respSection.itemSpacing = 8;
+  respSection.fills = [];
+  respSection.primaryAxisSizingMode = 'AUTO';
+  respSection.counterAxisSizingMode = 'AUTO';
+  
+  const respTitle = createStyledText('📱 АДАПТИВНОСТЬ (3 режима)', 0, 0, 16, 'Bold');
+  respSection.appendChild(respTitle);
+  
+  const respDesc = createStyledText(
+    `Каждый семантический токен имеет 3 значения:\n\n` +
+    `Desktop (≥1280px) — полные значения\n` +
+    `   card/padding: 24px → section/padding: 32px\n\n` +
+    `Tablet (≥768px) — уменьшенные на ~12%\n` +
+    `   card/padding: 20px → section/padding: 28px\n\n` +
+    `Mobile (<768px) — компактные на ~25%\n` +
+    `   card/padding: 16px → section/padding: 24px\n\n` +
+    `💡 ИСПОЛЬЗОВАНИЕ В FIGMA\n` +
+    `1. Привяжите padding к семантическим токенам\n` +
+    `2. Выберите фрейм и примените режим устройства\n` +
+    `3. Все отступы масштабируются автоматически`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  respSection.appendChild(respDesc);
+  archFrame.appendChild(respSection);
+  
+  // Difference from Gap
+  const diffSection = figma.createFrame();
+  diffSection.name = 'Difference section';
+  diffSection.layoutMode = 'VERTICAL';
+  diffSection.itemSpacing = 8;
+  diffSection.fills = [];
+  diffSection.primaryAxisSizingMode = 'AUTO';
+  diffSection.counterAxisSizingMode = 'AUTO';
+  
+  const diffTitle = createStyledText('⚖️ SPACING vs GAP', 0, 0, 14, 'Medium');
+  diffSection.appendChild(diffTitle);
+  
+  const diffDesc = createStyledText(
+    `Spacing = внутренние отступы (padding, margin, inset)\n` +
+    `Gap = расстояния между элементами (Auto Layout gap)\n\n` +
+    `Spacing: card/padding → пространство внутри карточки\n` +
+    `Gap: gap/stack/card → расстояние между карточками`,
+    0, 0, 11, 'Regular', { r: 0.5, g: 0.4, b: 0.3 }
+  );
+  diffSection.appendChild(diffDesc);
+  archFrame.appendChild(diffSection);
   
   page.appendChild(archFrame);
-  yOffset += archFrame.height + 48;
+  xOffset += archFrame.width + 48;
   framesCreated++;
   
   // Main frame
   const mainFrame = figma.createFrame();
   mainFrame.name = 'Spacing Overview';
-  mainFrame.x = 0;
-  mainFrame.y = yOffset;
+  mainFrame.x = xOffset;
+  mainFrame.y = 0;
   mainFrame.layoutMode = 'VERTICAL';
   mainFrame.itemSpacing = 32;
   mainFrame.paddingTop = 32;
@@ -4534,16 +5298,16 @@ async function generateGapDocumentation(): Promise<DocGeneratorResult> {
     gapKeywords.some(kw => v.name.toLowerCase().includes(kw))
   );
   
-  let yOffset = 0;
+  let xOffset = 0;
   let framesCreated = 0;
   
   // ===== ARCHITECTURE DESCRIPTION FRAME =====
   const archFrame = figma.createFrame();
   archFrame.name = 'Архитектура Gap';
-  archFrame.x = 0;
-  archFrame.y = yOffset;
+  archFrame.x = xOffset;
+  archFrame.y = 0;
   archFrame.layoutMode = 'VERTICAL';
-  archFrame.itemSpacing = 20;
+  archFrame.itemSpacing = 24;
   archFrame.paddingTop = 40;
   archFrame.paddingBottom = 40;
   archFrame.paddingLeft = 40;
@@ -4552,44 +5316,135 @@ async function generateGapDocumentation(): Promise<DocGeneratorResult> {
   archFrame.counterAxisSizingMode = 'AUTO';
   archFrame.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.98, b: 1 } }];
   archFrame.cornerRadius = 16;
-  archFrame.minWidth = 700;
+  archFrame.minWidth = 550;
   
   const archTitle = createStyledText('🏗️ Архитектура Gap системы', 0, 0, 28, 'Bold');
   archFrame.appendChild(archTitle);
   
-  const archDesc = createStyledText(
-    `Gap — это система расстояний между элементами в Auto Layout.\n\n` +
-    `📦 ПРИМИТИВЫ (Primitives)\n` +
-    `Базовые значения gap в пикселях:\n` +
-    `gap.0 = 0px, gap.4 = 4px, gap.8 = 8px, gap.12 = 12px...\n` +
-    `Используются как источник для семантических токенов.\n\n` +
-    `🎯 СЕМАНТИЧЕСКИЕ ТОКЕНЫ (Gap Collection)\n` +
-    `Токены с контекстом, описывающие расстояния в компонентах:\n` +
-    `• gap/inline/icon — между иконкой и текстом\n` +
-    `• gap/inline/badge — между бейджами в группе\n` +
-    `• gap/stack/card — между карточками в колонке\n` +
-    `• gap/form/fields — между полями формы\n\n` +
-    `📱 АДАПТИВНОСТЬ (Desktop / Tablet / Mobile)\n` +
-    `Каждый токен адаптируется под размер экрана:\n` +
-    `• Desktop: просторная компоновка (12px)\n` +
-    `• Tablet: средняя плотность (10px)\n` +
-    `• Mobile: компактная (8px)\n\n` +
-    `💡 ОТЛИЧИЕ ОТ SPACING\n` +
-    `• Spacing — внутренние отступы (padding, margin)\n` +
-    `• Gap — расстояния между элементами в контейнере`,
-    0, 0, 12, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  const archIntro = createStyledText(
+    `Gap — расстояния между элементами в Auto Layout контейнерах.\n` +
+    `2-уровневая архитектура: Primitives → Semantic + 3 режима адаптивности.`,
+    0, 0, 13, 'Regular', { r: 0.4, g: 0.4, b: 0.4 }
   );
-  archFrame.appendChild(archDesc);
+  archFrame.appendChild(archIntro);
+  
+  // Primitives section
+  const primSection = figma.createFrame();
+  primSection.name = 'Primitives section';
+  primSection.layoutMode = 'VERTICAL';
+  primSection.itemSpacing = 8;
+  primSection.fills = [];
+  primSection.primaryAxisSizingMode = 'AUTO';
+  primSection.counterAxisSizingMode = 'AUTO';
+  
+  const primTitle = createStyledText('📦 ПРИМИТИВЫ (Primitives)', 0, 0, 16, 'Bold');
+  primSection.appendChild(primTitle);
+  
+  const primDesc = createStyledText(
+    `Базовая шкала значений gap кратная 4px:\n\n` +
+    `gap.0   = 0px      gap.24 = 24px\n` +
+    `gap.2   = 2px      gap.32 = 32px\n` +
+    `gap.4   = 4px      gap.40 = 40px\n` +
+    `gap.6   = 6px      gap.48 = 48px\n` +
+    `gap.8   = 8px      gap.56 = 56px\n` +
+    `gap.10  = 10px     gap.64 = 64px\n` +
+    `gap.12  = 12px     gap.80 = 80px\n` +
+    `gap.16  = 16px     gap.96 = 96px\n` +
+    `gap.20  = 20px\n\n` +
+    `💡 Используются как источник для семантических токенов.`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  primSection.appendChild(primDesc);
+  archFrame.appendChild(primSection);
+  
+  // Semantic section
+  const semSection = figma.createFrame();
+  semSection.name = 'Semantic section';
+  semSection.layoutMode = 'VERTICAL';
+  semSection.itemSpacing = 8;
+  semSection.fills = [];
+  semSection.primaryAxisSizingMode = 'AUTO';
+  semSection.counterAxisSizingMode = 'AUTO';
+  
+  const semTitle = createStyledText('🎯 СЕМАНТИЧЕСКИЕ ТОКЕНЫ (6 категорий)', 0, 0, 16, 'Bold');
+  semSection.appendChild(semTitle);
+  
+  const semDesc = createStyledText(
+    `Токены с контекстом, ссылающиеся на примитивы через {gap.X}:\n\n` +
+    `• inline/ — gap между элементами в строке\n` +
+    `   icon (6) · badge (4) · tag (4) · avatar (8)\n\n` +
+    `• stack/ — вертикальные расстояния\n` +
+    `   card (16) · item (8) · section (24) · paragraph (12)\n\n` +
+    `• form/ — формы\n` +
+    `   fields (16) · radioGroup (8) · checkboxGroup (8)\n\n` +
+    `• grid/ — сетки\n` +
+    `   column (16) · row (16) · cell (8)\n\n` +
+    `• component/ — внутренние gap компонентов\n` +
+    `   button (8) · input (8) · card (12) · modal (16)\n\n` +
+    `• layout/ — структура страницы\n` +
+    `   header (16) · content (24) · sidebar (12) · footer (16)`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  semSection.appendChild(semDesc);
+  archFrame.appendChild(semSection);
+  
+  // Responsive section
+  const respSection = figma.createFrame();
+  respSection.name = 'Responsive section';
+  respSection.layoutMode = 'VERTICAL';
+  respSection.itemSpacing = 8;
+  respSection.fills = [];
+  respSection.primaryAxisSizingMode = 'AUTO';
+  respSection.counterAxisSizingMode = 'AUTO';
+  
+  const respTitle = createStyledText('📱 АДАПТИВНОСТЬ (3 режима)', 0, 0, 16, 'Bold');
+  respSection.appendChild(respTitle);
+  
+  const respDesc = createStyledText(
+    `Каждый семантический токен имеет 3 значения:\n\n` +
+    `Desktop (≥1280px) — просторная компоновка\n` +
+    `   stack/card: 16px → grid/column: 24px\n\n` +
+    `Tablet (≥768px) — средняя плотность\n` +
+    `   stack/card: 12px → grid/column: 16px\n\n` +
+    `Mobile (<768px) — компактная\n` +
+    `   stack/card: 8px → grid/column: 12px`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  respSection.appendChild(respDesc);
+  archFrame.appendChild(respSection);
+  
+  // Difference from Spacing
+  const diffSection = figma.createFrame();
+  diffSection.name = 'Difference section';
+  diffSection.layoutMode = 'VERTICAL';
+  diffSection.itemSpacing = 8;
+  diffSection.fills = [];
+  diffSection.primaryAxisSizingMode = 'AUTO';
+  diffSection.counterAxisSizingMode = 'AUTO';
+  
+  const diffTitle = createStyledText('⚖️ GAP vs SPACING', 0, 0, 14, 'Medium');
+  diffSection.appendChild(diffTitle);
+  
+  const diffDesc = createStyledText(
+    `Gap = расстояния МЕЖДУ элементами (Auto Layout gap)\n` +
+    `Spacing = отступы ВНУТРИ элементов (padding, margin)\n\n` +
+    `Gap: gap/stack/card → расстояние между карточками\n` +
+    `Spacing: card/padding → пространство внутри карточки\n\n` +
+    `💡 Применяется к свойству itemSpacing во фреймах.`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.4, b: 0.5 }
+  );
+  diffSection.appendChild(diffDesc);
+  archFrame.appendChild(diffSection);
   
   page.appendChild(archFrame);
-  yOffset += archFrame.height + 48;
+  xOffset += archFrame.width + 48;
   framesCreated++;
   
   // Main frame
   const mainFrame = figma.createFrame();
   mainFrame.name = 'Gap Overview';
-  mainFrame.x = 0;
-  mainFrame.y = yOffset;
+  mainFrame.x = xOffset;
+  mainFrame.y = 0;
   mainFrame.layoutMode = 'VERTICAL';
   mainFrame.itemSpacing = 32;
   mainFrame.paddingTop = 32;
@@ -4722,16 +5577,16 @@ async function generateRadiusDocumentation(): Promise<DocGeneratorResult> {
     v.name.toLowerCase().includes('radius')
   );
   
-  let yOffset = 0;
+  let xOffset = 0;
   let framesCreated = 0;
   
   // ===== ARCHITECTURE DESCRIPTION FRAME =====
   const archFrame = figma.createFrame();
   archFrame.name = 'Архитектура Radius';
-  archFrame.x = 0;
-  archFrame.y = yOffset;
+  archFrame.x = xOffset;
+  archFrame.y = 0;
   archFrame.layoutMode = 'VERTICAL';
-  archFrame.itemSpacing = 20;
+  archFrame.itemSpacing = 24;
   archFrame.paddingTop = 40;
   archFrame.paddingBottom = 40;
   archFrame.paddingLeft = 40;
@@ -4740,51 +5595,128 @@ async function generateRadiusDocumentation(): Promise<DocGeneratorResult> {
   archFrame.counterAxisSizingMode = 'AUTO';
   archFrame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.95, b: 1 } }];
   archFrame.cornerRadius = 16;
-  archFrame.minWidth = 700;
+  archFrame.minWidth = 550;
   
   const archTitle = createStyledText('🏗️ Архитектура Radius системы', 0, 0, 28, 'Bold');
   archFrame.appendChild(archTitle);
   
-  const archDesc = createStyledText(
-    `Radius — это система скругления углов для UI элементов.\n\n` +
-    `📦 ПРИМИТИВЫ (Primitives)\n` +
-    `Базовые значения border-radius в пикселях:\n` +
-    `radius.0 = 0px (sharp), radius.4 = 4px, radius.8 = 8px\n` +
-    `radius.12 = 12px, radius.16 = 16px, radius.full = 9999px (pill)\n` +
-    `Используются как источник для семантических токенов.\n\n` +
-    `🎯 СЕМАНТИЧЕСКИЕ ТОКЕНЫ (Radius Collection)\n` +
-    `Токены с контекстом использования:\n` +
-    `• radius/interactive/button — для кнопок (6px)\n` +
-    `• radius/interactive/buttonPill — для pill-кнопок (full)\n` +
-    `• radius/container/card — для карточек (8px)\n` +
-    `• radius/media/avatar — для круглых аватаров (full)\n\n` +
-    `📂 КАТЕГОРИИ\n` +
-    `• Interactive — кнопки, инпуты, чекбоксы, слайдеры\n` +
-    `• Container — карточки, модалки, панели, секции\n` +
-    `• Feedback — алерты, бейджи, теги, чипы\n` +
-    `• Media — аватары, изображения, видео, иконки\n` +
-    `• Form — поля ввода, селекты, textarea\n` +
-    `• Data — таблицы, графики, прогресс-бары\n` +
-    `• Overlay — модалки, drawer, диалоги\n` +
-    `• Special — код, цитаты, callout\n\n` +
-    `💡 ПРИНЦИПЫ\n` +
-    `• Интерактивные элементы: 4-6px (subtle focus)\n` +
-    `• Контейнеры: 8-12px (мягкие границы)\n` +
-    `• Круглые элементы: full (аватары, badges)\n` +
-    `• Sharp: 0px (баннеры, drawers, cells)`,
-    0, 0, 12, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  const archIntro = createStyledText(
+    `Radius — система скругления углов (border-radius) UI элементов.\n` +
+    `2-уровневая архитектура: Primitives → Semantic (без адаптивности).`,
+    0, 0, 13, 'Regular', { r: 0.4, g: 0.4, b: 0.4 }
   );
-  archFrame.appendChild(archDesc);
+  archFrame.appendChild(archIntro);
+  
+  // Primitives section
+  const primSection = figma.createFrame();
+  primSection.name = 'Primitives section';
+  primSection.layoutMode = 'VERTICAL';
+  primSection.itemSpacing = 8;
+  primSection.fills = [];
+  primSection.primaryAxisSizingMode = 'AUTO';
+  primSection.counterAxisSizingMode = 'AUTO';
+  
+  const primTitle = createStyledText('📦 ПРИМИТИВЫ (12 значений)', 0, 0, 16, 'Bold');
+  primSection.appendChild(primTitle);
+  
+  const primDesc = createStyledText(
+    `Базовая шкала border-radius:\n\n` +
+    `radius.0    = 0px    (sharp, без скругления)\n` +
+    `radius.2    = 2px    (minimal)\n` +
+    `radius.4    = 4px    (subtle)\n` +
+    `radius.6    = 6px    (soft)\n` +
+    `radius.8    = 8px    (medium)\n` +
+    `radius.10   = 10px   (rounded)\n` +
+    `radius.12   = 12px   (large)\n` +
+    `radius.16   = 16px   (extra)\n` +
+    `radius.20   = 20px   (heavy)\n` +
+    `radius.24   = 24px   (card)\n` +
+    `radius.32   = 32px   (modal)\n` +
+    `radius.full = 9999px (pill/circle)\n\n` +
+    `💡 full (9999px) для идеально круглых элементов.`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  primSection.appendChild(primDesc);
+  archFrame.appendChild(primSection);
+  
+  // Semantic section
+  const semSection = figma.createFrame();
+  semSection.name = 'Semantic section';
+  semSection.layoutMode = 'VERTICAL';
+  semSection.itemSpacing = 8;
+  semSection.fills = [];
+  semSection.primaryAxisSizingMode = 'AUTO';
+  semSection.counterAxisSizingMode = 'AUTO';
+  
+  const semTitle = createStyledText('🎯 СЕМАНТИЧЕСКИЕ ТОКЕНЫ (8 категорий, 58 токенов)', 0, 0, 16, 'Bold');
+  semSection.appendChild(semTitle);
+  
+  const semDesc = createStyledText(
+    `Токены с контекстом, ссылающиеся на примитивы {radius.X}:\n\n` +
+    `INTERACTIVE — интерактивные элементы\n` +
+    `  button (6), buttonSmall (4), buttonPill (full)\n` +
+    `  input (6), inputSmall (4), inputLarge (8)\n` +
+    `  checkbox (4), switch (full), slider (full)\n\n` +
+    `CONTAINER — контейнеры\n` +
+    `  card (12), cardSmall (8), cardLarge (16)\n` +
+    `  modal (16), panel (8), section (12)\n` +
+    `  popover (8), dropdown (8), drawer (0)\n\n` +
+    `FEEDBACK — уведомления и статусы\n` +
+    `  alert (8), toast (8), banner (0)\n` +
+    `  badge (full), tag (4), chip (full)\n\n` +
+    `MEDIA — медиа-контент\n` +
+    `  avatar (full), avatarSquare (8)\n` +
+    `  image (8), video (8), thumbnail (4)\n\n` +
+    `FORM — элементы форм\n` +
+    `  field (6), select (6), textarea (8)\n` +
+    `  colorPicker (4), datePicker (8)\n\n` +
+    `DATA — данные и визуализация\n` +
+    `  table (0), tableCell (0), chart (8)\n` +
+    `  progress (full), meter (4)\n\n` +
+    `OVERLAY — оверлеи\n` +
+    `  modal (16), dialog (12), sheet (16)\n` +
+    `  tooltip (6), menu (8)\n\n` +
+    `SPECIAL — специальные\n` +
+    `  code (4), blockquote (0), callout (8)`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  semSection.appendChild(semDesc);
+  archFrame.appendChild(semSection);
+  
+  // Principles section
+  const principlesSection = figma.createFrame();
+  principlesSection.name = 'Principles section';
+  principlesSection.layoutMode = 'VERTICAL';
+  principlesSection.itemSpacing = 8;
+  principlesSection.fills = [];
+  principlesSection.primaryAxisSizingMode = 'AUTO';
+  principlesSection.counterAxisSizingMode = 'AUTO';
+  
+  const principlesTitle = createStyledText('💡 ПРИНЦИПЫ ПРИМЕНЕНИЯ', 0, 0, 14, 'Medium');
+  principlesSection.appendChild(principlesTitle);
+  
+  const principlesDesc = createStyledText(
+    `• Интерактивные элементы: 4-6px (subtle focus)\n` +
+    `• Контейнеры: 8-16px (мягкие границы)\n` +
+    `• Круглые элементы: full (avatar, badge, pill)\n` +
+    `• Sharp элементы: 0px (banner, drawer, table cell)\n\n` +
+    `⚠️ БЕЗ АДАПТИВНОСТИ\n` +
+    `Radius не меняется для разных устройств.\n` +
+    `Только один режим для всех breakpoints.`,
+    0, 0, 11, 'Regular', { r: 0.4, g: 0.3, b: 0.5 }
+  );
+  principlesSection.appendChild(principlesDesc);
+  archFrame.appendChild(principlesSection);
   
   page.appendChild(archFrame);
-  yOffset += archFrame.height + 48;
+  xOffset += archFrame.width + 48;
   framesCreated++;
   
   // Main frame
   const mainFrame = figma.createFrame();
   mainFrame.name = 'Radius Overview';
-  mainFrame.x = 0;
-  mainFrame.y = yOffset;
+  mainFrame.x = xOffset;
+  mainFrame.y = 0;
   mainFrame.layoutMode = 'VERTICAL';
   mainFrame.itemSpacing = 32;
   mainFrame.paddingTop = 32;
@@ -5231,6 +6163,85 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
             error: error instanceof Error ? error.message : 'Unknown error',
           });
           figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      // ========================================
+      // ICON SIZE HANDLERS
+      // ========================================
+
+      case 'create-icon-size-primitives': {
+        const primitives = msg.primitives as Array<{ name: string; value: number }>;
+        
+        figma.notify(`⏳ Создание ${primitives.length} примитивов icon size...`);
+        
+        const result = await createIconSizePrimitives(primitives);
+        
+        figma.ui.postMessage({
+          type: 'icon-size-primitives-created',
+          count: result.created + result.updated
+        });
+        
+        figma.notify(`✅ Icon Size примитивы: ${result.created} создано, ${result.updated} обновлено`);
+        break;
+      }
+
+      case 'create-icon-size-semantic': {
+        const tokens = (msg.tokens || []) as unknown as Array<{ 
+          id: string; 
+          category: string;
+          subcategory: string;
+          name: string;
+          primitiveRef: string;
+          value: number;
+          description?: string;
+        }>;
+        
+        figma.notify(`⏳ Создание ${tokens.length} семантических токенов icon size...`);
+        
+        try {
+          const result = await createIconSizeSemanticCollection({ tokens });
+          
+          figma.ui.postMessage({
+            type: 'icon-size-semantic-created',
+            count: result.created
+          });
+          
+          if (result.errors.length > 0) {
+            figma.notify(`⚠️ Icon Size: ${result.created} создано, ${result.aliased} алиасов, ${result.errors.length} ошибок`);
+          } else {
+            figma.notify(`✅ Icon Size: ${result.created} создано, ${result.aliased} алиасов`);
+          }
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'icon-size-error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      case 'generate-icon-size-documentation': {
+        figma.notify('⏳ Генерация документации Icon Size...');
+        
+        try {
+          const result = await generateIconSizeDocumentation();
+          
+          figma.ui.postMessage({
+            type: 'icon-size-documentation-generated',
+            pageName: result.pageName,
+            framesCreated: result.framesCreated
+          });
+          
+          figma.notify(`✅ Документация Icon Size: ${result.framesCreated} фреймов на странице "${result.pageName}"`);
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'icon-size-documentation-error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          figma.notify(`❌ Ошибка генерации: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
         break;
       }
