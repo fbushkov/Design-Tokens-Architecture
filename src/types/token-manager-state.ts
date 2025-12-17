@@ -390,11 +390,19 @@ import { ProjectSyncData, ProjectVariable, ProjectCollection, MANAGED_COLLECTION
  * Map Figma collection name to TMCollectionType
  */
 function mapCollectionToType(collectionName: string): TMCollectionType {
-  if (collectionName === 'Primitives') return 'Primitives';
-  if (collectionName === 'Tokens') return 'Tokens';
-  if (collectionName === 'Components') return 'Components';
-  // Numeric collections go to Primitives for now
-  return 'Primitives';
+  // Direct mapping for all managed collections
+  const collectionMap: Record<string, TMCollectionType> = {
+    'Primitives': 'Primitives',
+    'Tokens': 'Tokens',
+    'Components': 'Components',
+    'Typography': 'Typography',
+    'Spacing': 'Spacing',
+    'Gap': 'Gap',
+    'Icon Size': 'Icon Size',
+    'Radius': 'Radius',
+  };
+  
+  return collectionMap[collectionName] || 'Primitives';
 }
 
 /**

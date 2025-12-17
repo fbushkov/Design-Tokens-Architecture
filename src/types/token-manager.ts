@@ -9,7 +9,15 @@
 
 // Figma Variable Types (for Token Manager)
 export type TMTokenType = 'COLOR' | 'NUMBER' | 'STRING' | 'BOOLEAN';
-export type TMCollectionType = 'Primitives' | 'Tokens' | 'Components';
+export type TMCollectionType = 
+  | 'Primitives' 
+  | 'Tokens' 
+  | 'Components'
+  | 'Typography'
+  | 'Spacing'
+  | 'Gap'
+  | 'Icon Size'
+  | 'Radius';
 export type TMSeparator = '/' | '.' | '-';
 export type TMCaseStyle = 'kebab' | 'camel' | 'snake' | 'pascal';
 
@@ -132,7 +140,7 @@ export interface SubcategoryDefinition {
 export interface TokenManagerSettings {
   separator: TMSeparator;
   caseStyle: TMCaseStyle;
-  exportFormat: 'figma' | 'json' | 'css' | 'scss' | 'tailwind';
+  exportFormat: 'figma' | 'json' | 'css' | 'scss' | 'tailwind' | 'frontend';
   autoSync: boolean;
   darkModeEnabled: boolean;
 }

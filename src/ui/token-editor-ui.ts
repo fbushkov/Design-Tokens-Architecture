@@ -116,6 +116,11 @@ function renderIdentitySection(token: TokenDefinition): string {
           <option value="Primitives" ${token.collection === 'Primitives' ? 'selected' : ''}>Primitives</option>
           <option value="Tokens" ${token.collection === 'Tokens' ? 'selected' : ''}>Tokens</option>
           <option value="Components" ${token.collection === 'Components' ? 'selected' : ''}>Components</option>
+          <option value="Typography" ${token.collection === 'Typography' ? 'selected' : ''}>Typography</option>
+          <option value="Spacing" ${token.collection === 'Spacing' ? 'selected' : ''}>Spacing</option>
+          <option value="Gap" ${token.collection === 'Gap' ? 'selected' : ''}>Gap</option>
+          <option value="Icon Size" ${token.collection === 'Icon Size' ? 'selected' : ''}>Icon Size</option>
+          <option value="Radius" ${token.collection === 'Radius' ? 'selected' : ''}>Radius</option>
         </select>
       </div>
       
@@ -389,6 +394,11 @@ export function renderNewTokenDialog(): string {
               <option value="Primitives">Primitives</option>
               <option value="Tokens">Tokens</option>
               <option value="Components">Components</option>
+              <option value="Typography">Typography</option>
+              <option value="Spacing">Spacing</option>
+              <option value="Gap">Gap</option>
+              <option value="Icon Size">Icon Size</option>
+              <option value="Radius">Radius</option>
             </select>
           </div>
           

@@ -81,41 +81,34 @@ interface TreeNode {
 // ============================================
 
 export function buildTokenTree(tokens: TokenDefinition[]): TreeNode[] {
-  const collections: Record<TMCollectionType, TreeNode> = {
-    'Primitives': {
-      id: 'collection-primitives',
-      name: 'Primitives',
+  // All 7 managed collections
+  const allCollections: TMCollectionType[] = [
+    'Primitives',
+    'Tokens', 
+    'Components',
+    'Typography',
+    'Spacing',
+    'Gap',
+    'Icon Size',
+    'Radius',
+  ];
+  
+  const collections: Record<TMCollectionType, TreeNode> = {} as Record<TMCollectionType, TreeNode>;
+  
+  // Initialize all collections
+  for (const collName of allCollections) {
+    collections[collName] = {
+      id: `collection-${collName.toLowerCase().replace(' ', '-')}`,
+      name: collName,
       path: [],
-      fullPath: 'Primitives',
+      fullPath: collName,
       type: 'collection',
       children: [],
       expanded: true,
       enabled: true,
       tokenCount: 0,
-    },
-    'Tokens': {
-      id: 'collection-tokens',
-      name: 'Tokens',
-      path: [],
-      fullPath: 'Tokens',
-      type: 'collection',
-      children: [],
-      expanded: true,
-      enabled: true,
-      tokenCount: 0,
-    },
-    'Components': {
-      id: 'collection-components',
-      name: 'Components',
-      path: [],
-      fullPath: 'Components',
-      type: 'collection',
-      children: [],
-      expanded: true,
-      enabled: true,
-      tokenCount: 0,
-    },
-  };
+    };
+  }
 
   for (const token of tokens) {
     const collection = collections[token.collection];
@@ -324,6 +317,11 @@ export function renderToolbar(): string {
           <option value="Primitives" ${state.filterCollection === 'Primitives' ? 'selected' : ''}>Primitives</option>
           <option value="Tokens" ${state.filterCollection === 'Tokens' ? 'selected' : ''}>Tokens</option>
           <option value="Components" ${state.filterCollection === 'Components' ? 'selected' : ''}>Components</option>
+          <option value="Typography" ${state.filterCollection === 'Typography' ? 'selected' : ''}>Typography</option>
+          <option value="Spacing" ${state.filterCollection === 'Spacing' ? 'selected' : ''}>Spacing</option>
+          <option value="Gap" ${state.filterCollection === 'Gap' ? 'selected' : ''}>Gap</option>
+          <option value="Icon Size" ${state.filterCollection === 'Icon Size' ? 'selected' : ''}>Icon Size</option>
+          <option value="Radius" ${state.filterCollection === 'Radius' ? 'selected' : ''}>Radius</option>
         </select>
         <select class="tm-filter-enabled">
           <option value="all" ${state.filterEnabled === 'all' ? 'selected' : ''}>Все</option>
@@ -453,12 +451,14 @@ export function renderSettingsPanel(): string {
             <div class="ts-field">
               <select class="te-select ts-export-format" id="export-format-select">
                 <option value="json" ${settings.exportFormat === 'json' ? 'selected' : ''}>JSON (Design Tokens)</option>
+                <option value="frontend" ${settings.exportFormat === 'frontend' ? 'selected' : ''}>📦 Frontend (семантика)</option>
                 <option value="css" ${settings.exportFormat === 'css' ? 'selected' : ''}>CSS Variables</option>
                 <option value="scss" ${settings.exportFormat === 'scss' ? 'selected' : ''}>SCSS Variables</option>
                 <option value="figma" ${settings.exportFormat === 'figma' ? 'selected' : ''}>Figma Variables</option>
                 <option value="tailwind" ${settings.exportFormat === 'tailwind' ? 'selected' : ''}>Tailwind Config</option>
               </select>
             </div>
+            <div class="ts-info">Frontend: только финальный уровень (Components + семантика)</div>
           </div>
 
           <div class="ts-actions">
@@ -802,7 +802,7 @@ function saveSettingsFromPanel(container: HTMLElement): void {
   // Export format
   const exportFormatSelect = container.querySelector('#export-format-select') as HTMLSelectElement;
   if (exportFormatSelect) {
-    state.settings.exportFormat = exportFormatSelect.value as 'figma' | 'json' | 'css' | 'scss' | 'tailwind';
+    state.settings.exportFormat = exportFormatSelect.value as 'figma' | 'json' | 'css' | 'scss' | 'tailwind' | 'frontend';
   }
 
   state.hasUnsavedChanges = true;

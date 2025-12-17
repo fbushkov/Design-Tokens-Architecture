@@ -548,10 +548,145 @@ export function exportToFigmaVariables(): FigmaVariableExport[] {
 }
 
 // ============================================
+// FRONTEND EXPORT (Final semantic level only)
+// For frontend developers: Components + semantic collections
+// ============================================
+
+export interface FrontendToken {
+  key: string;        // Original key (e.g., "button/primary/primary-bg")
+  value: string;      // Final value (e.g., "#2781f3")
+  type: string;       // "color" | "number" | "string"
+  category: string;   // Collection name
+}
+
+export function exportToFrontend(): string {
+  const state = getState();
+  const tokens = getTokens().filter(t => t.enabled);
+  const { caseStyle } = state.settings;
+
+  // Define which collections represent the "final" semantic level
+  // Components for colors, semantic collections for numbers
+  const finalLevelCollections = [
+    'Components',     // Colors - most specific level
+    'Typography',     // Typography semantics (no component level)
+    'Spacing',        // Spacing semantics (no component level)
+    'Gap',            // Gap semantics (no component level)
+    'Icon Size',      // Icon size semantics (no component level)
+    'Radius',         // Radius semantics (no component level)
+  ];
+
+  const frontendTokens: FrontendToken[] = [];
+
+  // Group by collection
+  const result: Record<string, Record<string, any>> = {
+    colors: {},       // From Components
+    typography: {},   // From Typography
+    spacing: {},      // From Spacing
+    gap: {},          // From Gap
+    iconSize: {},     // From Icon Size
+    radius: {},       // From Radius
+  };
+
+  for (const token of tokens) {
+    // Skip if not a final-level collection
+    if (!finalLevelCollections.includes(token.collection)) {
+      continue;
+    }
+
+    // Build flat key from path + name
+    const key = [...token.path, token.name].join('/');
+    
+    // Get value based on type
+    let value: string | number;
+    let type: string;
+    
+    if (token.type === 'COLOR') {
+      const colorVal = token.value as TMColorValue;
+      value = colorVal.hex;
+      type = 'color';
+    } else if (token.type === 'NUMBER') {
+      value = token.value as number;
+      type = 'number';
+    } else {
+      value = String(token.value);
+      type = 'string';
+    }
+
+    // Map collection to result category
+    let category: string;
+    switch (token.collection) {
+      case 'Components':
+        category = 'colors';
+        break;
+      case 'Typography':
+        category = 'typography';
+        break;
+      case 'Spacing':
+        category = 'spacing';
+        break;
+      case 'Gap':
+        category = 'gap';
+        break;
+      case 'Icon Size':
+        category = 'iconSize';
+        break;
+      case 'Radius':
+        category = 'radius';
+        break;
+      default:
+        continue;
+    }
+
+    // Build nested structure for the category
+    let current = result[category];
+    for (const part of token.path) {
+      const formattedPart = formatName(part, caseStyle);
+      if (!current[formattedPart]) {
+        current[formattedPart] = {};
+      }
+      current = current[formattedPart];
+    }
+    
+    const formattedName = formatName(token.name, caseStyle);
+    current[formattedName] = value;
+  }
+
+  // Build final export object
+  const exportResult: Record<string, any> = {
+    $schema: 'frontend-tokens',
+    $version: '1.0.0',
+    $description: 'Frontend tokens - final semantic level only',
+    $timestamp: new Date().toISOString(),
+  };
+
+  // Only include non-empty categories
+  if (Object.keys(result.colors).length > 0) {
+    exportResult.colors = result.colors;
+  }
+  if (Object.keys(result.typography).length > 0) {
+    exportResult.typography = result.typography;
+  }
+  if (Object.keys(result.spacing).length > 0) {
+    exportResult.spacing = result.spacing;
+  }
+  if (Object.keys(result.gap).length > 0) {
+    exportResult.gap = result.gap;
+  }
+  if (Object.keys(result.iconSize).length > 0) {
+    exportResult.iconSize = result.iconSize;
+  }
+  if (Object.keys(result.radius).length > 0) {
+    exportResult.radius = result.radius;
+  }
+
+  return JSON.stringify(exportResult, null, 2);
+}
+
+// ============================================
 // MAIN EXPORT FUNCTION
 // ============================================
 
-export type ExportFormat = 'json' | 'storybook' | 'css' | 'scss' | 'tailwind' | 'figma';
+export type ExportFormat = 'json' | 'storybook' | 'css' | 'scss' | 'tailwind' | 'figma' | 'frontend';
 
 export function exportTokens(format: ExportFormat): string | FigmaVariableExport[] {
   switch (format) {
@@ -567,6 +702,8 @@ export function exportTokens(format: ExportFormat): string | FigmaVariableExport
       return exportToTailwind();
     case 'figma':
       return exportToFigmaVariables();
+    case 'frontend':
+      return exportToFrontend();
     default:
       return exportToJSON();
   }
@@ -592,6 +729,8 @@ export function getExportFilename(format: ExportFormat): string {
       return `tailwind-tokens-${timestamp}.js`;
     case 'figma':
       return `figma-variables-${timestamp}.json`;
+    case 'frontend':
+      return `frontend-tokens-${timestamp}.json`;
     default:
       return `tokens-${timestamp}.json`;
   }
