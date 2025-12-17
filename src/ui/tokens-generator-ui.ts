@@ -94,11 +94,11 @@ export const tokensState = {
     
     // Background - фоны
     background: [
-      { token: 'background/primary', light: 'neutral-0', dark: 'neutral-950', desc: 'Main background' },
+      { token: 'background/primary', light: 'neutral-25', dark: 'neutral-950', desc: 'Main background' },
       { token: 'background/secondary', light: 'neutral-50', dark: 'neutral-900', desc: 'Secondary bg' },
       { token: 'background/tertiary', light: 'neutral-100', dark: 'neutral-850', desc: 'Tertiary bg' },
-      { token: 'background/elevated', light: 'neutral-0', dark: 'neutral-800', desc: 'Elevated surfaces' },
-      { token: 'background/overlay', light: 'neutral-900', dark: 'neutral-0', desc: 'Overlay bg' },
+      { token: 'background/elevated', light: 'neutral-25', dark: 'neutral-800', desc: 'Elevated surfaces' },
+      { token: 'background/overlay', light: 'neutral-900', dark: 'neutral-25', desc: 'Overlay bg' },
       { token: 'background/brand', light: 'brand-50', dark: 'brand-950', desc: 'Brand background' },
     ],
     
@@ -108,7 +108,7 @@ export const tokensState = {
       { token: 'text/secondary', light: 'neutral-600', dark: 'neutral-400', desc: 'Secondary text' },
       { token: 'text/tertiary', light: 'neutral-400', dark: 'neutral-500', desc: 'Tertiary text' },
       { token: 'text/disabled', light: 'neutral-300', dark: 'neutral-600', desc: 'Disabled text' },
-      { token: 'text/inverse', light: 'neutral-0', dark: 'neutral-950', desc: 'Inverse text' },
+      { token: 'text/inverse', light: 'neutral-25', dark: 'neutral-950', desc: 'Inverse text' },
       { token: 'text/brand', light: 'brand-600', dark: 'brand-400', desc: 'Brand text' },
       { token: 'text/link', light: 'brand-500', dark: 'brand-400', desc: 'Link text' },
     ],

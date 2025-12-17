@@ -207,18 +207,17 @@ export const componentsState = {
 
 /**
  * Находит семантический токен по пути (без темы)
+ * Токены хранятся с fullPath = category/subcategory (например action/primary)
  */
 function findSemanticToken(semanticPath: string, productId: string, themeId: string): TokenDefinition | undefined {
   const state = getState();
   const tokens = state.tokens;
   
-  // Ищем токен в коллекции Tokens с нужной темой
-  // Путь будет: tokens/{theme}/{semanticPath}
-  const fullTokenPath = `${productId}/tokens/${themeId}/${semanticPath}`;
-  
+  // Ищем токен в коллекции Tokens по semanticPath напрямую
+  // Токены хранятся без productId и themeId, просто category/name
   return tokens.find(token => {
     if (token.collection !== 'Tokens') return false;
-    return token.fullPath === fullTokenPath;
+    return token.fullPath === semanticPath;
   });
 }
 

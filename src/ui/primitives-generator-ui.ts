@@ -1214,7 +1214,7 @@ function openThemeModal(editThemeId?: string): void {
   
   const modal = document.createElement('div');
   modal.id = 'theme-modal';
-  modal.className = 'modal-overlay';
+  modal.className = 'modal-overlay show';
   modal.innerHTML = `
     <div class="modal-content theme-modal-content">
       <div class="modal-header">
