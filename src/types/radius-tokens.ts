@@ -64,9 +64,18 @@ export interface RadiusSemanticToken {
   primitiveRef: string;   // Reference to primitive name: "6", "full", "0"
 }
 
+// Custom category for user-defined sections
+export interface CustomRadiusCategory {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+}
+
 export interface RadiusState {
   primitives: RadiusPrimitive[];
   semanticTokens: RadiusSemanticToken[];
+  customCategories?: CustomRadiusCategory[];
 }
 
 // ============================================

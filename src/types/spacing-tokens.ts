@@ -99,9 +99,18 @@ export interface DeviceSpacingToken {
   mobile: string;
 }
 
+// Custom category for user-defined sections
+export interface CustomSpacingCategory {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+}
+
 export interface SpacingState {
   primitives: SpacingPrimitive[];
   semanticTokens: DeviceSpacingToken[];
+  customCategories?: CustomSpacingCategory[];
 }
 
 // ============================================

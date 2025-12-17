@@ -51,7 +51,7 @@ import { resetRadiusToDefaults } from './radius-generator-ui';
 
 import { resetIconSizeToDefaults } from './icon-size-generator-ui';
 
-import { clearStorageKeys, STORAGE_KEYS } from './storage-utils';
+import { clearStorageKeys, storageGet, storageSet, STORAGE_KEYS } from './storage-utils';
 
 import {
   DEFAULT_PALETTES,
@@ -80,16 +80,37 @@ import { PluginVariable } from '../types/sync-manager';
 // ============================================
 
 let projectSyncData: ProjectSyncData | null = null;
-let projectSyncTab: 'overview' | 'collections' | 'styles' = 'overview';
+let projectSyncTab: 'overview' | 'changes' = 'overview';
 let selectedCollectionId: string | null = null;
 let syncModalOpen = false;
 
 export function setProjectSyncData(data: ProjectSyncData): void {
   projectSyncData = data;
+  // Save to clientStorage for persistence
+  saveProjectSyncData(data);
 }
 
 export function getProjectSyncData(): ProjectSyncData | null {
   return projectSyncData;
+}
+
+async function saveProjectSyncData(data: ProjectSyncData): Promise<void> {
+  try {
+    await storageSet(STORAGE_KEYS.PROJECT_SYNC_DATA, data);
+  } catch (e) {
+    console.error('Failed to save project sync data:', e);
+  }
+}
+
+export async function loadProjectSyncData(): Promise<void> {
+  try {
+    const saved = await storageGet<ProjectSyncData>(STORAGE_KEYS.PROJECT_SYNC_DATA);
+    if (saved) {
+      projectSyncData = saved;
+    }
+  } catch (e) {
+    console.error('Failed to load project sync data:', e);
+  }
 }
 
 // ============================================
@@ -509,13 +530,22 @@ export function renderSettingsPanel(): string {
           <div class="ts-divider" style="margin-top: 16px;"></div>
           
           <div class="ts-section">
-            <div class="ts-section-title" style="color: var(--color-text-error, #f24822);">⚠️ Опасная зона</div>
+            <div class="ts-section-title">🔄 Сброс настроек</div>
             <div class="ts-field">
-              <button class="btn btn-ghost ts-reset-all-defaults" style="width: 100%; color: var(--color-text-secondary); border: 1px solid var(--color-border);">
-                🔄 Сбросить всю систему к дефолтным
+              <button class="btn btn-secondary ts-reset-plugin-settings" style="width: 100%;">
+                🔄 Сбросить настройки плагина
               </button>
               <div class="ts-info" style="margin-top: 8px;">
-                Сбрасывает ВСЕ настройки плагина: Typography, Spacing, Gap, Radius, Colors и токены Token Manager. Это действие нельзя отменить.
+                Сбрасывает UI-настройки (Typography, Spacing и т.д.) к дефолтным. <strong>Не влияет</strong> на Variables в Figma и Token Map.
+              </div>
+            </div>
+            
+            <div class="ts-field" style="margin-top: 12px;">
+              <button class="btn btn-ghost ts-reset-all-defaults" style="width: 100%; color: var(--color-text-error, #f24822); border: 1px solid var(--color-border);">
+                ⚠️ Полный сброс системы
+              </button>
+              <div class="ts-info" style="margin-top: 8px;">
+                Сбрасывает ВСЕ: настройки + Token Map. Variables в Figma <strong>не удаляются</strong>.
               </div>
             </div>
           </div>
@@ -855,9 +885,21 @@ export function initTokenManagerEvents(container: HTMLElement, refreshCallback: 
       }
     }
     
+    // Reset plugin settings only (not Token Map)
+    if (target.classList.contains('ts-reset-plugin-settings')) {
+      if (confirm('Сбросить настройки плагина к дефолтным?\n\nЭто сбросит UI-настройки (Typography, Spacing и т.д.)\nToken Map и Variables в Figma НЕ будут изменены.')) {
+        resetPluginSettingsToDefaults();
+        refreshCallback();
+        const overlay = container.querySelector('#settings-modal-overlay') as HTMLElement;
+        if (overlay) {
+          overlay.classList.remove('open');
+        }
+      }
+    }
+    
     // Reset ALL system to defaults
     if (target.classList.contains('ts-reset-all-defaults')) {
-      if (confirm('⚠️ Вы уверены, что хотите сбросить ВСЮ систему?\n\nЭто удалит:\n• Все токены Token Manager\n• Настройки Typography (примитивы, семантика, брейкпоинты)\n• Настройки Spacing, Gap, Radius\n• Настройки Colors\n\nЭто действие нельзя отменить!')) {
+      if (confirm('⚠️ Полный сброс системы?\n\nЭто удалит:\n• Все токены из Token Map\n• Настройки Typography, Spacing, Gap, Radius, Colors\n\nVariables в Figma НЕ будут удалены.')) {
         resetAllSystemToDefaults();
         refreshCallback();
         // Close modal after reset
@@ -955,8 +997,50 @@ function resetSettings(): void {
 }
 
 /**
- * Глобальный сброс всей системы к дефолтным настройкам
- * Сбрасывает: Token Manager, Typography, Spacing, Gap, Radius, Colors
+ * Сброс настроек плагина к дефолтным
+ * ВАЖНО: НЕ удаляет токены из Token Map и НЕ влияет на Variables в Figma
+ * Сбрасывает только UI-состояние модулей (выбранные примитивы, настройки и т.д.)
+ */
+async function resetPluginSettingsToDefaults(): Promise<void> {
+  // 1. Сбрасываем настройки Token Manager (только settings, НЕ tokens)
+  resetSettings();
+  
+  // 2. Очищаем storage только для настроек (НЕ для токенов)
+  await clearStorageKeys([
+    STORAGE_KEYS.TOKEN_MANAGER_SETTINGS,
+    STORAGE_KEYS.TYPOGRAPHY_STATE,
+    STORAGE_KEYS.SPACING_STATE,
+    STORAGE_KEYS.GAP_STATE,
+    STORAGE_KEYS.RADIUS_STATE,
+    STORAGE_KEYS.ICON_SIZE_STATE,
+    STORAGE_KEYS.COLORS_STATE,
+    // НЕ очищаем: TOKEN_MANAGER_STATE, GENERATED_PALETTES
+  ]);
+  
+  // 3. Сбрасываем UI модули к дефолтным настройкам
+  try { await resetTypographyToDefaults(); } catch (e) { /* ignore */ }
+  try { await resetColorsToDefaults(); } catch (e) { /* ignore */ }
+  try { await resetSpacingToDefaults(); } catch (e) { /* ignore */ }
+  try { await resetGapToDefaults(); } catch (e) { /* ignore */ }
+  try { await resetRadiusToDefaults(); } catch (e) { /* ignore */ }
+  try { await resetIconSizeToDefaults(); } catch (e) { /* ignore */ }
+  
+  // 4. Сохраняем состояние
+  saveState();
+  
+  // 5. Уведомление
+  parent.postMessage({
+    pluginMessage: {
+      type: 'notify',
+      message: '🔄 Настройки плагина сброшены. Токены в Figma не изменены.',
+      options: { timeout: 3000 },
+    },
+  }, '*');
+}
+
+/**
+ * Полный сброс системы (включая Token Map)
+ * Используется для полной очистки
  */
 async function resetAllSystemToDefaults(): Promise<void> {
   // 1. Сбрасываем настройки Token Manager
@@ -979,54 +1063,23 @@ async function resetAllSystemToDefaults(): Promise<void> {
   ]);
   
   // 4. Сбрасываем все UI модули к дефолтным настройкам
-  try {
-    await resetTypographyToDefaults();
-  } catch (e) {
-    // Typography UI may not be initialized
-  }
-  
-  try {
-    await resetColorsToDefaults();
-  } catch (e) {
-    // Colors UI may not be initialized
-  }
-  
-  try {
-    await resetSpacingToDefaults();
-  } catch (e) {
-    // Spacing UI may not be initialized
-  }
-  
-  try {
-    await resetGapToDefaults();
-  } catch (e) {
-    // Gap UI may not be initialized
-  }
-  
-  try {
-    await resetRadiusToDefaults();
-  } catch (e) {
-    // Radius UI may not be initialized
-  }
-  
-  try {
-    await resetIconSizeToDefaults();
-  } catch (e) {
-    // Icon Size UI may not be initialized
-  }
+  try { await resetTypographyToDefaults(); } catch (e) { /* ignore */ }
+  try { await resetColorsToDefaults(); } catch (e) { /* ignore */ }
+  try { await resetSpacingToDefaults(); } catch (e) { /* ignore */ }
+  try { await resetGapToDefaults(); } catch (e) { /* ignore */ }
+  try { await resetRadiusToDefaults(); } catch (e) { /* ignore */ }
+  try { await resetIconSizeToDefaults(); } catch (e) { /* ignore */ }
   
   // 5. Сохраняем сброшенное состояние Token Manager
   saveState();
   
   // 6. Показываем уведомление
-  // Используем CustomEvent для коммуникации с UI
   window.dispatchEvent(new CustomEvent('system-reset-complete'));
   
-  // Показываем нотификацию через Figma API
   parent.postMessage({
     pluginMessage: {
       type: 'notify',
-      message: '🔄 Система сброшена к настройкам по умолчанию. Перезагрузите плагин для полного сброса.',
+      message: '🔄 Система полностью сброшена. Variables в Figma не изменены.',
       options: { timeout: 5000 },
     },
   }, '*');
@@ -1076,6 +1129,9 @@ export function collapseAllPaths(): void {
 
 export function initTokenManager(): void {
   loadState();
+  // Load persisted project sync data and pending changes
+  loadProjectSyncData();
+  loadPendingChanges();
 }
 
 // ============================================
@@ -1114,20 +1170,16 @@ export function renderProjectSync(): string {
       
       <div class="project-sync-tabs">
         <button class="sync-tab ${projectSyncTab === 'overview' ? 'active' : ''}" data-sync-tab="overview">
-          Обзор
+          Общая информация
         </button>
-        <button class="sync-tab ${projectSyncTab === 'collections' ? 'active' : ''}" data-sync-tab="collections">
-          Коллекции (${summary.totalCollections})
-        </button>
-        <button class="sync-tab ${projectSyncTab === 'styles' ? 'active' : ''}" data-sync-tab="styles">
-          Стили (${summary.totalPaintStyles + summary.totalTextStyles})
+        <button class="sync-tab ${projectSyncTab === 'changes' ? 'active' : ''}" data-sync-tab="changes">
+          Изменения
         </button>
       </div>
       
       <div class="project-sync-content">
         ${projectSyncTab === 'overview' ? renderSyncOverview(summary, collections, styles) : ''}
-        ${projectSyncTab === 'collections' ? renderSyncCollections(collections) : ''}
-        ${projectSyncTab === 'styles' ? renderSyncStyles(styles) : ''}
+        ${projectSyncTab === 'changes' ? renderPendingChanges() : ''}
       </div>
     </div>
   `;
@@ -1410,12 +1462,208 @@ function renderSyncStyles(styles: ProjectSyncData['styles']): string {
 }
 
 // ============================================
+// PENDING CHANGES TRACKING
+// ============================================
+
+export interface PendingChange {
+  module: 'colors' | 'typography' | 'spacing' | 'gap' | 'radius' | 'iconSize';
+  type: 'add' | 'update' | 'delete';
+  category: string;
+  name: string;
+  oldValue?: string;
+  newValue?: string;
+  details?: string;
+  timestamp?: number;
+}
+
+// Track pending changes across all modules
+let pendingChanges: PendingChange[] = [];
+
+export function addPendingChange(change: PendingChange): void {
+  // Check if similar change already exists
+  const existingIndex = pendingChanges.findIndex(c => 
+    c.module === change.module && c.name === change.name && c.category === change.category
+  );
+  
+  if (existingIndex >= 0) {
+    // Update existing change
+    pendingChanges[existingIndex] = change;
+  } else {
+    pendingChanges.push(change);
+  }
+  
+  // Save to storage
+  savePendingChanges();
+}
+
+export function clearPendingChanges(): void {
+  pendingChanges = [];
+  savePendingChanges();
+}
+
+async function savePendingChanges(): Promise<void> {
+  try {
+    await storageSet('pending-changes', pendingChanges);
+  } catch (e) {
+    console.error('Failed to save pending changes:', e);
+  }
+}
+
+export async function loadPendingChanges(): Promise<void> {
+  try {
+    const saved = await storageGet<PendingChange[]>('pending-changes');
+    if (saved) {
+      pendingChanges = saved;
+    }
+  } catch (e) {
+    console.error('Failed to load pending changes:', e);
+  }
+}
+
+function renderPendingChanges(): string {
+  // Group changes by module
+  const grouped = {
+    colors: pendingChanges.filter(c => c.module === 'colors'),
+    typography: pendingChanges.filter(c => c.module === 'typography'),
+    spacing: pendingChanges.filter(c => c.module === 'spacing'),
+    gap: pendingChanges.filter(c => c.module === 'gap'),
+    radius: pendingChanges.filter(c => c.module === 'radius'),
+    iconSize: pendingChanges.filter(c => c.module === 'iconSize'),
+  };
+  
+  const totalChanges = pendingChanges.length;
+  
+  const moduleLabels: Record<string, { icon: string; label: string }> = {
+    colors: { icon: '🎨', label: 'Цвета' },
+    typography: { icon: '🔤', label: 'Типографика' },
+    spacing: { icon: '📏', label: 'Spacing' },
+    gap: { icon: '↔️', label: 'Gap' },
+    radius: { icon: '◯', label: 'Radius' },
+    iconSize: { icon: '📐', label: 'Icon Size' },
+  };
+  
+  const renderChangeType = (type: string) => {
+    switch (type) {
+      case 'add': return '<span class="change-badge add">+ добавлено</span>';
+      case 'update': return '<span class="change-badge update">✎ изменено</span>';
+      case 'delete': return '<span class="change-badge delete">× удалено</span>';
+      default: return '';
+    }
+  };
+  
+  const renderChangeValue = (change: PendingChange) => {
+    if (change.type === 'update' && change.oldValue && change.newValue) {
+      return `<span class="change-value old">${change.oldValue}</span> → <span class="change-value new">${change.newValue}</span>`;
+    }
+    if (change.type === 'add' && change.newValue) {
+      return `<span class="change-value new">${change.newValue}</span>`;
+    }
+    if (change.type === 'delete' && change.oldValue) {
+      return `<span class="change-value old">${change.oldValue}</span>`;
+    }
+    return change.details || '';
+  };
+  
+  return `
+    <div class="pending-changes">
+      <!-- Export button at top -->
+      <div class="export-section-header">
+        <button class="btn btn-primary btn-lg" id="btn-export-all-changes" style="width: 100%; padding: 12px; font-size: 14px;">
+          📤 Экспортировать выбранные изменения
+        </button>
+        <div class="export-all-hint">
+          Экспортирует только отмеченные токены в Figma Variables
+        </div>
+      </div>
+      
+      ${totalChanges === 0 ? `
+        <div class="no-changes">
+          <div class="no-changes-icon">✓</div>
+          <p>Нет ожидающих изменений</p>
+          <p class="hint">Внесите изменения в токены Colors, Typography, Spacing и др., чтобы они отобразились здесь</p>
+        </div>
+      ` : `
+        <div class="changes-header">
+          <div class="changes-summary">
+            <span class="changes-count">${totalChanges}</span> изменений готово к экспорту
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btn-clear-changes">
+            Очистить
+          </button>
+        </div>
+        
+        <!-- Changes Table -->
+        <div class="changes-table-wrapper">
+          <table class="changes-table">
+            <thead>
+              <tr>
+                <th style="width: 30px;"></th>
+                <th>Модуль</th>
+                <th>Категория</th>
+                <th>Имя токена</th>
+                <th>Изменение</th>
+                <th>Значение</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${pendingChanges.map((change, idx) => `
+                <tr class="change-row change-${change.type}" data-change-idx="${idx}">
+                  <td class="change-checkbox">
+                    <input type="checkbox" checked data-change-idx="${idx}">
+                  </td>
+                  <td class="change-module">
+                    <span class="module-icon">${moduleLabels[change.module].icon}</span>
+                    ${moduleLabels[change.module].label}
+                  </td>
+                  <td class="change-category">${change.category}</td>
+                  <td class="change-name">${change.name}</td>
+                  <td class="change-type">${renderChangeType(change.type)}</td>
+                  <td class="change-value">${renderChangeValue(change)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Module Summary -->
+        <div class="changes-modules-summary">
+          ${Object.entries(grouped)
+            .filter(([_, changes]) => changes.length > 0)
+            .map(([module, changes]) => `
+              <div class="module-summary-item">
+                <span class="module-icon">${moduleLabels[module].icon}</span>
+                <span class="module-label">${moduleLabels[module].label}</span>
+                <span class="module-count">${changes.length}</span>
+              </div>
+            `).join('')}
+        </div>
+      `}
+    </div>
+  `;
+}
+
+// ============================================
 // PROJECT SYNC EVENT HANDLERS
 // ============================================
 
 export function handleProjectSyncEvents(container: HTMLElement): void {
   container.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
+    
+    // Export All button
+    if (target.id === 'btn-export-all-changes' || target.closest('#btn-export-all-changes')) {
+      exportAllChangesToFigma();
+      return;
+    }
+    
+    // Clear changes button
+    if (target.id === 'btn-clear-changes' || target.closest('#btn-clear-changes')) {
+      if (confirm('Очистить список ожидающих изменений?')) {
+        clearPendingChanges();
+        refreshProjectSync(container);
+      }
+      return;
+    }
     
     // Sync button
     if (target.id === 'btn-sync-from-project' || target.closest('#btn-sync-from-project')) {
@@ -1426,19 +1674,11 @@ export function handleProjectSyncEvents(container: HTMLElement): void {
     // Tab switching
     const tabBtn = target.closest('.sync-tab') as HTMLElement;
     if (tabBtn) {
-      const tab = tabBtn.dataset.syncTab as 'overview' | 'collections' | 'styles';
+      const tab = tabBtn.dataset.syncTab as 'overview' | 'changes';
       if (tab) {
         projectSyncTab = tab;
         refreshProjectSync(container);
       }
-      return;
-    }
-    
-    // Collection selection
-    const collectionItem = target.closest('.collection-item') as HTMLElement;
-    if (collectionItem) {
-      selectedCollectionId = collectionItem.dataset.collectionId || null;
-      refreshProjectSync(container);
       return;
     }
     
@@ -1673,8 +1913,77 @@ export function handleSyncMessageFromFigma(msg: any): void {
   const container = document.querySelector('.token-manager') as HTMLElement;
   if (!container) return;
   
+  // Handle export-selected-complete - clear exported changes
+  if (msg.type === 'export-selected-complete') {
+    // Get checked checkboxes and remove those changes
+    const checkboxes = document.querySelectorAll('.changes-table input[type="checkbox"]:checked') as NodeListOf<HTMLInputElement>;
+    const indicesToRemove = new Set<number>();
+    
+    checkboxes.forEach(checkbox => {
+      const idx = parseInt(checkbox.dataset.changeIdx || '-1', 10);
+      if (idx >= 0) {
+        indicesToRemove.add(idx);
+      }
+    });
+    
+    // Remove exported changes (from end to start to preserve indices)
+    const sortedIndices = Array.from(indicesToRemove).sort((a, b) => b - a);
+    for (const idx of sortedIndices) {
+      pendingChanges.splice(idx, 1);
+    }
+    
+    savePendingChanges();
+    refreshProjectSync(container);
+    return;
+  }
+  
   const syncModal = container.querySelector('#sync-modal') as HTMLElement;
   if (syncModal) {
     handleSyncMessage(msg, syncModal);
   }
+}
+
+/**
+ * Export all changes to Figma at once
+ * Sends sequential messages to create/update all variable types
+ */
+function exportAllChangesToFigma(): void {
+  // Collect selected changes from checkboxes
+  const selectedChanges: PendingChange[] = [];
+  const checkboxes = document.querySelectorAll('.changes-table input[type="checkbox"]:checked') as NodeListOf<HTMLInputElement>;
+  
+  checkboxes.forEach(checkbox => {
+    const idx = parseInt(checkbox.dataset.changeIdx || '-1', 10);
+    if (idx >= 0 && idx < pendingChanges.length) {
+      selectedChanges.push(pendingChanges[idx]);
+    }
+  });
+  
+  if (selectedChanges.length === 0) {
+    alert('Выберите изменения для экспорта');
+    return;
+  }
+  
+  // Show loading state on button
+  const btn = document.getElementById('btn-export-all-changes') as HTMLButtonElement;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Экспортируем...';
+  }
+  
+  // Send export message with selected changes
+  parent.postMessage({
+    pluginMessage: {
+      type: 'export-selected-changes',
+      payload: { changes: selectedChanges }
+    }
+  }, '*');
+  
+  // Reset button after delay
+  setTimeout(() => {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '📤 Экспортировать выбранные изменения';
+    }
+  }, 3000);
 }

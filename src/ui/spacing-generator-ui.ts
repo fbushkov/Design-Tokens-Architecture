@@ -12,19 +12,21 @@ import {
   DeviceSpacingToken,
   SpacingCategory,
   SPACING_CATEGORIES,
+  CustomSpacingCategory,
   createDefaultSpacingState,
   generateSpacingTokenId,
   getTokensByCategory,
 } from '../types/spacing-tokens';
 
 import { storageGet, storageSet, storageDelete, STORAGE_KEYS } from './storage-utils';
+import { addPendingChange } from './token-manager-ui';
 
 // ============================================
 // STATE
 // ============================================
 
 let spacingState: SpacingState = createDefaultSpacingState();
-let activeCategory: SpacingCategory = 'button';
+let activeCategory: SpacingCategory | string = 'button';
 let activeTab: 'primitives' | 'semantic' | 'export' = 'primitives';
 
 // ============================================
@@ -156,29 +158,60 @@ function renderCategoryTabs(): void {
   const container = document.getElementById('spacing-category-tabs');
   if (!container) return;
   
-  const categories = Object.keys(SPACING_CATEGORIES) as SpacingCategory[];
+  const defaultCategories = Object.keys(SPACING_CATEGORIES) as SpacingCategory[];
+  const customCategories = spacingState.customCategories || [];
   
-  container.innerHTML = categories.map(cat => {
-    const info = SPACING_CATEGORIES[cat];
-    const count = getTokensByCategory(spacingState.semanticTokens, cat).length;
-    return `
-      <button class="category-tab ${cat === activeCategory ? 'active' : ''}" 
-              data-category="${cat}" title="${info.description}">
-        ${info.label} <span class="count">(${count})</span>
-      </button>
-    `;
-  }).join('');
+  container.innerHTML = `
+    ${defaultCategories.map(cat => {
+      const info = SPACING_CATEGORIES[cat];
+      const count = getTokensByCategory(spacingState.semanticTokens, cat).length;
+      return `
+        <button class="category-tab ${cat === activeCategory ? 'active' : ''}" 
+                data-category="${cat}" title="${info.description}">
+          ${info.label} <span class="count">(${count})</span>
+        </button>
+      `;
+    }).join('')}
+    ${customCategories.map(cat => {
+      const count = spacingState.semanticTokens.filter(t => t.category === cat.id).length;
+      return `
+        <button class="category-tab custom-category ${cat.id === activeCategory ? 'active' : ''}" 
+                data-category="${cat.id}" title="${cat.description}">
+          ${cat.icon} ${cat.name} <span class="count">(${count})</span>
+          <span class="btn-delete-category" data-category-id="${cat.id}" title="Удалить категорию">×</span>
+        </button>
+      `;
+    }).join('')}
+    <button class="category-tab add-category-btn" id="spacing-add-category" title="Добавить категорию">+</button>
+  `;
   
   // Click handlers
-  container.querySelectorAll('.category-tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const cat = btn.getAttribute('data-category') as SpacingCategory;
-      setActiveCategory(cat);
+  container.querySelectorAll('.category-tab[data-category]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      // Ignore if clicking delete button
+      if ((e.target as HTMLElement).classList.contains('btn-delete-category')) return;
+      const cat = btn.getAttribute('data-category');
+      if (cat) setActiveCategory(cat);
     });
   });
+  
+  // Delete category handlers
+  container.querySelectorAll('.btn-delete-category').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const catId = (btn as HTMLElement).dataset.categoryId;
+      if (catId) deleteCustomCategory(catId);
+    });
+  });
+  
+  // Add category button
+  const addBtn = document.getElementById('spacing-add-category');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => showAddCategoryDialog());
+  }
 }
 
-function setActiveCategory(category: SpacingCategory): void {
+function setActiveCategory(category: string): void {
   activeCategory = category;
   renderCategoryTabs();
   renderSemanticTokens();
@@ -192,8 +225,18 @@ function renderSemanticTokens(): void {
   const container = document.getElementById('spacing-semantic-list');
   if (!container) return;
   
-  const tokens = getTokensByCategory(spacingState.semanticTokens, activeCategory);
-  const categoryInfo = SPACING_CATEGORIES[activeCategory];
+  // Support both default and custom categories
+  const isCustomCategory = !Object.keys(SPACING_CATEGORIES).includes(activeCategory);
+  const tokens = isCustomCategory 
+    ? spacingState.semanticTokens.filter(t => t.category === activeCategory)
+    : getTokensByCategory(spacingState.semanticTokens, activeCategory as SpacingCategory);
+  
+  const categoryInfo = isCustomCategory
+    ? spacingState.customCategories?.find(c => c.id === activeCategory)
+    : SPACING_CATEGORIES[activeCategory as SpacingCategory];
+  const categoryLabel = isCustomCategory 
+    ? (categoryInfo as CustomSpacingCategory)?.name || activeCategory
+    : (categoryInfo as { label: string })?.label || activeCategory;
   
   // Update total count
   const totalCounter = document.getElementById('spacing-semantic-count');
@@ -202,7 +245,7 @@ function renderSemanticTokens(): void {
   if (tokens.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <p>Нет токенов в категории "${categoryInfo.label}"</p>
+        <p>Нет токенов в категории "${categoryLabel}"</p>
         <button class="btn btn-primary" id="add-first-semantic-btn">+ Добавить токен</button>
       </div>
     `;
@@ -304,7 +347,7 @@ function addSemanticToken(): void {
   const newToken: DeviceSpacingToken = {
     id: generateSpacingTokenId(),
     path: `spacing.${activeCategory}.new.padding`,
-    category: activeCategory,
+    category: activeCategory as SpacingCategory,
     desktop: '16',
     tablet: '14',
     mobile: '12',
@@ -314,23 +357,104 @@ function addSemanticToken(): void {
   saveSpacingState();
   renderCategoryTabs();
   renderSemanticTokens();
+  
+  // Track change
+  addPendingChange({
+    module: 'spacing',
+    type: 'add',
+    category: activeCategory,
+    name: newToken.path,
+    newValue: `D:${newToken.desktop} T:${newToken.tablet} M:${newToken.mobile}`,
+  });
 }
 
 function updateSemanticToken(tokenId: string, field: 'path' | 'desktop' | 'tablet' | 'mobile', value: string): void {
   const token = spacingState.semanticTokens.find(t => t.id === tokenId);
   if (token) {
+    const oldValue = (token as any)[field];
     (token as any)[field] = value;
     saveSpacingState();
+    
+    // Track change
+    addPendingChange({
+      module: 'spacing',
+      type: 'update',
+      category: token.category,
+      name: token.path,
+      oldValue: String(oldValue),
+      newValue: String(value),
+      details: field,
+    });
   }
 }
 
 function deleteSemanticToken(tokenId: string): void {
   const index = spacingState.semanticTokens.findIndex(t => t.id === tokenId);
   if (index > -1) {
+    const token = spacingState.semanticTokens[index];
     spacingState.semanticTokens.splice(index, 1);
     saveSpacingState();
     renderCategoryTabs();
     renderSemanticTokens();
+    
+    // Track change
+    addPendingChange({
+      module: 'spacing',
+      type: 'delete',
+      category: token.category,
+      name: token.path,
+      oldValue: `D:${token.desktop} T:${token.tablet} M:${token.mobile}`,
+    });
+  }
+}
+
+// ============================================
+// CUSTOM CATEGORY MANAGEMENT
+// ============================================
+
+function addCustomCategory(name: string, icon: string = '📁'): void {
+  const id = `custom-${Date.now()}`;
+  const newCategory: CustomSpacingCategory = {
+    id,
+    name,
+    icon,
+    description: `Custom category: ${name}`,
+  };
+  
+  if (!spacingState.customCategories) {
+    spacingState.customCategories = [];
+  }
+  spacingState.customCategories.push(newCategory);
+  saveSpacingState();
+  renderCategoryTabs();
+}
+
+function deleteCustomCategory(categoryId: string): void {
+  if (!spacingState.customCategories) return;
+  
+  // Check if there are tokens in this category
+  const tokensInCategory = spacingState.semanticTokens.filter(t => t.category === categoryId);
+  if (tokensInCategory.length > 0) {
+    if (!confirm(`В категории есть ${tokensInCategory.length} токенов. Удалить категорию и все токены?`)) {
+      return;
+    }
+    // Remove tokens
+    spacingState.semanticTokens = spacingState.semanticTokens.filter(t => t.category !== categoryId);
+  }
+  
+  spacingState.customCategories = spacingState.customCategories.filter(c => c.id !== categoryId);
+  saveSpacingState();
+  
+  // Switch to first default category
+  activeCategory = 'button';
+  renderCategoryTabs();
+  renderSemanticTokens();
+}
+
+function showAddCategoryDialog(): void {
+  const name = prompt('Введите название новой категории:');
+  if (name && name.trim()) {
+    addCustomCategory(name.trim());
   }
 }
 

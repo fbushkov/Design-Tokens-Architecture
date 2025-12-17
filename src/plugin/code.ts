@@ -7430,6 +7430,628 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         break;
       }
 
+      // ========================================
+      // EXPORT SELECTED CHANGES TO FIGMA
+      // ========================================
+      
+      case 'export-selected-changes': {
+        const { changes } = msg.payload as { changes: Array<{
+          module: 'colors' | 'typography' | 'spacing' | 'gap' | 'radius' | 'iconSize';
+          type: 'add' | 'update' | 'delete';
+          category: string;
+          name: string;
+        }> };
+        
+        if (!changes || changes.length === 0) {
+          figma.notify('ℹ️ Нет выбранных изменений для экспорта');
+          break;
+        }
+        
+        figma.notify(`⏳ Экспортируем ${changes.length} изменений...`);
+        
+        const results = {
+          typography: { created: 0, updated: 0 },
+          spacing: { created: 0, updated: 0 },
+          gap: { created: 0, updated: 0 },
+          radius: { created: 0, updated: 0 },
+          iconSize: { created: 0, updated: 0 },
+          errors: [] as string[]
+        };
+        
+        try {
+          // Get breakpoints for responsive tokens
+          const typographyData = await figma.clientStorage.getAsync('typography-state');
+          let breakpoints: Array<{ name: string; label: string; minWidth: number; scale: number }> = [
+            { name: 'desktop', label: 'Desktop', minWidth: 1024, scale: 1 },
+            { name: 'tablet', label: 'Tablet', minWidth: 768, scale: 0.9 },
+            { name: 'mobile', label: 'Mobile', minWidth: 0, scale: 0.85 }
+          ];
+          
+          if (typographyData?.breakpoints) {
+            breakpoints = typographyData.breakpoints;
+          }
+          
+          // Group changes by module
+          const typographyChanges = changes.filter(c => c.module === 'typography');
+          const spacingChanges = changes.filter(c => c.module === 'spacing');
+          const gapChanges = changes.filter(c => c.module === 'gap');
+          const radiusChanges = changes.filter(c => c.module === 'radius');
+          const iconSizeChanges = changes.filter(c => c.module === 'iconSize');
+          
+          // Process Typography changes
+          if (typographyChanges.length > 0 && typographyData?.state) {
+            try {
+              const typographyState = typographyData.state;
+              const changedNames = new Set(typographyChanges.map(c => c.name));
+              
+              // Find semantic tokens matching changes
+              // Note: c.name is the full token id like "typography.page.subtitle"
+              // t.id is the same format, t.path is an array
+              const tokensToExport = typographyState.semanticTokens?.filter((t: any) => {
+                const pathStr = Array.isArray(t.path) ? t.path.join('.') : t.path;
+                return changedNames.has(t.id) || changedNames.has(pathStr) || changedNames.has(t.name);
+              }) || [];
+              
+              if (tokensToExport.length > 0) {
+                const semanticPayload: SemanticTypographyVariablesPayload = {
+                  semanticTokens: tokensToExport.map((token: any) => ({
+                    id: token.id,
+                    name: token.name,
+                    path: token.path,
+                    fontFamily: token.fontFamily,
+                    fontSize: token.fontSize,
+                    fontWeight: token.fontWeight,
+                    lineHeight: token.lineHeight,
+                    letterSpacing: token.letterSpacing,
+                    textDecoration: token.textDecoration,
+                    textTransform: token.textTransform,
+                    fontStyle: token.fontStyle,
+                    description: token.description,
+                    category: token.category,
+                    subcategory: token.subcategory,
+                    responsive: token.responsive,
+                    deviceOverrides: token.deviceOverrides,
+                  })),
+                  primitives: {
+                    fontSizes: typographyState.fontSizes?.map((s: any) => ({ name: s.name, value: s.value })) || [],
+                    lineHeights: typographyState.lineHeights?.map((lh: any) => ({ name: lh.name, value: lh.value })) || [],
+                    fontWeights: typographyState.fontWeights?.map((fw: any) => ({ name: fw.name, value: fw.value })) || [],
+                    letterSpacings: typographyState.letterSpacings?.map((ls: any) => ({ name: ls.name, value: ls.value })) || [],
+                  },
+                  breakpoints: breakpoints,
+                };
+                
+                const varResult = await createSemanticTypographyVariables(semanticPayload);
+                results.typography.created += varResult.created;
+                
+                // Also create Text Styles
+                const textStylesPayload = {
+                  semanticTokens: tokensToExport.map((token: any) => ({
+                    id: token.id,
+                    name: token.name,
+                    path: token.path,
+                    fontFamily: token.fontFamily,
+                    fontSize: token.fontSize,
+                    fontWeight: token.fontWeight,
+                    lineHeight: token.lineHeight,
+                    letterSpacing: token.letterSpacing,
+                    textDecoration: token.textDecoration,
+                    textTransform: token.textTransform,
+                    fontStyle: token.fontStyle,
+                    description: token.description,
+                    category: token.category,
+                    subcategory: token.subcategory,
+                  })),
+                  primitives: {
+                    fontFamilies: typographyState.fontFamilies?.map((f: any) => ({ name: f.name, value: f.value, isEnabled: true })) || [],
+                    fontSizes: typographyState.fontSizes?.map((s: any) => ({ name: s.name, value: s.value })) || [],
+                    lineHeights: typographyState.lineHeights?.map((lh: any) => ({ name: lh.name, value: lh.value, unit: lh.unit || '%' })) || [],
+                    fontWeights: typographyState.fontWeights?.map((fw: any) => ({ name: fw.name, value: fw.value })) || [],
+                    letterSpacings: typographyState.letterSpacings?.map((ls: any) => ({ name: ls.name, value: ls.value })) || [],
+                  }
+                };
+                
+                const textStylesResult = await createTextStyles(textStylesPayload);
+                results.typography.updated += textStylesResult.updated;
+              }
+            } catch (e) {
+              results.errors.push(`Typography: ${e instanceof Error ? e.message : String(e)}`);
+            }
+          }
+          
+          // Process Spacing changes
+          if (spacingChanges.length > 0) {
+            const spacingData = await figma.clientStorage.getAsync('spacing-state');
+            if (spacingData) {
+              try {
+                const changedNames = new Set(spacingChanges.map(c => c.name));
+                
+                // Find tokens matching changes
+                const tokensToExport = spacingData.semanticTokens?.filter((t: any) =>
+                  changedNames.has(t.path) || changedNames.has(t.name)
+                ) || [];
+                
+                if (tokensToExport.length > 0) {
+                  const primMap = new Map<string, number>();
+                  spacingData.primitives?.forEach((p: any) => primMap.set(p.name, p.value));
+                  
+                  const tokens = tokensToExport.map((token: any) => ({
+                    path: token.path,
+                    desktop: { ref: token.desktop, value: primMap.get(token.desktop) || 0 },
+                    tablet: { ref: token.tablet, value: primMap.get(token.tablet) || 0 },
+                    mobile: { ref: token.mobile, value: primMap.get(token.mobile) || 0 },
+                  }));
+                  
+                  const semResult = await createSpacingSemanticCollection({
+                    collectionName: 'Spacing',
+                    tokens
+                  });
+                  results.spacing.created += semResult.created;
+                }
+              } catch (e) {
+                results.errors.push(`Spacing: ${e instanceof Error ? e.message : String(e)}`);
+              }
+            }
+          }
+          
+          // Process Gap changes
+          if (gapChanges.length > 0) {
+            const gapData = await figma.clientStorage.getAsync('gap-state');
+            if (gapData) {
+              try {
+                const changedNames = new Set(gapChanges.map(c => c.name));
+                
+                const tokensToExport = gapData.semanticTokens?.filter((t: any) =>
+                  changedNames.has(t.path) || changedNames.has(t.name)
+                ) || [];
+                
+                if (tokensToExport.length > 0) {
+                  const semResult = await createGapSemanticCollection({
+                    tokens: tokensToExport.map((t: any) => ({
+                      id: t.id,
+                      path: t.path,
+                      desktop: t.desktop,
+                      tablet: t.tablet,
+                      mobile: t.mobile,
+                    }))
+                  });
+                  results.gap.created += semResult.created;
+                }
+              } catch (e) {
+                results.errors.push(`Gap: ${e instanceof Error ? e.message : String(e)}`);
+              }
+            }
+          }
+          
+          // Process Radius changes
+          if (radiusChanges.length > 0) {
+            const radiusData = await figma.clientStorage.getAsync('radius-state');
+            if (radiusData) {
+              try {
+                const changedNames = new Set(radiusChanges.map(c => c.name));
+                
+                const tokensToExport = radiusData.semanticTokens?.filter((t: any) =>
+                  changedNames.has(t.path) || changedNames.has(t.name)
+                ) || [];
+                
+                if (tokensToExport.length > 0) {
+                  const semResult = await createRadiusSemanticCollection({
+                    tokens: tokensToExport.map((t: any) => ({
+                      id: t.id,
+                      path: t.path,
+                      primitiveRef: t.primitiveRef,
+                    }))
+                  });
+                  results.radius.created += semResult.created;
+                }
+              } catch (e) {
+                results.errors.push(`Radius: ${e instanceof Error ? e.message : String(e)}`);
+              }
+            }
+          }
+          
+          // Process Icon Size changes
+          if (iconSizeChanges.length > 0) {
+            const iconSizeData = await figma.clientStorage.getAsync('icon-size-state');
+            if (iconSizeData) {
+              try {
+                const changedNames = new Set(iconSizeChanges.map(c => c.name));
+                
+                const tokensToExport = iconSizeData.semanticTokens?.filter((t: any) =>
+                  changedNames.has(t.path) || changedNames.has(t.name)
+                ) || [];
+                
+                if (tokensToExport.length > 0) {
+                  const semResult = await createIconSizeSemanticCollection({
+                    tokens: tokensToExport.map((t: any) => ({
+                      id: t.id,
+                      path: t.path,
+                      category: t.category,
+                      name: t.name,
+                      description: t.description,
+                      desktop: t.desktop,
+                      tablet: t.tablet,
+                      mobile: t.mobile,
+                    }))
+                  });
+                  results.iconSize.created += semResult.created;
+                }
+              } catch (e) {
+                results.errors.push(`Icon Size: ${e instanceof Error ? e.message : String(e)}`);
+              }
+            }
+          }
+          
+          // Build summary message
+          const parts: string[] = [];
+          if (results.typography.created > 0 || results.typography.updated > 0) {
+            parts.push(`Typography: ${results.typography.created}+${results.typography.updated}`);
+          }
+          if (results.spacing.created > 0) {
+            parts.push(`Spacing: ${results.spacing.created}`);
+          }
+          if (results.gap.created > 0) {
+            parts.push(`Gap: ${results.gap.created}`);
+          }
+          if (results.radius.created > 0) {
+            parts.push(`Radius: ${results.radius.created}`);
+          }
+          if (results.iconSize.created > 0) {
+            parts.push(`Icon Size: ${results.iconSize.created}`);
+          }
+          
+          if (parts.length > 0) {
+            figma.notify(`✅ Экспорт завершён: ${parts.join(', ')}`);
+          } else {
+            figma.notify('ℹ️ Токены не найдены для выбранных изменений');
+          }
+          
+          if (results.errors.length > 0) {
+            console.error('Export errors:', results.errors);
+          }
+          
+          figma.ui.postMessage({
+            type: 'export-selected-complete',
+            payload: results
+          });
+        } catch (error) {
+          figma.notify(`❌ Ошибка экспорта: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          figma.ui.postMessage({
+            type: 'export-selected-error',
+            payload: { error: error instanceof Error ? error.message : 'Unknown error' }
+          });
+        }
+        break;
+      }
+
+      // ========================================
+      // EXPORT ALL TO FIGMA
+      // ========================================
+      
+      case 'export-all-to-figma': {
+        figma.notify('⏳ Экспортируем все изменения в Figma...');
+        
+        const results = {
+          typography: { created: 0, updated: 0 },
+          spacing: { created: 0, updated: 0 },
+          gap: { created: 0, updated: 0 },
+          radius: { created: 0, updated: 0 },
+          iconSize: { created: 0, updated: 0 },
+          errors: [] as string[]
+        };
+        
+        try {
+          // Get breakpoints settings from clientStorage
+          const breakpointsData = await figma.clientStorage.getAsync('typography-breakpoints');
+          let breakpoints: Array<{ name: string; label: string; minWidth: number; scale: number }> = [];
+          
+          if (breakpointsData) {
+            // Data from clientStorage is already an object
+            const bpState = breakpointsData as any;
+            breakpoints = bpState.breakpoints || [];
+          } else {
+            // Default breakpoints
+            breakpoints = [
+              { name: 'desktop', label: 'Desktop', minWidth: 1024, scale: 1 },
+              { name: 'tablet', label: 'Tablet', minWidth: 768, scale: 0.9 },
+              { name: 'mobile', label: 'Mobile', minWidth: 0, scale: 0.85 }
+            ];
+          }
+          
+          // 1. Typography - get from clientStorage
+          const typographyData = await figma.clientStorage.getAsync('typography-state');
+          if (typographyData) {
+            try {
+              // Typography saves nested structure: { state: {...}, breakpoints: [...], responsiveEnabled: bool }
+              const typographyState = typographyData.state || typographyData;
+              
+              // First export primitives to Primitives collection
+              if (typographyState.fontSizes?.length > 0 || typographyState.lineHeights?.length > 0 || typographyState.fontWeights?.length > 0) {
+                const variables: Array<{ name: string; value: number | string; type: 'NUMBER' | 'STRING'; collection: string }> = [];
+                
+                typographyState.fontSizes?.forEach((fs: any) => {
+                  variables.push({ name: `font/size/${fs.name}`, value: fs.value, type: 'NUMBER', collection: 'Primitives' });
+                });
+                
+                typographyState.lineHeights?.forEach((lh: any) => {
+                  variables.push({ name: `font/lineHeight/${lh.name}`, value: lh.value, type: 'NUMBER', collection: 'Primitives' });
+                });
+                
+                typographyState.fontWeights?.forEach((fw: any) => {
+                  variables.push({ name: `font/weight/${fw.name}`, value: fw.value, type: 'NUMBER', collection: 'Primitives' });
+                });
+                
+                if (variables.length > 0) {
+                  await createTypographyVariables(variables);
+                  results.typography.created += variables.length;
+                }
+              }
+              
+              // Create semantic Typography Variables with device modes
+              if (typographyState.semanticTokens && typographyState.semanticTokens.length > 0) {
+                const semanticPayload: SemanticTypographyVariablesPayload = {
+                  semanticTokens: typographyState.semanticTokens.map((token: any) => ({
+                    id: token.id,
+                    name: token.name,
+                    path: token.path,
+                    fontFamily: token.fontFamily,
+                    fontSize: token.fontSize,
+                    fontWeight: token.fontWeight,
+                    lineHeight: token.lineHeight,
+                    letterSpacing: token.letterSpacing,
+                    textDecoration: token.textDecoration,
+                    textTransform: token.textTransform,
+                    fontStyle: token.fontStyle,
+                    description: token.description,
+                    category: token.category,
+                    subcategory: token.subcategory,
+                    responsive: token.responsive, // IMPORTANT: Pass responsive flag!
+                    deviceOverrides: token.deviceOverrides,
+                  })),
+                  primitives: {
+                    fontSizes: typographyState.fontSizes?.map((s: any) => ({ name: s.name, value: s.value })) || [],
+                    lineHeights: typographyState.lineHeights?.map((lh: any) => ({ name: lh.name, value: lh.value })) || [],
+                    fontWeights: typographyState.fontWeights?.map((fw: any) => ({ name: fw.name, value: fw.value })) || [],
+                    letterSpacings: typographyState.letterSpacings?.map((ls: any) => ({ name: ls.name, value: ls.value })) || [],
+                  },
+                  breakpoints: breakpoints,
+                };
+                
+                const varResult = await createSemanticTypographyVariables(semanticPayload);
+                results.typography.created += varResult.created;
+                
+                // Also create Text Styles
+                const textStylesPayload = {
+                  semanticTokens: typographyState.semanticTokens.map((token: any) => ({
+                    id: token.id,
+                    name: token.name,
+                    path: token.path,
+                    fontFamily: token.fontFamily,
+                    fontSize: token.fontSize,
+                    fontWeight: token.fontWeight,
+                    lineHeight: token.lineHeight,
+                    letterSpacing: token.letterSpacing,
+                    textDecoration: token.textDecoration,
+                    textTransform: token.textTransform,
+                    fontStyle: token.fontStyle,
+                    description: token.description,
+                    category: token.category,
+                    subcategory: token.subcategory,
+                  })),
+                  primitives: {
+                    fontFamilies: typographyState.fontFamilies?.map((f: any) => ({ name: f.name, value: f.value, isEnabled: true })) || [],
+                    fontSizes: typographyState.fontSizes?.map((s: any) => ({ name: s.name, value: s.value })) || [],
+                    lineHeights: typographyState.lineHeights?.map((lh: any) => ({ name: lh.name, value: lh.value, unit: lh.unit || '%' })) || [],
+                    fontWeights: typographyState.fontWeights?.map((fw: any) => ({ name: fw.name, value: fw.value })) || [],
+                    letterSpacings: typographyState.letterSpacings?.map((ls: any) => ({ name: ls.name, value: ls.value })) || [],
+                  }
+                };
+                
+                const textStylesResult = await createTextStyles(textStylesPayload);
+                results.typography.updated += textStylesResult.updated;
+              }
+            } catch (e) {
+              results.errors.push(`Typography: ${e instanceof Error ? e.message : String(e)}`);
+            }
+          }
+          
+          // 2. Spacing - get from clientStorage
+          const spacingData = await figma.clientStorage.getAsync('spacing-state');
+          if (spacingData) {
+            try {
+              const spacingState = spacingData;
+              
+              // Export primitives first
+              if (spacingState.primitives && spacingState.primitives.length > 0) {
+                const enabledPrimitives = spacingState.primitives.filter((p: any) => p.enabled);
+                if (enabledPrimitives.length > 0) {
+                  const primResult = await createSpacingPrimitives(enabledPrimitives.map((p: any) => ({
+                    name: p.name,
+                    value: p.value
+                  })));
+                  results.spacing.created += primResult.created;
+                  results.spacing.updated += primResult.updated;
+                }
+              }
+              
+              // Export semantic tokens
+              if (spacingState.semanticTokens && spacingState.semanticTokens.length > 0) {
+                // Build primitive map
+                const primMap = new Map<string, number>();
+                spacingState.primitives?.forEach((p: any) => primMap.set(p.name, p.value));
+                
+                const tokens = spacingState.semanticTokens.map((token: any) => ({
+                  path: token.path,
+                  desktop: { ref: token.desktop, value: primMap.get(token.desktop) || 0 },
+                  tablet: { ref: token.tablet, value: primMap.get(token.tablet) || 0 },
+                  mobile: { ref: token.mobile, value: primMap.get(token.mobile) || 0 },
+                }));
+                
+                const semResult = await createSpacingSemanticCollection({
+                  collectionName: 'Spacing',
+                  tokens
+                });
+                results.spacing.created += semResult.created;
+              }
+            } catch (e) {
+              results.errors.push(`Spacing: ${e instanceof Error ? e.message : String(e)}`);
+            }
+          }
+          
+          // 3. Gap - get from clientStorage
+          const gapData = await figma.clientStorage.getAsync('gap-state');
+          if (gapData) {
+            try {
+              const gapState = gapData;
+              
+              // Export primitives
+              if (gapState.primitives && gapState.primitives.length > 0) {
+                const enabledPrimitives = gapState.primitives.filter((p: any) => p.enabled);
+                if (enabledPrimitives.length > 0) {
+                  const primResult = await createGapPrimitives(enabledPrimitives.map((p: any) => ({
+                    name: p.name,
+                    value: p.value
+                  })));
+                  results.gap.created += primResult.created;
+                  results.gap.updated += primResult.updated;
+                }
+              }
+              
+              // Export semantic tokens
+              if (gapState.semanticTokens && gapState.semanticTokens.length > 0) {
+                const semResult = await createGapSemanticCollection({
+                  tokens: gapState.semanticTokens.map((t: any) => ({
+                    id: t.id,
+                    path: t.path,
+                    desktop: t.desktop,
+                    tablet: t.tablet,
+                    mobile: t.mobile,
+                  }))
+                });
+                results.gap.created += semResult.created;
+              }
+            } catch (e) {
+              results.errors.push(`Gap: ${e instanceof Error ? e.message : String(e)}`);
+            }
+          }
+          
+          // 4. Radius - get from clientStorage
+          const radiusData = await figma.clientStorage.getAsync('radius-state');
+          if (radiusData) {
+            try {
+              const radiusState = radiusData;
+              
+              // Export primitives
+              if (radiusState.primitives && radiusState.primitives.length > 0) {
+                const enabledPrimitives = radiusState.primitives.filter((p: any) => p.enabled);
+                if (enabledPrimitives.length > 0) {
+                  const primResult = await createRadiusPrimitives(enabledPrimitives.map((p: any) => ({
+                    name: p.name,
+                    value: p.value
+                  })));
+                  results.radius.created += primResult.created;
+                  results.radius.updated += primResult.updated;
+                }
+              }
+              
+              // Export semantic tokens
+              if (radiusState.semanticTokens && radiusState.semanticTokens.length > 0) {
+                const semResult = await createRadiusSemanticCollection({
+                  tokens: radiusState.semanticTokens.map((t: any) => ({
+                    id: t.id,
+                    path: t.path,
+                    primitiveRef: t.primitiveRef,
+                  }))
+                });
+                results.radius.created += semResult.created;
+              }
+            } catch (e) {
+              results.errors.push(`Radius: ${e instanceof Error ? e.message : String(e)}`);
+            }
+          }
+          
+          // 5. Icon Size - get from clientStorage
+          const iconSizeData = await figma.clientStorage.getAsync('icon-size-state');
+          if (iconSizeData) {
+            try {
+              const iconSizeState = iconSizeData;
+              
+              // Export primitives
+              if (iconSizeState.primitives && iconSizeState.primitives.length > 0) {
+                const selectedPrimitives = iconSizeState.primitives.filter((p: any) => p.selected);
+                if (selectedPrimitives.length > 0) {
+                  const primResult = await createIconSizePrimitives(selectedPrimitives.map((p: any) => ({
+                    name: p.name,
+                    value: p.value
+                  })));
+                  results.iconSize.created += primResult.created;
+                  results.iconSize.updated += primResult.updated;
+                }
+              }
+              
+              // Export semantic tokens
+              if (iconSizeState.semanticTokens && iconSizeState.semanticTokens.length > 0) {
+                const semResult = await createIconSizeSemanticCollection({
+                  tokens: iconSizeState.semanticTokens.map((t: any) => ({
+                    id: t.id,
+                    path: t.path,
+                    category: t.category,
+                    name: t.name,
+                    description: t.description,
+                    desktop: t.desktop,
+                    tablet: t.tablet,
+                    mobile: t.mobile,
+                  }))
+                });
+                results.iconSize.created += semResult.created;
+              }
+            } catch (e) {
+              results.errors.push(`Icon Size: ${e instanceof Error ? e.message : String(e)}`);
+            }
+          }
+          
+          // Build summary message
+          const parts: string[] = [];
+          if (results.typography.created > 0 || results.typography.updated > 0) {
+            parts.push(`Typography: ${results.typography.created}+${results.typography.updated}`);
+          }
+          if (results.spacing.created > 0 || results.spacing.updated > 0) {
+            parts.push(`Spacing: ${results.spacing.created}+${results.spacing.updated}`);
+          }
+          if (results.gap.created > 0 || results.gap.updated > 0) {
+            parts.push(`Gap: ${results.gap.created}+${results.gap.updated}`);
+          }
+          if (results.radius.created > 0 || results.radius.updated > 0) {
+            parts.push(`Radius: ${results.radius.created}+${results.radius.updated}`);
+          }
+          if (results.iconSize.created > 0 || results.iconSize.updated > 0) {
+            parts.push(`IconSize: ${results.iconSize.created}+${results.iconSize.updated}`);
+          }
+          
+          if (parts.length > 0) {
+            figma.notify(`✅ Экспорт завершён: ${parts.join(', ')}`);
+          } else {
+            figma.notify('ℹ️ Нет данных для экспорта. Создайте токены в соответствующих секциях.');
+          }
+          
+          if (results.errors.length > 0) {
+            console.error('Export errors:', results.errors);
+          }
+          
+          figma.ui.postMessage({
+            type: 'export-all-complete',
+            payload: results
+          });
+        } catch (error) {
+          figma.notify(`❌ Ошибка экспорта: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          figma.ui.postMessage({
+            type: 'export-all-error',
+            payload: { error: error instanceof Error ? error.message : 'Unknown error' }
+          });
+        }
+        break;
+      }
+
       case 'storage-delete': {
         const { key, requestId } = msg.payload as { key: string; requestId: string };
         try {

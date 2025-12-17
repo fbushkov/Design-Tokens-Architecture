@@ -273,4 +273,7 @@ export const STORAGE_KEYS = {
   // Token Manager
   TOKEN_MANAGER_STATE: 'token-manager-state',
   TOKEN_MANAGER_SETTINGS: 'token-manager-settings',
+  
+  // Project Sync
+  PROJECT_SYNC_DATA: 'project-sync-data',
 } as const;

@@ -13,9 +13,11 @@ import {
   DEFAULT_ICON_SIZE_PRIMITIVES,
   DEFAULT_ICON_SIZE_SEMANTIC_TOKENS,
   ICON_SIZE_CATEGORIES,
+  CustomIconSizeCategory,
 } from '../types/icon-size-tokens';
 
 import { storageGet, storageSet, storageDelete, STORAGE_KEYS } from './storage-utils';
+import { addPendingChange } from './token-manager-ui';
 
 // ============================================
 // STATE
@@ -24,18 +26,20 @@ import { storageGet, storageSet, storageDelete, STORAGE_KEYS } from './storage-u
 interface IconSizeState {
   primitives: IconSizePrimitive[];
   semanticTokens: IconSizeSemanticToken[];
+  customCategories?: CustomIconSizeCategory[];
 }
 
 function createDefaultIconSizeState(): IconSizeState {
   return {
     primitives: [...DEFAULT_ICON_SIZE_PRIMITIVES],
     semanticTokens: [...DEFAULT_ICON_SIZE_SEMANTIC_TOKENS],
+    customCategories: [],
   };
 }
 
 let iconSizeState: IconSizeState = createDefaultIconSizeState();
 
-let activeIconSizeCategory: IconSizeCategory | 'all' = 'all';
+let activeIconSizeCategory: IconSizeCategory | string = 'all';
 let activeIconSizeTab: 'primitives' | 'semantic' | 'export' = 'primitives';
 
 // ============================================
@@ -59,6 +63,7 @@ async function loadIconSizeState(): Promise<void> {
       iconSizeState = {
         primitives: saved.primitives || defaults.primitives,
         semanticTokens: saved.semanticTokens || defaults.semanticTokens,
+        customCategories: saved.customCategories || [],
       };
       console.log('[IconSize] State loaded');
     } else {
@@ -127,10 +132,25 @@ export function initIconSizeUI(): void {
       return;
     }
     
+    // Delete category button
+    const deleteBtn = target.closest('.btn-delete-category') as HTMLElement;
+    if (deleteBtn) {
+      e.stopPropagation();
+      const catId = deleteBtn.dataset.categoryId;
+      if (catId) deleteCustomIconSizeCategory(catId);
+      return;
+    }
+    
+    // Add category button
+    if (target.id === 'icon-size-add-category' || target.closest('#icon-size-add-category')) {
+      showAddIconSizeCategoryDialog();
+      return;
+    }
+    
     // Category tab click
     const catTab = target.closest('.category-tab[data-icon-size-category]') as HTMLElement;
     if (catTab) {
-      const catId = catTab.getAttribute('data-icon-size-category') as IconSizeCategory | 'all';
+      const catId = catTab.getAttribute('data-icon-size-category');
       if (catId) {
         activeIconSizeCategory = catId;
         renderIconSizeCategoryTabs();
@@ -261,7 +281,7 @@ function renderIconSizeCategoryTabs(): void {
   const container = document.getElementById('icon-size-category-tabs');
   if (!container) return;
   
-  const categories: (IconSizeCategory | 'all')[] = [
+  const defaultCategories: (IconSizeCategory | 'all')[] = [
     'all',
     'interactive',
     'form',
@@ -279,20 +299,82 @@ function renderIconSizeCategoryTabs(): void {
     'special',
   ];
   
-  container.innerHTML = categories.map(cat => {
-    const isActive = activeIconSizeCategory === cat;
-    const label = cat === 'all' ? 'Все' : ICON_SIZE_CATEGORIES[cat].label;
-    const count = cat === 'all' 
-      ? iconSizeState.semanticTokens.length
-      : iconSizeState.semanticTokens.filter(t => t.category === cat).length;
-    
-    return `
-      <button class="category-tab ${isActive ? 'active' : ''}" 
-              data-icon-size-category="${cat}">
-        ${label} <span class="cat-count">${count}</span>
-      </button>
-    `;
-  }).join('');
+  const customCategories = iconSizeState.customCategories || [];
+  
+  container.innerHTML = `
+    ${defaultCategories.map(cat => {
+      const isActive = activeIconSizeCategory === cat;
+      const label = cat === 'all' ? 'Все' : ICON_SIZE_CATEGORIES[cat].label;
+      const count = cat === 'all' 
+        ? iconSizeState.semanticTokens.length
+        : iconSizeState.semanticTokens.filter(t => t.category === cat).length;
+      
+      return `
+        <button class="category-tab ${isActive ? 'active' : ''}" 
+                data-icon-size-category="${cat}">
+          ${label} <span class="cat-count">${count}</span>
+        </button>
+      `;
+    }).join('')}
+    ${customCategories.map(cat => {
+      const count = iconSizeState.semanticTokens.filter(t => t.category === cat.id).length;
+      return `
+        <button class="category-tab custom-category ${cat.id === activeIconSizeCategory ? 'active' : ''}" 
+                data-icon-size-category="${cat.id}">
+          ${cat.icon} ${cat.name} <span class="cat-count">${count}</span>
+          <span class="btn-delete-category" data-category-id="${cat.id}" title="Удалить">×</span>
+        </button>
+      `;
+    }).join('')}
+    <button class="category-tab add-category-btn" id="icon-size-add-category" title="Добавить категорию">+</button>
+  `;
+}
+
+// ============================================
+// CUSTOM CATEGORY MANAGEMENT
+// ============================================
+
+function addCustomIconSizeCategory(name: string, icon: string = '📁'): void {
+  const id = `custom-${Date.now()}`;
+  const newCategory: CustomIconSizeCategory = {
+    id,
+    name,
+    icon,
+    description: `Custom category: ${name}`,
+  };
+  
+  if (!iconSizeState.customCategories) {
+    iconSizeState.customCategories = [];
+  }
+  iconSizeState.customCategories.push(newCategory);
+  saveIconSizeState();
+  renderIconSizeCategoryTabs();
+}
+
+function deleteCustomIconSizeCategory(categoryId: string): void {
+  if (!iconSizeState.customCategories) return;
+  
+  const tokensInCategory = iconSizeState.semanticTokens.filter(t => t.category === categoryId);
+  if (tokensInCategory.length > 0) {
+    if (!confirm(`В категории есть ${tokensInCategory.length} токенов. Удалить категорию и все токены?`)) {
+      return;
+    }
+    iconSizeState.semanticTokens = iconSizeState.semanticTokens.filter(t => t.category !== categoryId);
+  }
+  
+  iconSizeState.customCategories = iconSizeState.customCategories.filter(c => c.id !== categoryId);
+  saveIconSizeState();
+  
+  activeIconSizeCategory = 'all';
+  renderIconSizeCategoryTabs();
+  renderIconSizeSemanticTokens();
+}
+
+function showAddIconSizeCategoryDialog(): void {
+  const name = prompt('Введите название новой категории:');
+  if (name && name.trim()) {
+    addCustomIconSizeCategory(name.trim());
+  }
 }
 
 // ============================================
@@ -303,63 +385,194 @@ function renderIconSizeSemanticTokens(): void {
   const container = document.getElementById('icon-size-semantic-list');
   if (!container) return;
   
+  // Check if it's a custom category
+  const isCustomCategory = !['all', ...Object.keys(ICON_SIZE_CATEGORIES)].includes(activeIconSizeCategory);
+  
   // Filter tokens by category
   const filteredTokens = activeIconSizeCategory === 'all'
     ? iconSizeState.semanticTokens
     : iconSizeState.semanticTokens.filter(t => t.category === activeIconSizeCategory);
   
-  // Group by category
-  const grouped = new Map<IconSizeCategory, IconSizeSemanticToken[]>();
-  filteredTokens.forEach(token => {
-    const list = grouped.get(token.category) || [];
-    list.push(token);
-    grouped.set(token.category, list);
-  });
-  
-  let html = '';
-  
-  grouped.forEach((tokens, category) => {
-    html += `
-      <div class="spacing-semantic-category">
-        <div class="semantic-category-header">
-          <span class="semantic-category-name">${ICON_SIZE_CATEGORIES[category].label}</span>
-          <span class="semantic-category-desc">${ICON_SIZE_CATEGORIES[category].description}</span>
-        </div>
-        <div class="spacing-semantic-tokens">
-          ${tokens.map(t => {
-            // Check if values differ across devices
-            const hasDifference = t.desktop !== t.tablet || t.tablet !== t.mobile;
-            const previewSize = Math.min(parseInt(t.desktop), 32);
-            
-            return `
-            <div class="spacing-semantic-item ${hasDifference ? 'has-variation' : ''}" title="${t.description || t.path}">
-              <div class="semantic-icon-preview" style="width: ${previewSize}px; height: ${previewSize}px;">
-                <svg viewBox="0 0 24 24" fill="var(--color-primary)" style="width: 100%; height: 100%;">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                </svg>
-              </div>
-              <div class="semantic-token-info">
-                <span class="semantic-token-name">${t.name}</span>
-                <span class="semantic-token-path">${t.path}</span>
-              </div>
-              <div class="semantic-token-devices">
-                <span class="device-value" title="Desktop">🖥 ${t.desktop}</span>
-                <span class="device-value" title="Tablet">📱 ${t.tablet}</span>
-                <span class="device-value" title="Mobile">📲 ${t.mobile}</span>
-              </div>
-            </div>
-          `}).join('')}
-        </div>
-      </div>
-    `;
-  });
-  
-  container.innerHTML = html || '<div class="empty-message">Нет токенов в выбранной категории</div>';
-  
   // Update count badge
   const countEl = document.getElementById('icon-size-semantic-count');
   if (countEl) {
     countEl.textContent = String(filteredTokens.length);
+  }
+  
+  if (filteredTokens.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <p>Нет токенов в выбранной категории</p>
+        <button class="btn btn-primary" id="icon-size-add-first-token">+ Добавить токен</button>
+      </div>
+    `;
+    const addBtn = document.getElementById('icon-size-add-first-token');
+    if (addBtn) addBtn.addEventListener('click', () => addIconSizeSemanticToken());
+    return;
+  }
+  
+  // Get enabled primitives for select options
+  const primOptions = iconSizeState.primitives
+    .filter(p => p.selected)
+    .map(p => `<option value="${p.value}">${p.value}px (iconSize.${p.name})</option>`)
+    .join('');
+  
+  container.innerHTML = `
+    <div class="semantic-table">
+      <div class="semantic-table-header">
+        <div class="col-path">Путь токена</div>
+        <div class="col-device">Desktop</div>
+        <div class="col-device">Tablet</div>
+        <div class="col-device">Mobile</div>
+        <div class="col-actions"></div>
+      </div>
+      ${filteredTokens.map(token => `
+        <div class="semantic-token-row" data-token-id="${token.id}">
+          <div class="col-path">
+            <input type="text" class="token-path-input" value="${token.path}" data-field="path" />
+          </div>
+          <div class="col-device">
+            <select class="device-select" data-field="desktop" data-token-id="${token.id}">
+              ${primOptions.replace(`value="${token.desktop}"`, `value="${token.desktop}" selected`)}
+            </select>
+          </div>
+          <div class="col-device">
+            <select class="device-select" data-field="tablet" data-token-id="${token.id}">
+              ${primOptions.replace(`value="${token.tablet}"`, `value="${token.tablet}" selected`)}
+            </select>
+          </div>
+          <div class="col-device">
+            <select class="device-select" data-field="mobile" data-token-id="${token.id}">
+              ${primOptions.replace(`value="${token.mobile}"`, `value="${token.mobile}" selected`)}
+            </select>
+          </div>
+          <div class="col-actions">
+            <button class="btn-icon delete-token-btn" data-token-id="${token.id}" title="Удалить">×</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="semantic-toolbar">
+      <button class="btn btn-secondary" id="icon-size-add-token-btn">+ Добавить токен</button>
+    </div>
+  `;
+  
+  // Path input handlers
+  container.querySelectorAll('.token-path-input').forEach(input => {
+    input.addEventListener('change', (e) => {
+      const target = e.target as HTMLInputElement;
+      const row = target.closest('.semantic-token-row');
+      const tokenId = row?.getAttribute('data-token-id');
+      if (tokenId) updateIconSizeToken(tokenId, 'path', target.value);
+    });
+  });
+  
+  // Device select handlers
+  container.querySelectorAll('.device-select').forEach(select => {
+    select.addEventListener('change', (e) => {
+      const sel = e.target as HTMLSelectElement;
+      const tokenId = sel.getAttribute('data-token-id');
+      const field = sel.getAttribute('data-field') as 'desktop' | 'tablet' | 'mobile';
+      const value = sel.value;
+      
+      if (tokenId && field) {
+        updateIconSizeToken(tokenId, field, value);
+      }
+    });
+  });
+  
+  // Delete button handlers
+  container.querySelectorAll('.delete-token-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tokenId = (btn as HTMLElement).dataset.tokenId;
+      if (tokenId) deleteIconSizeSemanticToken(tokenId);
+    });
+  });
+  
+  // Add token button
+  const addBtn = document.getElementById('icon-size-add-token-btn');
+  if (addBtn) addBtn.addEventListener('click', () => addIconSizeSemanticToken());
+}
+
+// ============================================
+// ICON SIZE SEMANTIC TOKEN CRUD
+// ============================================
+
+function generateIconSizeTokenId(): string {
+  return `iconSize-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+function addIconSizeSemanticToken(): void {
+  const category = activeIconSizeCategory === 'all' ? 'interactive' : activeIconSizeCategory;
+  const newToken: IconSizeSemanticToken = {
+    id: generateIconSizeTokenId(),
+    path: `iconSize.${category}.new`,
+    category: category as IconSizeCategory,
+    name: 'new',
+    desktop: '24',
+    tablet: '24',
+    mobile: '20',
+  };
+  
+  iconSizeState.semanticTokens.push(newToken);
+  saveIconSizeState();
+  renderIconSizeCategoryTabs();
+  renderIconSizeSemanticTokens();
+  
+  // Track change
+  addPendingChange({
+    module: 'iconSize',
+    type: 'add',
+    category: category,
+    name: newToken.path,
+    newValue: `D:${newToken.desktop} T:${newToken.tablet} M:${newToken.mobile}`,
+  });
+}
+
+function updateIconSizeToken(tokenId: string, field: 'path' | 'desktop' | 'tablet' | 'mobile', value: string): void {
+  const token = iconSizeState.semanticTokens.find(t => t.id === tokenId);
+  if (token) {
+    const oldValue = (token as any)[field];
+    (token as any)[field] = value;
+    
+    // Update name if path changed
+    if (field === 'path') {
+      const parts = value.split('.');
+      token.name = parts[parts.length - 1] || token.name;
+    }
+    
+    saveIconSizeState();
+    
+    // Track change
+    addPendingChange({
+      module: 'iconSize',
+      type: 'update',
+      category: token.category,
+      name: token.path,
+      oldValue: String(oldValue),
+      newValue: String(value),
+      details: field,
+    });
+  }
+}
+
+function deleteIconSizeSemanticToken(tokenId: string): void {
+  const index = iconSizeState.semanticTokens.findIndex(t => t.id === tokenId);
+  if (index > -1) {
+    const token = iconSizeState.semanticTokens[index];
+    iconSizeState.semanticTokens.splice(index, 1);
+    saveIconSizeState();
+    renderIconSizeCategoryTabs();
+    renderIconSizeSemanticTokens();
+    
+    // Track change
+    addPendingChange({
+      module: 'iconSize',
+      type: 'delete',
+      category: token.category,
+      name: token.path,
+      oldValue: `D:${token.desktop} T:${token.tablet} M:${token.mobile}`,
+    });
   }
 }
 

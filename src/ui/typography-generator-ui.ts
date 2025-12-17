@@ -22,6 +22,7 @@ import {
 import { createToken } from '../types/token-manager-state';
 import { TMTokenType, TMCollectionType } from '../types/token-manager';
 import { storageGet, storageSet, storageDelete, STORAGE_KEYS } from './storage-utils';
+import { addPendingChange } from './token-manager-ui';
 
 // ============================================
 // BREAKPOINTS & RESPONSIVE SCALES
@@ -330,6 +331,9 @@ export function initTypographyUI(): void {
     responsiveToggle.checked = responsiveModesEnabled;
   }
   
+  // Рендерим фильтр категорий
+  renderCategoryFilter();
+  
   // Затем асинхронно загружаем сохранённое состояние
   loadTypographyState().then((hasStoredState) => {
     if (hasStoredState) {
@@ -345,6 +349,9 @@ export function initTypographyUI(): void {
       if (toggle) {
         toggle.checked = responsiveModesEnabled;
       }
+      
+      // Re-render category filter with loaded custom categories
+      renderCategoryFilter();
       
       // Если есть сохранённые семантические токены - рендерим их
       if (typographyState.semanticTokens.length > 0) {
@@ -1690,18 +1697,30 @@ function renderSemanticTokens(): void {
     loading: '⏳',
   };
   
-  container.innerHTML = Object.entries(grouped).map(([category, tokens]) => `
+  // Merge custom categories icons
+  const customIcons: Record<string, string> = {};
+  typographyState.customCategories?.forEach(cat => {
+    customIcons[cat.id] = cat.icon;
+  });
+  const allIcons = { ...categoryIcons, ...customIcons };
+  
+  container.innerHTML = Object.entries(grouped).map(([category, tokens]) => {
+    const isCustom = typographyState.customCategories?.some(c => c.id === category);
+    return `
     <div class="semantic-token-group" data-category="${category}">
       <div class="semantic-group-header">
-        <span class="group-icon">${categoryIcons[category] || '📎'}</span>
+        <span class="group-icon">${allIcons[category] || '📎'}</span>
         <span class="group-name">${category.charAt(0).toUpperCase() + category.slice(1)}</span>
         <span class="group-count">${tokens.length} токен${tokens.length > 1 ? (tokens.length < 5 ? 'а' : 'ов') : ''}</span>
+        <button class="btn-icon btn-add-token-to-category" data-category="${category}" title="Добавить токен в секцию">+</button>
+        ${isCustom ? `<button class="btn-icon btn-delete-category" data-category="${category}" title="Удалить секцию">🗑️</button>` : ''}
       </div>
       <div class="semantic-group-items">
         ${tokens.map(token => renderSemanticTokenItem(token)).join('')}
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
   
   // Setup edit handlers
   container.querySelectorAll('.btn-edit-token').forEach(btn => {
@@ -1710,6 +1729,24 @@ function renderSemanticTokens(): void {
       const item = (e.target as HTMLElement).closest('.semantic-token-item');
       const tokenId = item?.getAttribute('data-token');
       if (tokenId) openTokenEditor(tokenId);
+    });
+  });
+  
+  // Setup add token to category handlers
+  container.querySelectorAll('.btn-add-token-to-category').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const category = (e.target as HTMLElement).getAttribute('data-category');
+      if (category) openTokenEditorForCategory(category);
+    });
+  });
+  
+  // Setup delete category handlers
+  container.querySelectorAll('.btn-delete-category').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const category = (e.target as HTMLElement).getAttribute('data-category');
+      if (category) deleteCategory(category);
     });
   });
 }
@@ -1761,6 +1798,39 @@ function getWeightLabel(weight: number): string {
 let currentEditingTokenId: string | null = null;
 let isNewToken = false;
 
+/**
+ * Update category select dropdown with custom categories
+ */
+function updateCategorySelectOptions(): void {
+  const select = document.getElementById('typo-category') as HTMLSelectElement;
+  if (!select) return;
+  
+  const defaultCategories = [
+    { id: 'page', label: 'Page' },
+    { id: 'section', label: 'Section' },
+    { id: 'card', label: 'Card' },
+    { id: 'modal', label: 'Modal' },
+    { id: 'sidebar', label: 'Sidebar' },
+    { id: 'paragraph', label: 'Paragraph' },
+    { id: 'helper', label: 'Helper' },
+    { id: 'action', label: 'Action' },
+    { id: 'form', label: 'Form' },
+    { id: 'data', label: 'Data' },
+    { id: 'status', label: 'Status' },
+    { id: 'notification', label: 'Notification' },
+    { id: 'navigation', label: 'Navigation' },
+    { id: 'code', label: 'Code' },
+  ];
+  
+  const customCategories = typographyState.customCategories || [];
+  
+  select.innerHTML = `
+    ${defaultCategories.map(c => `<option value="${c.id}">${c.label}</option>`).join('')}
+    ${customCategories.length > 0 ? '<option disabled>────────────</option>' : ''}
+    ${customCategories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('')}
+  `;
+}
+
 function openTokenEditor(tokenId: string): void {
   const token = typographyState.semanticTokens.find(t => t.id === tokenId);
   if (!token) return;
@@ -1771,6 +1841,9 @@ function openTokenEditor(tokenId: string): void {
   // Populate form fields
   const modal = document.getElementById('typography-modal');
   if (!modal) return;
+  
+  // Update category dropdown with custom categories
+  updateCategorySelectOptions();
   
   (document.getElementById('typography-modal-title') as HTMLElement).textContent = 'Редактировать токен';
   (document.getElementById('typo-token-path') as HTMLInputElement).value = token.id;
@@ -1811,6 +1884,9 @@ function openNewTokenEditor(): void {
   const modal = document.getElementById('typography-modal');
   if (!modal) return;
   
+  // Update category dropdown with custom categories
+  updateCategorySelectOptions();
+  
   const defaultCategory = 'paragraph';
   
   (document.getElementById('typography-modal-title') as HTMLElement).textContent = 'Новый токен';
@@ -1844,6 +1920,199 @@ function openNewTokenEditor(): void {
   modal.style.display = 'flex';
 }
 
+/**
+ * Open token editor with pre-selected category
+ */
+function openTokenEditorForCategory(category: string): void {
+  currentEditingTokenId = null;
+  isNewToken = true;
+  
+  const modal = document.getElementById('typography-modal');
+  if (!modal) return;
+  
+  // Update category dropdown with custom categories
+  updateCategorySelectOptions();
+  
+  (document.getElementById('typography-modal-title') as HTMLElement).textContent = 'Новый токен';
+  (document.getElementById('typo-token-path') as HTMLInputElement).value = `typography.${category}.`;
+  (document.getElementById('typo-token-name') as HTMLInputElement).value = '';
+  (document.getElementById('typo-font-family') as HTMLSelectElement).value = '{font.family.roboto}';
+  (document.getElementById('typo-font-size') as HTMLSelectElement).value = '{font.size.16}';
+  (document.getElementById('typo-font-weight') as HTMLSelectElement).value = '{font.weight.400}';
+  (document.getElementById('typo-line-height') as HTMLSelectElement).value = '{font.lineHeight.140}';
+  (document.getElementById('typo-letter-spacing') as HTMLSelectElement).value = '{font.letterSpacing.000}';
+  (document.getElementById('typo-text-decoration') as HTMLSelectElement).value = '';
+  (document.getElementById('typo-text-transform') as HTMLSelectElement).value = '';
+  (document.getElementById('typo-category') as HTMLSelectElement).value = category;
+  
+  // Update subcategory options based on category
+  updateSubcategoryOptions(category);
+  
+  (document.getElementById('typo-description') as HTMLTextAreaElement).value = '';
+  (document.getElementById('typo-responsive') as HTMLInputElement).checked = false;
+  
+  // Hide delete button for new tokens
+  const deleteBtn = document.getElementById('typography-modal-delete');
+  if (deleteBtn) deleteBtn.style.display = 'none';
+  
+  // Update preview
+  updateTokenPreview();
+  
+  // Show modal
+  modal.style.display = 'flex';
+}
+
+/**
+ * Add a new custom category
+ */
+export function addCategory(name: string, icon: string = '📎'): void {
+  if (!name) return;
+  
+  const id = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  
+  // Check if category already exists
+  const defaultCategories = ['page', 'section', 'card', 'modal', 'sidebar', 'paragraph', 'helper', 'action', 'form', 'data', 'status', 'notification', 'navigation', 'code', 'content', 'empty', 'loading'];
+  if (defaultCategories.includes(id)) {
+    showNotification('⚠️ Такая категория уже существует');
+    return;
+  }
+  
+  if (typographyState.customCategories?.some(c => c.id === id)) {
+    showNotification('⚠️ Категория с таким ID уже существует');
+    return;
+  }
+  
+  // Initialize custom categories if needed
+  if (!typographyState.customCategories) {
+    typographyState.customCategories = [];
+  }
+  
+  typographyState.customCategories.push({ id, name, icon });
+  
+  // Save state
+  onTypographyStateChanged();
+  
+  // Refresh UI
+  renderCategoryFilter();
+  renderSemanticTokens();
+  
+  showNotification(`✅ Категория "${name}" добавлена`);
+}
+
+/**
+ * Delete a custom category
+ */
+function deleteCategory(categoryId: string): void {
+  // Check if category has tokens
+  const tokensInCategory = typographyState.semanticTokens.filter(t => t.category === categoryId);
+  
+  if (tokensInCategory.length > 0) {
+    if (!confirm(`Категория "${categoryId}" содержит ${tokensInCategory.length} токенов. Удалить всё?`)) {
+      return;
+    }
+    
+    // Remove all tokens in this category
+    typographyState.semanticTokens = typographyState.semanticTokens.filter(t => t.category !== categoryId);
+  }
+  
+  // Remove custom category
+  if (typographyState.customCategories) {
+    typographyState.customCategories = typographyState.customCategories.filter(c => c.id !== categoryId);
+  }
+  
+  // Save state
+  onTypographyStateChanged();
+  
+  // Refresh UI
+  renderCategoryFilter();
+  renderSemanticTokens();
+  
+  showNotification(`🗑️ Категория "${categoryId}" удалена`);
+}
+
+/**
+ * Render category filter buttons with custom categories
+ */
+function renderCategoryFilter(): void {
+  const container = document.querySelector('.typo-category-filter');
+  if (!container) return;
+  
+  const defaultCategories = [
+    { id: 'page', label: 'Page' },
+    { id: 'section', label: 'Section' },
+    { id: 'card', label: 'Card' },
+    { id: 'modal', label: 'Modal' },
+    { id: 'paragraph', label: 'Paragraph' },
+    { id: 'form', label: 'Form' },
+    { id: 'action', label: 'Action' },
+    { id: 'data', label: 'Data' },
+    { id: 'navigation', label: 'Navigation' },
+    { id: 'status', label: 'Status' },
+    { id: 'code', label: 'Code' },
+  ];
+  
+  const customCategories = typographyState.customCategories || [];
+  
+  container.innerHTML = `
+    <button class="typo-category-btn active" data-category="all">Все</button>
+    ${defaultCategories.map(c => `
+      <button class="typo-category-btn" data-category="${c.id}">${c.label}</button>
+    `).join('')}
+    ${customCategories.map(c => `
+      <button class="typo-category-btn custom-category" data-category="${c.id}">${c.icon} ${c.name}</button>
+    `).join('')}
+    <button class="typo-category-btn add-category" id="btn-add-category" title="Добавить секцию">+</button>
+  `;
+  
+  // Setup filter handlers
+  container.querySelectorAll('.typo-category-btn[data-category]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('.typo-category-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      const category = btn.getAttribute('data-category');
+      filterSemanticTokensByCategory(category || 'all');
+    });
+  });
+  
+  // Setup add category handler
+  const addBtn = container.querySelector('#btn-add-category');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      showAddCategoryDialog();
+    });
+  }
+}
+
+/**
+ * Filter semantic tokens by category
+ */
+function filterSemanticTokensByCategory(category: string): void {
+  const container = document.getElementById('semantic-tokens-list');
+  if (!container) return;
+  
+  const groups = container.querySelectorAll('.semantic-token-group');
+  groups.forEach(group => {
+    if (category === 'all') {
+      (group as HTMLElement).style.display = '';
+    } else {
+      const groupCategory = group.getAttribute('data-category');
+      (group as HTMLElement).style.display = groupCategory === category ? '' : 'none';
+    }
+  });
+}
+
+/**
+ * Show dialog to add a new category
+ */
+function showAddCategoryDialog(): void {
+  const name = prompt('Введите название новой секции:');
+  if (name) {
+    const icon = prompt('Введите иконку (emoji):', '📎') || '📎';
+    addCategory(name, icon);
+  }
+}
+
 function closeTokenEditor(): void {
   const modal = document.getElementById('typography-modal');
   if (modal) modal.style.display = 'none';
@@ -1861,13 +2130,25 @@ function saveToken(): void {
     return;
   }
   
-  // Build path from subcategory (which may contain dots like "table.header")
+  // Build path from category and subcategory
+  // Path structure: typography / category / [subcategory parts...] / name
+  // BUT: if subcategory ends with name, don't duplicate it
   const path = ['typography', category];
+  
   if (subcategory) {
     // Split subcategory by dots and add each part to path
-    subcategory.split('.').forEach(part => path.push(part));
+    const subcategoryParts = subcategory.split('.');
+    subcategoryParts.forEach(part => path.push(part));
+    
+    // Only add name if it's different from the last subcategory part
+    const lastPart = subcategoryParts[subcategoryParts.length - 1];
+    if (lastPart !== name) {
+      path.push(name);
+    }
+  } else {
+    // No subcategory - just add name
+    path.push(name);
   }
-  path.push(name);
   
   const tokenId = path.join('.');
   
@@ -1900,12 +2181,33 @@ function saveToken(): void {
     }
     typographyState.semanticTokens.push(tokenData);
     showNotification('✨ Токен создан');
+    
+    // Track change
+    addPendingChange({
+      module: 'typography',
+      type: 'add',
+      category: category,
+      name: tokenId,
+      newValue: `${tokenData.fontSize} / ${tokenData.fontWeight}`,
+      details: tokenData.responsive ? 'adaptive' : undefined,
+    });
   } else {
     // Update existing token
     const index = typographyState.semanticTokens.findIndex(t => t.id === currentEditingTokenId);
     if (index !== -1) {
+      const oldToken = typographyState.semanticTokens[index];
       typographyState.semanticTokens[index] = tokenData;
       showNotification('✅ Токен обновлён');
+      
+      // Track change
+      addPendingChange({
+        module: 'typography',
+        type: 'update',
+        category: category,
+        name: tokenId,
+        oldValue: `${oldToken.fontSize} / ${oldToken.fontWeight}${oldToken.responsive ? ' (adaptive)' : ''}`,
+        newValue: `${tokenData.fontSize} / ${tokenData.fontWeight}${tokenData.responsive ? ' (adaptive)' : ''}`,
+      });
     }
   }
   
@@ -1921,7 +2223,17 @@ function deleteToken(): void {
   
   const index = typographyState.semanticTokens.findIndex(t => t.id === currentEditingTokenId);
   if (index !== -1) {
+    const token = typographyState.semanticTokens[index];
     typographyState.semanticTokens.splice(index, 1);
+    
+    // Track change
+    addPendingChange({
+      module: 'typography',
+      type: 'delete',
+      category: token.category,
+      name: token.id,
+      oldValue: `${token.fontSize} / ${token.fontWeight}`,
+    });
     
     // Сохраняем состояние
     onTypographyStateChanged();
@@ -2593,6 +2905,8 @@ function createTextStylesInFigma(): void {
     description: token.description,
     category: token.category,
     subcategory: token.subcategory,
+    responsive: token.responsive, // Pass responsive flag
+    deviceOverrides: token.deviceOverrides, // Pass device overrides
   }));
   
   const primitives = {

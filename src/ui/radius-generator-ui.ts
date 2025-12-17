@@ -12,19 +12,21 @@ import {
   RadiusSemanticToken,
   RadiusCategory,
   RADIUS_CATEGORIES,
+  CustomRadiusCategory,
   createDefaultRadiusState,
   getRadiusTokensByCategory,
   getEnabledRadiusPrimitives,
 } from '../types/radius-tokens';
 
 import { storageGet, storageSet, storageDelete, STORAGE_KEYS } from './storage-utils';
+import { addPendingChange } from './token-manager-ui';
 
 // ============================================
 // STATE
 // ============================================
 
 let radiusState: RadiusState = createDefaultRadiusState();
-let activeRadiusCategory: RadiusCategory = 'interactive';
+let activeRadiusCategory: RadiusCategory | string = 'interactive';
 let activeRadiusTab: 'primitives' | 'semantic' | 'export' = 'primitives';
 
 // ============================================
@@ -64,10 +66,25 @@ export function initRadiusUI(): void {
       return;
     }
     
+    // Delete category button
+    const deleteBtn = target.closest('.btn-delete-category') as HTMLElement;
+    if (deleteBtn) {
+      e.stopPropagation();
+      const catId = deleteBtn.dataset.categoryId;
+      if (catId) deleteCustomRadiusCategory(catId);
+      return;
+    }
+    
+    // Add category button
+    if (target.id === 'radius-add-category' || target.closest('#radius-add-category')) {
+      showAddRadiusCategoryDialog();
+      return;
+    }
+    
     // Category tab click
     const catTab = target.closest('.category-tab[data-radius-category]') as HTMLElement;
     if (catTab) {
-      const catId = catTab.getAttribute('data-radius-category') as RadiusCategory;
+      const catId = catTab.getAttribute('data-radius-category');
       if (catId) {
         activeRadiusCategory = catId;
         renderRadiusCategoryTabs();
@@ -229,18 +246,79 @@ function renderRadiusCategoryTabs(): void {
   const container = document.getElementById('radius-category-tabs');
   if (!container) return;
   
-  const categories = Object.keys(RADIUS_CATEGORIES) as RadiusCategory[];
+  const defaultCategories = Object.keys(RADIUS_CATEGORIES) as RadiusCategory[];
+  const customCategories = radiusState.customCategories || [];
   
-  container.innerHTML = categories.map(cat => {
-    const info = RADIUS_CATEGORIES[cat];
-    const count = getRadiusTokensByCategory(radiusState.semanticTokens, cat).length;
-    return `
-      <button class="category-tab ${cat === activeRadiusCategory ? 'active' : ''}" 
-              data-radius-category="${cat}" title="${info.description}">
-        ${info.icon} ${info.label} <span class="count">(${count})</span>
-      </button>
-    `;
-  }).join('');
+  container.innerHTML = `
+    ${defaultCategories.map(cat => {
+      const info = RADIUS_CATEGORIES[cat];
+      const count = getRadiusTokensByCategory(radiusState.semanticTokens, cat).length;
+      return `
+        <button class="category-tab ${cat === activeRadiusCategory ? 'active' : ''}" 
+                data-radius-category="${cat}" title="${info.description}">
+          ${info.icon} ${info.label} <span class="count">(${count})</span>
+        </button>
+      `;
+    }).join('')}
+    ${customCategories.map(cat => {
+      const count = radiusState.semanticTokens.filter(t => t.category === cat.id).length;
+      return `
+        <button class="category-tab custom-category ${cat.id === activeRadiusCategory ? 'active' : ''}" 
+                data-radius-category="${cat.id}" title="${cat.description}">
+          ${cat.icon} ${cat.name} <span class="count">(${count})</span>
+          <span class="btn-delete-category" data-category-id="${cat.id}" title="Удалить">×</span>
+        </button>
+      `;
+    }).join('')}
+    <button class="category-tab add-category-btn" id="radius-add-category" title="Добавить категорию">+</button>
+  `;
+}
+
+// ============================================
+// CUSTOM CATEGORY MANAGEMENT
+// ============================================
+
+function addCustomRadiusCategory(name: string, icon: string = '📁'): void {
+  const id = `custom-${Date.now()}`;
+  const newCategory: CustomRadiusCategory = {
+    id,
+    name,
+    icon,
+    description: `Custom category: ${name}`,
+  };
+  
+  if (!radiusState.customCategories) {
+    radiusState.customCategories = [];
+  }
+  radiusState.customCategories.push(newCategory);
+  saveRadiusState();
+  renderRadiusCategoryTabs();
+}
+
+function deleteCustomRadiusCategory(categoryId: string): void {
+  if (!radiusState.customCategories) return;
+  
+  const tokensInCategory = radiusState.semanticTokens.filter(t => t.category === categoryId);
+  if (tokensInCategory.length > 0) {
+    if (!confirm(`В категории есть ${tokensInCategory.length} токенов. Удалить категорию и все токены?`)) {
+      return;
+    }
+    radiusState.semanticTokens = radiusState.semanticTokens.filter(t => t.category !== categoryId);
+  }
+  
+  radiusState.customCategories = radiusState.customCategories.filter(c => c.id !== categoryId);
+  saveRadiusState();
+  
+  activeRadiusCategory = 'interactive';
+  renderRadiusCategoryTabs();
+  renderRadiusSemanticTokens();
+}
+
+function showAddRadiusCategoryDialog(): void {
+  const name = prompt('Введите название новой категории:');
+  if (name && name.trim()) {
+    addCustomRadiusCategory(name.trim());
+  }
 }
 
 // ============================================
@@ -251,8 +329,17 @@ function renderRadiusSemanticTokens(): void {
   const container = document.getElementById('radius-semantic-list');
   if (!container) return;
   
-  const tokens = getRadiusTokensByCategory(radiusState.semanticTokens, activeRadiusCategory);
-  const categoryInfo = RADIUS_CATEGORIES[activeRadiusCategory];
+  const isCustomCategory = !Object.keys(RADIUS_CATEGORIES).includes(activeRadiusCategory);
+  const tokens = isCustomCategory
+    ? radiusState.semanticTokens.filter(t => t.category === activeRadiusCategory)
+    : getRadiusTokensByCategory(radiusState.semanticTokens, activeRadiusCategory as RadiusCategory);
+  
+  const categoryInfo = isCustomCategory
+    ? radiusState.customCategories?.find(c => c.id === activeRadiusCategory)
+    : RADIUS_CATEGORIES[activeRadiusCategory as RadiusCategory];
+  const categoryLabel = isCustomCategory
+    ? (categoryInfo as CustomRadiusCategory)?.name || activeRadiusCategory
+    : (categoryInfo as { label: string })?.label || activeRadiusCategory;
   
   // Update total count
   const totalCounter = document.getElementById('radius-semantic-count');
@@ -261,9 +348,12 @@ function renderRadiusSemanticTokens(): void {
   if (tokens.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <p>Нет токенов в категории "${categoryInfo.label}"</p>
+        <p>Нет токенов в категории "${categoryLabel}"</p>
+        <button class="btn btn-primary" id="radius-add-first-token">+ Добавить токен</button>
       </div>
     `;
+    const addBtn = document.getElementById('radius-add-first-token');
+    if (addBtn) addBtn.addEventListener('click', () => addRadiusSemanticToken());
     return;
   }
   
@@ -282,6 +372,7 @@ function renderRadiusSemanticTokens(): void {
         <div class="col-path" style="flex: 2;">Путь токена</div>
         <div class="col-device" style="flex: 1;">Значение</div>
         <div class="col-preview" style="flex: 0 0 60px;">Превью</div>
+        <div class="col-actions" style="flex: 0 0 40px;"></div>
       </div>
       ${tokens.map(token => {
         const prim = radiusState.primitives.find(p => p.name === token.primitiveRef);
@@ -292,7 +383,7 @@ function renderRadiusSemanticTokens(): void {
         return `
           <div class="semantic-token-row" data-token-id="${token.id}">
             <div class="col-path" style="flex: 2;">
-              <span class="token-path-display">${token.path}</span>
+              <input type="text" class="token-path-input" value="${token.path}" data-field="path" />
             </div>
             <div class="col-device" style="flex: 1;">
               <select class="device-select" data-field="primitiveRef" data-token-id="${token.id}">
@@ -308,11 +399,27 @@ function renderRadiusSemanticTokens(): void {
                 opacity: 0.8;
               "></div>
             </div>
+            <div class="col-actions" style="flex: 0 0 40px;">
+              <button class="btn-icon delete-token-btn" data-token-id="${token.id}" title="Удалить">×</button>
+            </div>
           </div>
         `;
       }).join('')}
     </div>
+    <div class="semantic-toolbar">
+      <button class="btn btn-secondary" id="radius-add-token-btn">+ Добавить токен</button>
+    </div>
   `;
+  
+  // Path input handlers
+  container.querySelectorAll('.token-path-input').forEach(input => {
+    input.addEventListener('change', (e) => {
+      const target = e.target as HTMLInputElement;
+      const row = target.closest('.semantic-token-row');
+      const tokenId = row?.getAttribute('data-token-id');
+      if (tokenId) updateRadiusToken(tokenId, 'path', target.value);
+    });
+  });
   
   // Add change handlers for selects
   container.querySelectorAll('.device-select').forEach(select => {
@@ -322,18 +429,93 @@ function renderRadiusSemanticTokens(): void {
       const value = sel.value;
       
       if (tokenId) {
-        updateRadiusTokenPrimitive(tokenId, value);
+        updateRadiusToken(tokenId, 'primitiveRef', value);
       }
     });
   });
+  
+  // Delete button handlers
+  container.querySelectorAll('.delete-token-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tokenId = (btn as HTMLElement).dataset.tokenId;
+      if (tokenId) deleteRadiusSemanticToken(tokenId);
+    });
+  });
+  
+  // Add token button
+  const addBtn = document.getElementById('radius-add-token-btn');
+  if (addBtn) addBtn.addEventListener('click', () => addRadiusSemanticToken());
 }
 
-function updateRadiusTokenPrimitive(tokenId: string, value: string): void {
+// ============================================
+// RADIUS SEMANTIC TOKEN CRUD
+// ============================================
+
+function generateRadiusTokenId(): string {
+  return `radius-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+function addRadiusSemanticToken(): void {
+  const newToken: RadiusSemanticToken = {
+    id: generateRadiusTokenId(),
+    path: `radius.${activeRadiusCategory}.new`,
+    category: activeRadiusCategory as RadiusCategory,
+    primitiveRef: '8',
+  };
+  
+  radiusState.semanticTokens.push(newToken);
+  saveRadiusState();
+  renderRadiusCategoryTabs();
+  renderRadiusSemanticTokens();
+  
+  // Track change
+  addPendingChange({
+    module: 'radius',
+    type: 'add',
+    category: activeRadiusCategory,
+    name: newToken.path,
+    newValue: `radius.${newToken.primitiveRef}`,
+  });
+}
+
+function updateRadiusToken(tokenId: string, field: 'path' | 'primitiveRef', value: string): void {
   const token = radiusState.semanticTokens.find(t => t.id === tokenId);
   if (token) {
-    token.primitiveRef = value;
+    const oldValue = (token as any)[field];
+    (token as any)[field] = value;
     saveRadiusState();
     renderRadiusSemanticTokens(); // Re-render to update preview
+    
+    // Track change
+    addPendingChange({
+      module: 'radius',
+      type: 'update',
+      category: token.category,
+      name: token.path,
+      oldValue: String(oldValue),
+      newValue: String(value),
+      details: field,
+    });
+  }
+}
+
+function deleteRadiusSemanticToken(tokenId: string): void {
+  const index = radiusState.semanticTokens.findIndex(t => t.id === tokenId);
+  if (index > -1) {
+    const token = radiusState.semanticTokens[index];
+    radiusState.semanticTokens.splice(index, 1);
+    saveRadiusState();
+    renderRadiusCategoryTabs();
+    renderRadiusSemanticTokens();
+    
+    // Track change
+    addPendingChange({
+      module: 'radius',
+      type: 'delete',
+      category: token.category,
+      name: token.path,
+      oldValue: `radius.${token.primitiveRef}`,
+    });
   }
 }
 

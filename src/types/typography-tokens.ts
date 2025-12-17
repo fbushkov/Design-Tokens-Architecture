@@ -249,6 +249,13 @@ export interface TypographyState {
   // Component tokens
   componentTokens: TypographyComponentToken[];
   
+  // Custom categories (user-defined)
+  customCategories?: Array<{
+    id: string;
+    name: string;
+    icon: string;
+  }>;
+  
   // Settings
   settings: {
     baseFontFamily: string;

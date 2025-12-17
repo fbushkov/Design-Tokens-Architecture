@@ -12,19 +12,21 @@ import {
   GapSemanticToken,
   GapCategory,
   GAP_CATEGORIES,
+  CustomGapCategory,
   createDefaultGapState,
   getGapTokensByCategory,
   getEnabledGapPrimitives,
 } from '../types/gap-tokens';
 
 import { storageGet, storageSet, storageDelete, STORAGE_KEYS } from './storage-utils';
+import { addPendingChange } from './token-manager-ui';
 
 // ============================================
 // STATE
 // ============================================
 
 let gapState: GapState = createDefaultGapState();
-let activeGapCategory: GapCategory = 'inline';
+let activeGapCategory: GapCategory | string = 'inline';
 let activeGapTab: 'primitives' | 'semantic' | 'export' = 'primitives';
 
 // ============================================
@@ -64,10 +66,25 @@ export function initGapUI(): void {
       return;
     }
     
+    // Delete category button
+    const deleteBtn = target.closest('.btn-delete-category') as HTMLElement;
+    if (deleteBtn) {
+      e.stopPropagation();
+      const catId = deleteBtn.dataset.categoryId;
+      if (catId) deleteCustomGapCategory(catId);
+      return;
+    }
+    
+    // Add category button
+    if (target.id === 'gap-add-category' || target.closest('#gap-add-category')) {
+      showAddGapCategoryDialog();
+      return;
+    }
+    
     // Category tab click
     const catTab = target.closest('.category-tab[data-gap-category]') as HTMLElement;
     if (catTab) {
-      const catId = catTab.getAttribute('data-gap-category') as GapCategory;
+      const catId = catTab.getAttribute('data-gap-category');
       if (catId) {
         activeGapCategory = catId;
         renderGapCategoryTabs();
@@ -226,18 +243,79 @@ function renderGapCategoryTabs(): void {
   const container = document.getElementById('gap-category-tabs');
   if (!container) return;
   
-  const categories = Object.keys(GAP_CATEGORIES) as GapCategory[];
+  const defaultCategories = Object.keys(GAP_CATEGORIES) as GapCategory[];
+  const customCategories = gapState.customCategories || [];
   
-  container.innerHTML = categories.map(cat => {
-    const info = GAP_CATEGORIES[cat];
-    const count = getGapTokensByCategory(gapState.semanticTokens, cat).length;
-    return `
-      <button class="category-tab ${cat === activeGapCategory ? 'active' : ''}" 
-              data-gap-category="${cat}" title="${info.description}">
-        ${info.icon} ${info.label} <span class="count">(${count})</span>
-      </button>
-    `;
-  }).join('');
+  container.innerHTML = `
+    ${defaultCategories.map(cat => {
+      const info = GAP_CATEGORIES[cat];
+      const count = getGapTokensByCategory(gapState.semanticTokens, cat).length;
+      return `
+        <button class="category-tab ${cat === activeGapCategory ? 'active' : ''}" 
+                data-gap-category="${cat}" title="${info.description}">
+          ${info.icon} ${info.label} <span class="count">(${count})</span>
+        </button>
+      `;
+    }).join('')}
+    ${customCategories.map(cat => {
+      const count = gapState.semanticTokens.filter(t => t.category === cat.id).length;
+      return `
+        <button class="category-tab custom-category ${cat.id === activeGapCategory ? 'active' : ''}" 
+                data-gap-category="${cat.id}" title="${cat.description}">
+          ${cat.icon} ${cat.name} <span class="count">(${count})</span>
+          <span class="btn-delete-category" data-category-id="${cat.id}" title="Удалить">×</span>
+        </button>
+      `;
+    }).join('')}
+    <button class="category-tab add-category-btn" id="gap-add-category" title="Добавить категорию">+</button>
+  `;
+}
+
+// ============================================
+// CUSTOM CATEGORY MANAGEMENT
+// ============================================
+
+function addCustomGapCategory(name: string, icon: string = '📁'): void {
+  const id = `custom-${Date.now()}`;
+  const newCategory: CustomGapCategory = {
+    id,
+    name,
+    icon,
+    description: `Custom category: ${name}`,
+  };
+  
+  if (!gapState.customCategories) {
+    gapState.customCategories = [];
+  }
+  gapState.customCategories.push(newCategory);
+  saveGapState();
+  renderGapCategoryTabs();
+}
+
+function deleteCustomGapCategory(categoryId: string): void {
+  if (!gapState.customCategories) return;
+  
+  const tokensInCategory = gapState.semanticTokens.filter(t => t.category === categoryId);
+  if (tokensInCategory.length > 0) {
+    if (!confirm(`В категории есть ${tokensInCategory.length} токенов. Удалить категорию и все токены?`)) {
+      return;
+    }
+    gapState.semanticTokens = gapState.semanticTokens.filter(t => t.category !== categoryId);
+  }
+  
+  gapState.customCategories = gapState.customCategories.filter(c => c.id !== categoryId);
+  saveGapState();
+  
+  activeGapCategory = 'inline';
+  renderGapCategoryTabs();
+  renderGapSemanticTokens();
+}
+
+function showAddGapCategoryDialog(): void {
+  const name = prompt('Введите название новой категории:');
+  if (name && name.trim()) {
+    addCustomGapCategory(name.trim());
+  }
 }
 
 // ============================================
@@ -248,8 +326,17 @@ function renderGapSemanticTokens(): void {
   const container = document.getElementById('gap-semantic-list');
   if (!container) return;
   
-  const tokens = getGapTokensByCategory(gapState.semanticTokens, activeGapCategory);
-  const categoryInfo = GAP_CATEGORIES[activeGapCategory];
+  const isCustomCategory = !Object.keys(GAP_CATEGORIES).includes(activeGapCategory);
+  const tokens = isCustomCategory
+    ? gapState.semanticTokens.filter(t => t.category === activeGapCategory)
+    : getGapTokensByCategory(gapState.semanticTokens, activeGapCategory as GapCategory);
+  
+  const categoryInfo = isCustomCategory
+    ? gapState.customCategories?.find(c => c.id === activeGapCategory)
+    : GAP_CATEGORIES[activeGapCategory as GapCategory];
+  const categoryLabel = isCustomCategory
+    ? (categoryInfo as CustomGapCategory)?.name || activeGapCategory
+    : (categoryInfo as { label: string })?.label || activeGapCategory;
   
   // Update total count
   const totalCounter = document.getElementById('gap-semantic-count');
@@ -258,9 +345,12 @@ function renderGapSemanticTokens(): void {
   if (tokens.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
-        <p>Нет токенов в категории "${categoryInfo.label}"</p>
+        <p>Нет токенов в категории "${categoryLabel}"</p>
+        <button class="btn btn-primary" id="gap-add-first-token">+ Добавить токен</button>
       </div>
     `;
+    const addBtn = document.getElementById('gap-add-first-token');
+    if (addBtn) addBtn.addEventListener('click', () => addGapSemanticToken());
     return;
   }
   
@@ -277,11 +367,12 @@ function renderGapSemanticTokens(): void {
         <div class="col-device">Desktop</div>
         <div class="col-device">Tablet</div>
         <div class="col-device">Mobile</div>
+        <div class="col-actions"></div>
       </div>
       ${tokens.map(token => `
         <div class="semantic-token-row" data-token-id="${token.id}">
           <div class="col-path">
-            <span class="token-path-display">${token.path}</span>
+            <input type="text" class="token-path-input" value="${token.path}" data-field="path" />
           </div>
           <div class="col-device">
             <select class="device-select" data-field="desktop" data-token-id="${token.id}">
@@ -298,10 +389,26 @@ function renderGapSemanticTokens(): void {
               ${primOptions.replace(`value="${token.mobile}"`, `value="${token.mobile}" selected`)}
             </select>
           </div>
+          <div class="col-actions">
+            <button class="btn-icon delete-token-btn" data-token-id="${token.id}" title="Удалить">×</button>
+          </div>
         </div>
       `).join('')}
     </div>
+    <div class="semantic-toolbar">
+      <button class="btn btn-secondary" id="gap-add-token-btn">+ Добавить токен</button>
+    </div>
   `;
+  
+  // Add change handlers for path inputs
+  container.querySelectorAll('.token-path-input').forEach(input => {
+    input.addEventListener('change', (e) => {
+      const target = e.target as HTMLInputElement;
+      const row = target.closest('.semantic-token-row');
+      const tokenId = row?.getAttribute('data-token-id');
+      if (tokenId) updateGapToken(tokenId, 'path', target.value);
+    });
+  });
   
   // Add change handlers for selects
   container.querySelectorAll('.device-select').forEach(select => {
@@ -312,17 +419,94 @@ function renderGapSemanticTokens(): void {
       const value = sel.value;
       
       if (tokenId && field) {
-        updateGapTokenDevice(tokenId, field, value);
+        updateGapToken(tokenId, field, value);
       }
     });
   });
+  
+  // Delete button handlers
+  container.querySelectorAll('.delete-token-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const tokenId = (btn as HTMLElement).dataset.tokenId;
+      if (tokenId) deleteGapSemanticToken(tokenId);
+    });
+  });
+  
+  // Add token button
+  const addBtn = document.getElementById('gap-add-token-btn');
+  if (addBtn) addBtn.addEventListener('click', () => addGapSemanticToken());
 }
 
-function updateGapTokenDevice(tokenId: string, field: 'desktop' | 'tablet' | 'mobile', value: string): void {
+// ============================================
+// GAP SEMANTIC TOKEN CRUD
+// ============================================
+
+function generateGapTokenId(): string {
+  return `gap-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+function addGapSemanticToken(): void {
+  const newToken: GapSemanticToken = {
+    id: generateGapTokenId(),
+    path: `gap.${activeGapCategory}.new`,
+    category: activeGapCategory as GapCategory,
+    desktop: '8',
+    tablet: '8',
+    mobile: '6',
+  };
+  
+  gapState.semanticTokens.push(newToken);
+  saveGapState();
+  renderGapCategoryTabs();
+  renderGapSemanticTokens();
+  
+  // Track change
+  addPendingChange({
+    module: 'gap',
+    type: 'add',
+    category: activeGapCategory,
+    name: newToken.path,
+    newValue: `D:${newToken.desktop} T:${newToken.tablet} M:${newToken.mobile}`,
+  });
+}
+
+function updateGapToken(tokenId: string, field: 'path' | 'desktop' | 'tablet' | 'mobile', value: string): void {
   const token = gapState.semanticTokens.find(t => t.id === tokenId);
   if (token) {
-    token[field] = value;
+    const oldValue = (token as any)[field];
+    (token as any)[field] = value;
     saveGapState();
+    
+    // Track change
+    addPendingChange({
+      module: 'gap',
+      type: 'update',
+      category: token.category,
+      name: token.path,
+      oldValue: String(oldValue),
+      newValue: String(value),
+      details: field,
+    });
+  }
+}
+
+function deleteGapSemanticToken(tokenId: string): void {
+  const index = gapState.semanticTokens.findIndex(t => t.id === tokenId);
+  if (index > -1) {
+    const token = gapState.semanticTokens[index];
+    gapState.semanticTokens.splice(index, 1);
+    saveGapState();
+    renderGapCategoryTabs();
+    renderGapSemanticTokens();
+    
+    // Track change
+    addPendingChange({
+      module: 'gap',
+      type: 'delete',
+      category: token.category,
+      name: token.path,
+      oldValue: `D:${token.desktop} T:${token.tablet} M:${token.mobile}`,
+    });
   }
 }
 

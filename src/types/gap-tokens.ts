@@ -83,9 +83,18 @@ export interface GapSemanticToken {
   mobile: string;
 }
 
+// Custom category for user-defined sections
+export interface CustomGapCategory {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+}
+
 export interface GapState {
   primitives: GapPrimitive[];
   semanticTokens: GapSemanticToken[];
+  customCategories?: CustomGapCategory[];
 }
 
 // ============================================

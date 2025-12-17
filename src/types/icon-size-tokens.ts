@@ -85,9 +85,18 @@ export interface IconSizeSemanticToken {
   mobile: string;
 }
 
+// Custom category for user-defined sections
+export interface CustomIconSizeCategory {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+}
+
 export interface IconSizeState {
   primitives: IconSizePrimitive[];
   semanticTokens: IconSizeSemanticToken[];
+  customCategories?: CustomIconSizeCategory[];
 }
 
 // ============================================

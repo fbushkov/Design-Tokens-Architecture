@@ -300,6 +300,8 @@ window.onmessage = (event: MessageEvent) => {
     case 'sync-applied':
     case 'sync-error':
     case 'sync-variable-deleted':
+    case 'export-selected-complete':
+    case 'export-selected-error':
       handleSyncMessageFromFigma(msg);
       break;
   }
