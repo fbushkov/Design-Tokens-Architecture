@@ -21,6 +21,7 @@ import {
 
 import { createToken } from '../types/token-manager-state';
 import { TMTokenType, TMCollectionType } from '../types/token-manager';
+import { storageGet, storageSet, storageDelete, STORAGE_KEYS } from './storage-utils';
 
 // ============================================
 // BREAKPOINTS & RESPONSIVE SCALES
@@ -76,6 +77,99 @@ function findClosestPrimitive(targetValue: number, primitives: { name: string; v
 // ============================================
 
 let typographyState: TypographyState = createDefaultTypographyState();
+
+// ============================================
+// STATE PERSISTENCE (using figma.clientStorage via postMessage)
+// ============================================
+
+interface TypographyStorageData {
+  state: TypographyState;
+  breakpoints: BreakpointConfig[];
+  responsiveEnabled: boolean;
+}
+
+/**
+ * Сохранить состояние типографики в clientStorage
+ */
+async function saveTypographyState(): Promise<void> {
+  try {
+    const data: TypographyStorageData = {
+      state: typographyState,
+      breakpoints: breakpointConfigs,
+      responsiveEnabled: responsiveModesEnabled,
+    };
+    await storageSet(STORAGE_KEYS.TYPOGRAPHY_STATE, data);
+    console.log('[Typography] State saved');
+  } catch (e) {
+    console.warn('[Typography] Failed to save state:', e);
+  }
+}
+
+/**
+ * Загрузить состояние типографики из clientStorage
+ */
+async function loadTypographyState(): Promise<boolean> {
+  try {
+    const data = await storageGet<TypographyStorageData>(STORAGE_KEYS.TYPOGRAPHY_STATE);
+    
+    if (data) {
+      if (data.state) {
+        typographyState = { ...createDefaultTypographyState(), ...data.state };
+      }
+      if (data.breakpoints) {
+        breakpointConfigs = data.breakpoints;
+      }
+      if (data.responsiveEnabled !== undefined) {
+        responsiveModesEnabled = data.responsiveEnabled;
+      }
+      console.log('[Typography] State loaded');
+      return true;
+    }
+    
+    return false;
+  } catch (e) {
+    console.warn('[Typography] Failed to load state:', e);
+    return false;
+  }
+}
+
+/**
+ * Сбросить настройки типографики к значениям по умолчанию
+ */
+export async function resetTypographyToDefaults(): Promise<void> {
+  // Сбрасываем состояние
+  typographyState = createDefaultTypographyState();
+  breakpointConfigs = [...DEFAULT_BREAKPOINTS];
+  responsiveModesEnabled = true;
+  
+  // Очищаем storage
+  try {
+    await storageDelete(STORAGE_KEYS.TYPOGRAPHY_STATE);
+  } catch (e) {
+    console.warn('[Typography] Failed to clear storage:', e);
+  }
+  
+  // Перезагружаем UI
+  loadDefaultSemanticTokens();
+  renderFontFamilies();
+  renderFontSizes();
+  renderLineHeights();
+  renderLetterSpacings();
+  renderBreakpointSettings();
+  
+  // Обновляем чекбокс
+  const responsiveToggle = document.getElementById('responsive-modes-enabled') as HTMLInputElement;
+  if (responsiveToggle) {
+    responsiveToggle.checked = responsiveModesEnabled;
+  }
+}
+
+/**
+ * Вызывается при изменении состояния (для auto-save)
+ */
+function onTypographyStateChanged(): void {
+  saveTypographyState();
+}
 
 // ============================================
 // CATEGORY → SUBCATEGORY MAPPING (Полная структура)
@@ -212,7 +306,7 @@ export function initTypographyUI(): void {
   // Initialize typography tabs
   initTypographyTabs();
   
-  // Render primitives
+  // Render primitives first with defaults
   renderFontFamilies();
   renderFontSizes();
   renderLineHeights();
@@ -224,8 +318,40 @@ export function initTypographyUI(): void {
   // Setup modal events
   setupModalEvents();
   
-  // Load default semantic tokens
+  // Load default semantic tokens first
   loadDefaultSemanticTokens();
+  
+  // Render breakpoint settings
+  renderBreakpointSettings();
+  
+  // Update responsive toggle
+  const responsiveToggle = document.getElementById('responsive-modes-enabled') as HTMLInputElement;
+  if (responsiveToggle) {
+    responsiveToggle.checked = responsiveModesEnabled;
+  }
+  
+  // Затем асинхронно загружаем сохранённое состояние
+  loadTypographyState().then((hasStoredState) => {
+    if (hasStoredState) {
+      // Re-render UI with loaded state
+      renderFontFamilies();
+      renderFontSizes();
+      renderLineHeights();
+      renderLetterSpacings();
+      renderBreakpointSettings();
+      
+      // Update responsive toggle
+      const toggle = document.getElementById('responsive-modes-enabled') as HTMLInputElement;
+      if (toggle) {
+        toggle.checked = responsiveModesEnabled;
+      }
+      
+      // Если есть сохранённые семантические токены - рендерим их
+      if (typographyState.semanticTokens.length > 0) {
+        renderSemanticTokens();
+      }
+    }
+  });
 }
 
 function initTypographyTabs(): void {
@@ -313,6 +439,46 @@ function renderLetterSpacings(): void {
       item.classList.toggle('active');
     });
   });
+}
+
+// ============================================
+// RESPONSIVE DEFAULTS
+// ============================================
+
+/**
+ * Категории, для которых responsive включен по умолчанию
+ * Это крупные заголовки, которые должны масштабироваться на разных устройствах
+ */
+const RESPONSIVE_CATEGORIES_DEFAULT: string[] = [
+  'page',      // Заголовки страниц - hero, title, subtitle
+  'section',   // Заголовки секций - h2, h3
+];
+
+/**
+ * Subcategories которые должны быть responsive независимо от категории
+ * (например, lead paragraph - крупный вводный текст)
+ */
+const RESPONSIVE_SUBCATEGORIES_DEFAULT: string[] = [
+  'hero',
+  'title', 
+  'lead',
+];
+
+/**
+ * Определяет, должен ли токен быть responsive по умолчанию
+ */
+function shouldBeResponsiveByDefault(category: string, subcategory?: string): boolean {
+  // Проверяем категорию
+  if (RESPONSIVE_CATEGORIES_DEFAULT.includes(category)) {
+    return true;
+  }
+  
+  // Проверяем subcategory
+  if (subcategory && RESPONSIVE_SUBCATEGORIES_DEFAULT.some(sub => subcategory.includes(sub))) {
+    return true;
+  }
+  
+  return false;
 }
 
 // ============================================
@@ -1483,7 +1649,13 @@ function loadDefaultSemanticTokens(): void {
     },
   ];
   
-  typographyState.semanticTokens = defaultTokens;
+  // Применяем responsive по умолчанию для соответствующих категорий
+  const tokensWithResponsive = defaultTokens.map(token => ({
+    ...token,
+    responsive: shouldBeResponsiveByDefault(token.category, token.subcategory),
+  }));
+  
+  typographyState.semanticTokens = tokensWithResponsive;
   renderSemanticTokens();
 }
 
@@ -1618,6 +1790,9 @@ function openTokenEditor(tokenId: string): void {
   
   (document.getElementById('typo-description') as HTMLTextAreaElement).value = token.description || '';
   
+  // Set responsive checkbox
+  (document.getElementById('typo-responsive') as HTMLInputElement).checked = token.responsive === true;
+  
   // Show delete button for existing tokens
   const deleteBtn = document.getElementById('typography-modal-delete');
   if (deleteBtn) deleteBtn.style.display = 'block';
@@ -1654,6 +1829,9 @@ function openNewTokenEditor(): void {
   updateSubcategoryOptions(defaultCategory);
   
   (document.getElementById('typo-description') as HTMLTextAreaElement).value = '';
+  
+  // Default: not responsive (same value for all devices)
+  (document.getElementById('typo-responsive') as HTMLInputElement).checked = false;
   
   // Hide delete button for new tokens
   const deleteBtn = document.getElementById('typography-modal-delete');
@@ -1693,6 +1871,9 @@ function saveToken(): void {
   
   const tokenId = path.join('.');
   
+  // Get responsive flag
+  const isResponsive = (document.getElementById('typo-responsive') as HTMLInputElement).checked;
+  
   const tokenData: TypographySemanticToken = {
     id: tokenId,
     path: path,
@@ -1707,6 +1888,7 @@ function saveToken(): void {
     category: category,
     subcategory: subcategory || undefined,
     description: (document.getElementById('typo-description') as HTMLTextAreaElement).value.trim() || undefined,
+    responsive: isResponsive || undefined, // Only save if true
   };
   
   if (isNewToken) {
@@ -1727,6 +1909,9 @@ function saveToken(): void {
     }
   }
   
+  // Сохраняем состояние
+  onTypographyStateChanged();
+  
   renderSemanticTokens();
   closeTokenEditor();
 }
@@ -1737,6 +1922,10 @@ function deleteToken(): void {
   const index = typographyState.semanticTokens.findIndex(t => t.id === currentEditingTokenId);
   if (index !== -1) {
     typographyState.semanticTokens.splice(index, 1);
+    
+    // Сохраняем состояние
+    onTypographyStateChanged();
+    
     renderSemanticTokens();
     showNotification('🗑️ Токен удалён');
   }
@@ -2464,6 +2653,9 @@ function createSemanticVariablesInFigma(): void {
     description: token.description,
     category: token.category,
     subcategory: token.subcategory,
+    // ВАЖНО: передаём responsive и deviceOverrides!
+    responsive: token.responsive,
+    deviceOverrides: token.deviceOverrides,
   }));
   
   const primitives = {
@@ -2592,6 +2784,9 @@ function handleBreakpointChange(e: Event): void {
         preview.textContent = `Пример: 16px → ${getScaledValue(16, scale, 2)}px, 140% → ${getScaledValue(140, scale, 5)}%`;
       }
     }
+    
+    // Сохраняем изменения
+    onTypographyStateChanged();
   }
 }
 
@@ -2602,6 +2797,7 @@ function toggleResponsiveModes(enabled: boolean): void {
     container.style.opacity = enabled ? '1' : '0.5';
     container.style.pointerEvents = enabled ? 'auto' : 'none';
   }
+  onTypographyStateChanged();
 }
 
 // ============================================

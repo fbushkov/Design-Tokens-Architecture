@@ -17,6 +17,8 @@ import {
   getTokensByCategory,
 } from '../types/spacing-tokens';
 
+import { storageGet, storageSet, storageDelete, STORAGE_KEYS } from './storage-utils';
+
 // ============================================
 // STATE
 // ============================================
@@ -30,7 +32,10 @@ let activeTab: 'primitives' | 'semantic' | 'export' = 'primitives';
 // ============================================
 
 export function initSpacingUI(): void {
-  loadSpacingState();
+  // First render with defaults
+  renderPrimitives();
+  renderCategoryTabs();
+  renderSemanticTokens();
   
   // Tab switching (uses typo-tab class like Typography)
   const tabBtns = document.querySelectorAll('.typo-tab[data-spacing-tab]');
@@ -43,11 +48,6 @@ export function initSpacingUI(): void {
       }
     });
   });
-  
-  // Initial render
-  renderPrimitives();
-  renderCategoryTabs();
-  renderSemanticTokens();
   
   // Export buttons
   const exportPrimBtn = document.getElementById('export-spacing-primitives');
@@ -73,6 +73,13 @@ export function initSpacingUI(): void {
   if (generatePrimBtn) {
     generatePrimBtn.addEventListener('click', () => exportPrimitivesToFigma());
   }
+  
+  // Then load saved state asynchronously
+  loadSpacingState().then(() => {
+    renderPrimitives();
+    renderCategoryTabs();
+    renderSemanticTokens();
+  });
 }
 
 // ============================================
@@ -328,18 +335,57 @@ function deleteSemanticToken(tokenId: string): void {
 }
 
 // ============================================
-// STORAGE
+// STORAGE (using figma.clientStorage via postMessage)
 // ============================================
 
-function saveSpacingState(): void {
-  // localStorage is disabled in Figma plugin iframes
-  // State changes are kept in memory only during current session
+async function saveSpacingState(): Promise<void> {
+  try {
+    await storageSet(STORAGE_KEYS.SPACING_STATE, spacingState);
+    console.log('[Spacing] State saved');
+  } catch (e) {
+    console.error('[Spacing] Failed to save state:', e);
+  }
 }
 
-function loadSpacingState(): void {
-  // localStorage is disabled in Figma plugin iframes - always use defaults
-  // State is kept in memory during session only
+async function loadSpacingState(): Promise<void> {
+  try {
+    const saved = await storageGet<SpacingState>(STORAGE_KEYS.SPACING_STATE);
+    if (saved) {
+      const defaults = createDefaultSpacingState();
+      spacingState = {
+        ...defaults,
+        ...saved,
+        primitives: saved.primitives || defaults.primitives,
+        semanticTokens: saved.semanticTokens || defaults.semanticTokens,
+      };
+      console.log('[Spacing] State loaded');
+    } else {
+      spacingState = createDefaultSpacingState();
+      console.log('[Spacing] No saved state, using defaults');
+    }
+  } catch (e) {
+    console.error('[Spacing] Failed to load state:', e);
+    spacingState = createDefaultSpacingState();
+  }
+}
+
+/** Сброс Spacing к дефолтным значениям */
+export async function resetSpacingToDefaults(): Promise<void> {
+  try {
+    await storageDelete(STORAGE_KEYS.SPACING_STATE);
+  } catch (e) {
+    console.warn('[Spacing] Failed to clear storage:', e);
+  }
+  
   spacingState = createDefaultSpacingState();
+  activeCategory = 'button';
+  activeTab = 'primitives';
+  
+  renderPrimitives();
+  renderCategoryTabs();
+  renderSemanticTokens();
+  
+  console.log('[Spacing] Reset to defaults');
 }
 
 // ============================================

@@ -10,6 +10,7 @@ import {
   renderProjectSync,
   handleProjectSyncEvents,
   setProjectSyncData,
+  handleSyncMessageFromFigma,
 } from './token-manager-ui';
 
 import {
@@ -51,6 +52,10 @@ import {
 import {
   initIconSizeUI,
 } from './icon-size-generator-ui';
+
+import {
+  handleStorageMessage,
+} from './storage-utils';
 
 import {
   getState,
@@ -254,6 +259,11 @@ window.onmessage = (event: MessageEvent) => {
   const msg = event.data.pluginMessage;
   if (!msg) return;
 
+  // Handle storage messages first
+  if (handleStorageMessage(msg)) {
+    return;
+  }
+
   switch (msg.type) {
     case 'variables-created':
       showNotification('✅ Variables созданы в Figma!');
@@ -282,6 +292,15 @@ window.onmessage = (event: MessageEvent) => {
       showNotification(`✅ Paint Styles: ${msg.payload.created} создано, ${msg.payload.updated} обновлено`);
       // Re-sync to update UI
       postMessage('sync-from-project', {});
+      break;
+    
+    // Sync handlers
+    case 'sync-collections-loaded':
+    case 'sync-variables-loaded':
+    case 'sync-applied':
+    case 'sync-error':
+    case 'sync-variable-deleted':
+      handleSyncMessageFromFigma(msg);
       break;
   }
 };
@@ -455,60 +474,15 @@ document.addEventListener('click', (e) => {
 // DOCUMENTATION GENERATORS
 // ============================================
 
-// Create Color Paint Styles
+// Create Color Paint Styles (from Figma Variables - Components collection)
 const btnCreateColorStyles = document.getElementById('btn-create-color-styles');
 if (btnCreateColorStyles) {
   btnCreateColorStyles.addEventListener('click', () => {
-    const figmaVariables = exportToFigmaVariables();
-    
-    // Filter only COLOR variables from Primitives collection
-    const primitiveColorVariables = figmaVariables.filter(v => 
-      v.collection === 'Primitives' &&
-      v.value && typeof v.value === 'object' && 'r' in v.value
-    );
-    
-    if (primitiveColorVariables.length === 0) {
-      showNotification('⚠️ Сначала сгенерируйте цвета');
-      return;
-    }
-    
-    // Prepare colors for Paint Styles
-    const colors = primitiveColorVariables.map(v => {
-      const rgba = v.value as { r: number; g: number; b: number; a: number };
-      // Parse name to get category and shade (e.g., "color.brand.500" -> category: "brand", shade: "500")
-      const parts = v.name.split('.');
-      const category = parts.length >= 2 ? parts[1] : 'other';
-      const shade = parts.length >= 3 ? parts[2] : '';
-      
-      return {
-        name: v.name,
-        hex: rgbaToHex(rgba.r, rgba.g, rgba.b, rgba.a),
-        r: rgba.r,
-        g: rgba.g,
-        b: rgba.b,
-        a: rgba.a,
-        description: v.description || '',
-        category,
-        shade,
-      };
-    });
-    
-    postMessage('create-color-paint-styles', {
-      colors,
-      structureMode: 'grouped',
-    });
-    
-    showNotification(`🎨 Создание ${colors.length} Paint Styles...`);
+    // Request Paint Styles creation directly from Figma Variables
+    // This gets ALL colors from Components (or Tokens/Primitives as fallback)
+    postMessage('create-paint-styles-from-figma', {});
+    showNotification('🎨 Загрузка цветов из Figma...');
   });
-}
-
-// Helper function to convert RGBA (0-1) to HEX
-function rgbaToHex(r: number, g: number, b: number, a: number): string {
-  const toHex = (n: number): string => {
-    const hex = Math.round(Math.min(1, Math.max(0, n)) * 255).toString(16);
-    return hex.length === 1 ? '0' + hex : hex;
-  };
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}${a < 1 ? toHex(a) : ''}`;
 }
 
 // Colors Documentation

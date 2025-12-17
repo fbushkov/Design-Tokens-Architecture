@@ -54,17 +54,34 @@ export interface FontStylePrimitive {
 // SEMANTIC TYPOGRAPHY TOKEN
 // ============================================
 
+// Значения для конкретного устройства/breakpoint
+export interface TypographyDeviceValues {
+  fontSize?: string;        // e.g., '{font.size.56}' или '56'
+  lineHeight?: string;      // e.g., '{font.lineHeight.110}' или '110'
+  letterSpacing?: string;   // e.g., '{font.letterSpacing.n025}'
+}
+
 export interface TypographySemanticToken {
   id: string;
   path: string[]; // e.g., ['typography', 'page', 'hero']
   name: string;   // e.g., 'hero'
   
   // References to primitives (using token reference syntax)
+  // Эти значения используются как BASE (Desktop) и как fallback
   fontFamily: string;      // e.g., '{font.family.inter}'
   fontSize: string;        // e.g., '{font.size.56}'
   fontWeight: string;      // e.g., '{font.weight.700}'
   lineHeight: string;      // e.g., '{font.lineHeight.110}'
   letterSpacing: string;   // e.g., '{font.letterSpacing.n025}'
+  
+  // Per-device overrides (если не указано - используется базовое значение)
+  // Ключ - имя breakpoint (desktop, tablet, mobile)
+  deviceOverrides?: Record<string, TypographyDeviceValues>;
+  
+  // Флаг: автоматически масштабировать по устройствам?
+  // true = применять scale factor из breakpoint config
+  // false = использовать одинаковое значение везде (или deviceOverrides)
+  responsive?: boolean;
   
   // Optional properties
   textDecoration?: string; // e.g., '{font.decoration.underline}'

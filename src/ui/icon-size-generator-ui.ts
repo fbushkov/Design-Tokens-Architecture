@@ -15,6 +15,8 @@ import {
   ICON_SIZE_CATEGORIES,
 } from '../types/icon-size-tokens';
 
+import { storageGet, storageSet, storageDelete, STORAGE_KEYS } from './storage-utils';
+
 // ============================================
 // STATE
 // ============================================
@@ -24,13 +26,69 @@ interface IconSizeState {
   semanticTokens: IconSizeSemanticToken[];
 }
 
-let iconSizeState: IconSizeState = {
-  primitives: [...DEFAULT_ICON_SIZE_PRIMITIVES],
-  semanticTokens: [...DEFAULT_ICON_SIZE_SEMANTIC_TOKENS],
-};
+function createDefaultIconSizeState(): IconSizeState {
+  return {
+    primitives: [...DEFAULT_ICON_SIZE_PRIMITIVES],
+    semanticTokens: [...DEFAULT_ICON_SIZE_SEMANTIC_TOKENS],
+  };
+}
+
+let iconSizeState: IconSizeState = createDefaultIconSizeState();
 
 let activeIconSizeCategory: IconSizeCategory | 'all' = 'all';
 let activeIconSizeTab: 'primitives' | 'semantic' | 'export' = 'primitives';
+
+// ============================================
+// STORAGE (using figma.clientStorage via postMessage)
+// ============================================
+
+async function saveIconSizeState(): Promise<void> {
+  try {
+    await storageSet(STORAGE_KEYS.ICON_SIZE_STATE, iconSizeState);
+    console.log('[IconSize] State saved');
+  } catch (e) {
+    console.error('[IconSize] Failed to save state:', e);
+  }
+}
+
+async function loadIconSizeState(): Promise<void> {
+  try {
+    const saved = await storageGet<IconSizeState>(STORAGE_KEYS.ICON_SIZE_STATE);
+    if (saved) {
+      const defaults = createDefaultIconSizeState();
+      iconSizeState = {
+        primitives: saved.primitives || defaults.primitives,
+        semanticTokens: saved.semanticTokens || defaults.semanticTokens,
+      };
+      console.log('[IconSize] State loaded');
+    } else {
+      iconSizeState = createDefaultIconSizeState();
+      console.log('[IconSize] No saved state, using defaults');
+    }
+  } catch (e) {
+    console.error('[IconSize] Failed to load state:', e);
+    iconSizeState = createDefaultIconSizeState();
+  }
+}
+
+/** Сброс Icon Size к дефолтным значениям */
+export async function resetIconSizeToDefaults(): Promise<void> {
+  try {
+    await storageDelete(STORAGE_KEYS.ICON_SIZE_STATE);
+  } catch (e) {
+    console.warn('[IconSize] Failed to clear storage:', e);
+  }
+  
+  iconSizeState = createDefaultIconSizeState();
+  activeIconSizeCategory = 'all';
+  activeIconSizeTab = 'primitives';
+  
+  renderIconSizePrimitives();
+  renderIconSizeCategoryTabs();
+  renderIconSizeSemanticTokens();
+  
+  console.log('[IconSize] Reset to defaults');
+}
 
 // ============================================
 // INIT
@@ -40,7 +98,7 @@ export function initIconSizeUI(): void {
   const container = document.getElementById('prim-icon-size');
   if (!container) return;
   
-  // Render initial content
+  // Render initial content with defaults
   renderIconSizePrimitives();
   renderIconSizeCategoryTabs();
   renderIconSizeSemanticTokens();
@@ -114,6 +172,13 @@ export function initIconSizeUI(): void {
       return;
     }
   };
+  
+  // Load saved state asynchronously
+  loadIconSizeState().then(() => {
+    renderIconSizePrimitives();
+    renderIconSizeCategoryTabs();
+    renderIconSizeSemanticTokens();
+  });
 }
 
 // ============================================
@@ -175,6 +240,7 @@ function toggleIconSizePrimitive(name: string): void {
   if (prim) {
     prim.selected = !prim.selected;
     renderIconSizePrimitives();
+    saveIconSizeState();
   }
 }
 
@@ -448,14 +514,4 @@ export function getIconSizePrimitives(): IconSizePrimitive[] {
 
 export function getIconSizeSemanticTokens(): IconSizeSemanticToken[] {
   return iconSizeState.semanticTokens;
-}
-
-export function resetIconSizeToDefaults(): void {
-  iconSizeState = {
-    primitives: [...DEFAULT_ICON_SIZE_PRIMITIVES],
-    semanticTokens: [...DEFAULT_ICON_SIZE_SEMANTIC_TOKENS],
-  };
-  renderIconSizePrimitives();
-  renderIconSizeCategoryTabs();
-  renderIconSizeSemanticTokens();
 }

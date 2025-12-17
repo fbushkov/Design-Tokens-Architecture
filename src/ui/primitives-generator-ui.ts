@@ -6,6 +6,7 @@
 import { createToken, getTokens } from '../types/token-manager-state';
 import { TMCollectionType, TMTokenType } from '../types/token-manager';
 import { initGapUI } from './gap-generator-ui';
+import { storageGet, storageSet, storageDelete, STORAGE_KEYS } from './storage-utils';
 
 // ============================================
 // TYPES
@@ -176,6 +177,7 @@ function saveColorToProduct(name: string, hex: string, category: ColorCategory):
   } else if (category === 'additional') {
     productConfig.additionalColors.set(name, hex);
   }
+  onColorsStateChanged();
 }
 
 function removeColorFromProduct(name: string, category: ColorCategory): void {
@@ -184,6 +186,7 @@ function removeColorFromProduct(name: string, category: ColorCategory): void {
   } else if (category === 'additional') {
     productConfig.additionalColors.delete(name);
   }
+  onColorsStateChanged();
 }
 
 // ============================================
@@ -286,6 +289,9 @@ export function addTheme(config: Omit<ThemeConfig, 'id' | 'createdAt' | 'isSyste
   // Notify about theme change
   window.dispatchEvent(new CustomEvent('themes-updated', { detail: { themes: colorState.themes.themes } }));
   
+  // Save state
+  onColorsStateChanged();
+  
   return theme;
 }
 
@@ -304,6 +310,9 @@ export function updateTheme(id: string, updates: Partial<ThemeConfig>): ThemeCon
   // Notify about theme change
   window.dispatchEvent(new CustomEvent('themes-updated', { detail: { themes: colorState.themes.themes } }));
   
+  // Save state
+  onColorsStateChanged();
+  
   return colorState.themes.themes[index];
 }
 
@@ -317,6 +326,10 @@ export function deleteTheme(id: string): boolean {
     
     // Notify about theme change
     window.dispatchEvent(new CustomEvent('themes-updated', { detail: { themes: colorState.themes.themes } }));
+    
+    // Save state
+    onColorsStateChanged();
+    
     return true;
   }
   return false;
@@ -730,12 +743,120 @@ export function renderAllPalettes(container: HTMLElement, palettes: ColorPalette
 }
 
 // ============================================
+// STATE PERSISTENCE (using figma.clientStorage via postMessage)
+// ============================================
+
+interface ColorsStorageState {
+  brandColors: [string, string][];
+  additionalColors: [string, string][];
+  themes: ThemeConfig[];
+}
+
+async function saveColorsState(): Promise<void> {
+  try {
+    const state: ColorsStorageState = {
+      brandColors: Array.from(productConfig.brandColors.entries()),
+      additionalColors: Array.from(productConfig.additionalColors.entries()),
+      themes: colorState.themes.themes,
+    };
+    await storageSet(STORAGE_KEYS.COLORS_STATE, state);
+    
+    // Также сохраняем сгенерированные палитры
+    if (generatedPalettes.length > 0) {
+      await storageSet(STORAGE_KEYS.GENERATED_PALETTES, generatedPalettes);
+    }
+    console.log('[Colors] State saved');
+  } catch (e) {
+    console.warn('[Colors] Failed to save state:', e);
+  }
+}
+
+async function loadColorsState(): Promise<boolean> {
+  try {
+    const savedState = await storageGet<ColorsStorageState>(STORAGE_KEYS.COLORS_STATE);
+    const savedPalettes = await storageGet<ColorPaletteData[]>(STORAGE_KEYS.GENERATED_PALETTES);
+    
+    if (savedState) {
+      // Restore brand colors
+      productConfig.brandColors.clear();
+      savedState.brandColors.forEach(([name, hex]) => {
+        productConfig.brandColors.set(name, hex);
+      });
+      
+      // Restore additional colors
+      productConfig.additionalColors.clear();
+      savedState.additionalColors.forEach(([name, hex]) => {
+        productConfig.additionalColors.set(name, hex);
+      });
+      
+      // Restore themes
+      if (savedState.themes && savedState.themes.length > 0) {
+        colorState.themes.themes.length = 0;
+        colorState.themes.themes.push(...savedState.themes);
+      }
+      console.log('[Colors] State loaded');
+    }
+    
+    if (savedPalettes) {
+      generatedPalettes = savedPalettes;
+      console.log('[Colors] Palettes loaded');
+    }
+    
+    return !!savedState;
+  } catch (e) {
+    console.warn('[Colors] Failed to load state:', e);
+    return false;
+  }
+}
+
+function onColorsStateChanged(): void {
+  saveColorsState();
+}
+
+/**
+ * Сбросить цвета к дефолтным
+ */
+export async function resetColorsToDefaults(): Promise<void> {
+  // Reset brand colors
+  productConfig.brandColors.clear();
+  productConfig.brandColors.set('brand', '#2781F3');
+  productConfig.brandColors.set('accent', '#844DBB');
+  
+  // Clear additional colors
+  productConfig.additionalColors.clear();
+  
+  // Reset themes to default
+  colorState.themes.themes.length = 0;
+  colorState.themes.themes.push(...DEFAULT_THEMES);
+  
+  // Clear palettes
+  generatedPalettes = [];
+  
+  // Clear storage
+  try {
+    await storageDelete(STORAGE_KEYS.COLORS_STATE);
+    await storageDelete(STORAGE_KEYS.GENERATED_PALETTES);
+  } catch (e) {
+    console.warn('[Colors] Failed to clear storage:', e);
+  }
+  
+  // Update UI
+  updateProductUI();
+}
+
+// ============================================
 // UI INITIALIZATION
 // ============================================
 
 let generatedPalettes: ColorPaletteData[] = [];
 
 export function initPrimitivesGenerator(): void {
+  // Загружаем сохранённое состояние (async)
+  loadColorsState().then(() => {
+    // После загрузки обновляем UI
+    updateProductUI();
+  });
+  
   // Sub-tabs navigation
   const subTabs = document.querySelectorAll('.sub-tab');
   const subTabContents = document.querySelectorAll('.sub-tab-content');
@@ -973,6 +1094,9 @@ function generateColors(): void {
   
   // Add base colors as special tokens to Token Manager
   addBaseColorsToTokenManager(baseColorsArr);
+  
+  // Сохраняем сгенерированные палитры
+  onColorsStateChanged();
 }
 
 function generateTypographyTokens(): void {

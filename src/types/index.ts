@@ -6,3 +6,5 @@ export * from './spacing-tokens';
 export * from './gap-tokens';
 export * from './radius-tokens';
 export * from './icon-size-tokens';
+export * from './breakpoint-config';
+export * from './sync-manager';

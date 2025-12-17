@@ -4025,6 +4025,451 @@
       font-size: 12px;
     }
 
+    /* ============================================
+       BREAKPOINTS SETTINGS STYLES
+       ============================================ */
+    
+    .breakpoints-settings {
+      padding: 16px 0;
+    }
+    
+    .breakpoints-settings .section-header {
+      margin-bottom: 16px;
+    }
+    
+    .breakpoints-settings .section-header h4 {
+      margin: 0 0 4px 0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .breakpoints-settings .section-description {
+      margin: 0;
+      font-size: 12px;
+      color: var(--color-text-secondary);
+    }
+    
+    .breakpoints-settings .settings-row {
+      margin-bottom: 16px;
+    }
+    
+    .breakpoints-settings .settings-row .hint {
+      margin: 4px 0 0 24px;
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+    }
+    
+    .preset-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    
+    .bp-preset-btn {
+      font-size: 11px !important;
+      padding: 4px 8px !important;
+    }
+    
+    .breakpoints-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 16px 0;
+      padding: 12px;
+      background: var(--color-bg-secondary);
+      border-radius: 8px;
+    }
+    
+    .breakpoint-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      background: var(--color-bg);
+      border-radius: 6px;
+      border: 1px solid var(--color-border);
+      transition: all 0.15s ease;
+    }
+    
+    .breakpoint-item:hover {
+      border-color: var(--color-border-hover);
+    }
+    
+    .breakpoint-item.dragging {
+      opacity: 0.5;
+      border-style: dashed;
+    }
+    
+    .bp-drag-handle {
+      cursor: grab;
+      color: var(--color-text-tertiary);
+      font-size: 12px;
+      padding: 4px;
+    }
+    
+    .bp-drag-handle:active {
+      cursor: grabbing;
+    }
+    
+    .bp-icon {
+      font-size: 16px;
+      width: 24px;
+      text-align: center;
+    }
+    
+    .bp-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .bp-name-input {
+      width: 100%;
+      padding: 4px 8px;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      font-size: 13px;
+      background: var(--color-bg);
+    }
+    
+    .bp-value-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .bp-value-input {
+      width: 70px;
+      padding: 4px 8px;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      font-size: 12px;
+      background: var(--color-bg);
+    }
+    
+    .bp-unit {
+      font-size: 11px;
+      color: var(--color-text-tertiary);
+    }
+    
+    .bp-preview {
+      font-size: 11px;
+      color: var(--color-text-secondary);
+      padding: 4px 8px;
+      background: var(--color-bg-secondary);
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    
+    .bp-actions {
+      display: flex;
+      gap: 4px;
+    }
+    
+    .bp-actions .btn-icon {
+      width: 24px;
+      height: 24px;
+      padding: 0;
+      font-size: 12px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      border-radius: 4px;
+      opacity: 0.6;
+      transition: all 0.15s ease;
+    }
+    
+    .bp-actions .btn-icon:hover:not(:disabled) {
+      opacity: 1;
+      background: var(--color-bg-secondary);
+    }
+    
+    .bp-actions .btn-icon:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    
+    .breakpoints-actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .preview-section {
+      padding: 12px;
+      background: var(--color-bg-secondary);
+      border-radius: 8px;
+    }
+    
+    .preview-section .form-label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: var(--color-text-secondary);
+    }
+    
+    .figma-modes-preview {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .mode-preview-chip {
+      padding: 6px 12px;
+      background: var(--color-primary);
+      color: white;
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    /* ============================================
+       SYNC MODAL STYLES
+       ============================================ */
+    
+    .sync-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1100;
+    }
+    
+    .sync-modal {
+      background: var(--color-bg);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      width: clamp(400px, 80%, 600px);
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .sync-panel {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      max-height: 70vh;
+    }
+    
+    .sync-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--spacing-md);
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-bg-secondary);
+    }
+    
+    .sync-header h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+    
+    .sync-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--spacing-md);
+    }
+    
+    .sync-section {
+      margin-bottom: var(--spacing-md);
+    }
+    
+    .sync-settings {
+      padding: var(--spacing-sm);
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-md);
+    }
+    
+    .sync-setting {
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .sync-setting:last-child {
+      margin-bottom: 0;
+    }
+    
+    .sync-setting .hint {
+      margin: 2px 0 0 24px;
+      font-size: 10px;
+      color: var(--color-text-tertiary);
+    }
+    
+    .sync-diff-container {
+      min-height: 200px;
+      max-height: 350px;
+      overflow-y: auto;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      background: var(--color-bg-secondary);
+    }
+    
+    .sync-loading, .sync-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--spacing-xl);
+      text-align: center;
+      color: var(--color-text-secondary);
+    }
+    
+    .sync-loading .spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .sync-up-to-date .sync-icon {
+      font-size: 32px;
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .sync-diff {
+      padding: var(--spacing-sm);
+    }
+    
+    .sync-summary {
+      display: flex;
+      gap: var(--spacing-xs);
+      flex-wrap: wrap;
+      padding: var(--spacing-sm);
+      border-bottom: 1px solid var(--color-border);
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .sync-group {
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .sync-group-header {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-xs);
+      padding: var(--spacing-xs) var(--spacing-sm);
+      background: var(--color-bg);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    
+    .sync-group-header:hover {
+      background: var(--color-bg-tertiary);
+    }
+    
+    .sync-group-icon {
+      font-size: 14px;
+    }
+    
+    .sync-toggle-group {
+      margin-left: auto;
+      opacity: 0.5;
+    }
+    
+    .sync-group-items {
+      padding-left: var(--spacing-md);
+      margin-top: var(--spacing-xs);
+    }
+    
+    .sync-group-items.collapsed {
+      display: none;
+    }
+    
+    .sync-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--spacing-xs) var(--spacing-sm);
+      font-size: 11px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 2px;
+    }
+    
+    .sync-item-add {
+      background: rgba(34, 197, 94, 0.08);
+    }
+    
+    .sync-item-update {
+      background: rgba(245, 158, 11, 0.08);
+    }
+    
+    .sync-item-delete {
+      background: rgba(239, 68, 68, 0.08);
+    }
+    
+    .sync-item-name {
+      font-family: 'SF Mono', monospace;
+      color: var(--color-text);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .sync-item-value {
+      color: var(--color-text-secondary);
+      margin-left: var(--spacing-sm);
+    }
+    
+    .sync-item-change {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+    }
+    
+    .sync-item-change .old-value {
+      color: var(--color-text-tertiary);
+      text-decoration: line-through;
+    }
+    
+    .sync-item-change .arrow {
+      color: var(--color-text-secondary);
+    }
+    
+    .sync-item-change .new-value {
+      color: var(--color-primary);
+    }
+    
+    .sync-item-more {
+      padding: var(--spacing-xs) var(--spacing-sm);
+      font-size: 10px;
+      color: var(--color-text-tertiary);
+      font-style: italic;
+    }
+    
+    .sync-group-danger .sync-group-header {
+      background: rgba(239, 68, 68, 0.1);
+    }
+    
+    .sync-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--spacing-sm);
+      padding: var(--spacing-md);
+      border-top: 1px solid var(--color-border);
+      background: var(--color-bg-secondary);
+    }
+
   </style>
 </head>
 <body>
@@ -5470,6 +5915,15 @@
           <div class="form-group">
             <label class="form-label">Описание</label>
             <textarea class="form-textarea" id="typo-description" rows="2" placeholder="Описание токена..."></textarea>
+          </div>
+          
+          <!-- Responsive toggle -->
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="typo-responsive">
+              <span>📱 Адаптивный размер</span>
+            </label>
+            <p class="form-hint">Если включено — font-size и line-height автоматически масштабируются для Tablet и Mobile</p>
           </div>
           
           <!-- Preview -->

@@ -17,6 +17,8 @@ import {
   getEnabledGapPrimitives,
 } from '../types/gap-tokens';
 
+import { storageGet, storageSet, storageDelete, STORAGE_KEYS } from './storage-utils';
+
 // ============================================
 // STATE
 // ============================================
@@ -30,13 +32,10 @@ let activeGapTab: 'primitives' | 'semantic' | 'export' = 'primitives';
 // ============================================
 
 export function initGapUI(): void {
-  // Load state (in-memory only for Figma)
-  loadGapState();
-  
   const container = document.getElementById('prim-gap');
   if (!container) return;
   
-  // Render content
+  // Render content with defaults first
   renderGapPrimitives();
   renderGapCategoryTabs();
   renderGapSemanticTokens();
@@ -92,6 +91,13 @@ export function initGapUI(): void {
       return;
     }
   };
+  
+  // Load state asynchronously
+  loadGapState().then(() => {
+    renderGapPrimitives();
+    renderGapCategoryTabs();
+    renderGapSemanticTokens();
+  });
 }
 
 // ============================================
@@ -120,17 +126,57 @@ function setActiveGapTab(tab: 'primitives' | 'semantic' | 'export'): void {
 }
 
 // ============================================
-// STATE MANAGEMENT
+// STATE MANAGEMENT (using figma.clientStorage via postMessage)
 // ============================================
 
-function loadGapState(): void {
-  // localStorage is disabled in Figma plugin iframes - always use defaults
-  gapState = createDefaultGapState();
+async function loadGapState(): Promise<void> {
+  try {
+    const saved = await storageGet<GapState>(STORAGE_KEYS.GAP_STATE);
+    if (saved) {
+      const defaults = createDefaultGapState();
+      gapState = {
+        ...defaults,
+        ...saved,
+        primitives: saved.primitives || defaults.primitives,
+        semanticTokens: saved.semanticTokens || defaults.semanticTokens,
+      };
+      console.log('[Gap] State loaded');
+    } else {
+      gapState = createDefaultGapState();
+      console.log('[Gap] No saved state, using defaults');
+    }
+  } catch (e) {
+    console.error('[Gap] Failed to load state:', e);
+    gapState = createDefaultGapState();
+  }
 }
 
-function saveGapState(): void {
-  // localStorage is disabled in Figma plugin iframes
-  // State changes are kept in memory only during current session
+async function saveGapState(): Promise<void> {
+  try {
+    await storageSet(STORAGE_KEYS.GAP_STATE, gapState);
+    console.log('[Gap] State saved');
+  } catch (e) {
+    console.error('[Gap] Failed to save state:', e);
+  }
+}
+
+/** Сброс Gap к дефолтным значениям */
+export async function resetGapToDefaults(): Promise<void> {
+  try {
+    await storageDelete(STORAGE_KEYS.GAP_STATE);
+  } catch (e) {
+    console.warn('[Gap] Failed to clear storage:', e);
+  }
+  
+  gapState = createDefaultGapState();
+  activeGapCategory = 'inline';
+  activeGapTab = 'primitives';
+  
+  renderGapPrimitives();
+  renderGapCategoryTabs();
+  renderGapSemanticTokens();
+  
+  console.log('[Gap] Reset to defaults');
 }
 
 // ============================================

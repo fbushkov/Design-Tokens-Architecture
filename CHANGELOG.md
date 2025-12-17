@@ -1,5 +1,45 @@
 # 📝 Changelog - Design Tokens Plugin
 
+## [2025-12-17] - figma.clientStorage Persistence 💾
+
+### 🔧 Исправлено
+
+#### Критический баг персистентности
+- **Проблема**: `localStorage` НЕ работает в Figma plugin iframes — выдаёт `SecurityError: Storage is disabled inside 'data:' URLs`
+- **Решение**: Полностью переписана система хранения на `figma.clientStorage` API
+
+#### Архитектура хранения
+Создан модуль `storage-utils.ts` с асинхронным API:
+```typescript
+storageGet<T>(key) → Promise<T | null>
+storageSet(key, data) → Promise<void>
+storageDelete(key) → Promise<void>
+```
+
+Коммуникация через postMessage между UI и plugin code:
+- UI отправляет `storage-get`, `storage-set`, `storage-delete`
+- Plugin code обрабатывает через `figma.clientStorage.getAsync/setAsync/deleteAsync`
+- Ответы возвращаются через `storage-*-response`
+
+#### Обновлённые модули
+Все модули теперь используют асинхронное хранение:
+- `primitives-generator-ui.ts` — цвета, палитры, темы
+- `typography-generator-ui.ts` — типографика, включая "Адаптивный размер"
+- `spacing-generator-ui.ts` — spacing токены
+- `gap-generator-ui.ts` — gap токены  
+- `radius-generator-ui.ts` — radius токены
+- `icon-size-generator-ui.ts` — размеры иконок
+- `token-manager-ui.ts` — глобальный сброс системы
+
+#### Paint Styles
+- Кнопка "Создать Paint Styles" теперь экспортирует компонентные цвета (Components collection)
+- Fallback на Tokens → Primitives если Components пуст
+
+### 📁 Новые файлы
+- `src/ui/storage-utils.ts` — утилита асинхронного хранения
+
+---
+
 ## [2025-12-17] - Radius System ⬜
 
 ### ✅ Добавлено

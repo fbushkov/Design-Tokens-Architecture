@@ -34,14 +34,46 @@ import {
   buildFullPath,
   importFromProjectSync,
   clearAllTokens,
+  getSettings,
 } from '../types/token-manager-state';
 
 import { getCurrentProduct } from './primitives-generator-ui';
+
+import { resetTypographyToDefaults } from './typography-generator-ui';
+
+import { resetColorsToDefaults } from './primitives-generator-ui';
+
+import { resetSpacingToDefaults } from './spacing-generator-ui';
+
+import { resetGapToDefaults } from './gap-generator-ui';
+
+import { resetRadiusToDefaults } from './radius-generator-ui';
+
+import { resetIconSizeToDefaults } from './icon-size-generator-ui';
+
+import { clearStorageKeys, STORAGE_KEYS } from './storage-utils';
 
 import {
   DEFAULT_PALETTES,
   COLOR_SCALE,
 } from '../types/token-manager-constants';
+
+import {
+  renderBreakpointsSettings,
+  getBreakpointsSettingsStyles,
+  initBreakpointsSettingsListeners,
+} from './breakpoints-settings-ui';
+
+import {
+  renderSyncPanel,
+  getSyncStyles,
+  initSyncListeners,
+  handleSyncMessage,
+  loadCollectionsFromFigma,
+  initSyncUI,
+} from './sync-ui';
+
+import { PluginVariable } from '../types/sync-manager';
 
 // ============================================
 // PROJECT SYNC STATE
@@ -50,6 +82,7 @@ import {
 let projectSyncData: ProjectSyncData | null = null;
 let projectSyncTab: 'overview' | 'collections' | 'styles' = 'overview';
 let selectedCollectionId: string | null = null;
+let syncModalOpen = false;
 
 export function setProjectSyncData(data: ProjectSyncData): void {
   projectSyncData = data;
@@ -330,6 +363,7 @@ export function renderToolbar(): string {
         </select>
       </div>
       <div class="tm-actions">
+        <button class="btn btn-sm btn-primary tm-sync-btn" title="Синхронизировать с Figma">🔄 Sync</button>
         <button class="btn btn-sm btn-secondary tm-add-token" title="Добавить токен">+</button>
         <button class="btn btn-sm btn-secondary tm-expand-all" title="Развернуть все">⏷</button>
         <button class="btn btn-sm btn-secondary tm-collapse-all" title="Свернуть все">⏶</button>
@@ -460,10 +494,30 @@ export function renderSettingsPanel(): string {
             </div>
             <div class="ts-info">Frontend: только финальный уровень (Components + семантика)</div>
           </div>
+          
+          <div class="ts-divider"></div>
+          
+          <div class="ts-section ts-section-breakpoints" id="breakpoints-settings-container">
+            ${renderBreakpointsSettings()}
+          </div>
 
           <div class="ts-actions">
             <button class="btn btn-primary ts-save-settings">Сохранить</button>
             <button class="btn btn-secondary ts-reset-settings">Сбросить</button>
+          </div>
+          
+          <div class="ts-divider" style="margin-top: 16px;"></div>
+          
+          <div class="ts-section">
+            <div class="ts-section-title" style="color: var(--color-text-error, #f24822);">⚠️ Опасная зона</div>
+            <div class="ts-field">
+              <button class="btn btn-ghost ts-reset-all-defaults" style="width: 100%; color: var(--color-text-secondary); border: 1px solid var(--color-border);">
+                🔄 Сбросить всю систему к дефолтным
+              </button>
+              <div class="ts-info" style="margin-top: 8px;">
+                Сбрасывает ВСЕ настройки плагина: Typography, Spacing, Gap, Radius, Colors и токены Token Manager. Это действие нельзя отменить.
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -499,11 +553,32 @@ function generatePathPreview(separator: string, caseStyle: string): { primitive:
 // ============================================
 
 export function renderStats(): string {
-  const tokens = getTokens();
-  const primitives = tokens.filter(t => t.collection === 'Primitives').length;
-  const semantic = tokens.filter(t => t.collection === 'Tokens').length;
-  const components = tokens.filter(t => t.collection === 'Components').length;
-  const enabled = tokens.filter(t => t.enabled).length;
+  // Get stats from Figma (projectSyncData) if available, otherwise from Token Map
+  const syncData = getProjectSyncData();
+  
+  let primitives = 0;
+  let semantic = 0;
+  let components = 0;
+  let total = 0;
+  
+  if (syncData) {
+    // Use real Figma data
+    const primitivesCollection = syncData.collections.managed.find(c => c.name === 'Primitives');
+    const tokensCollection = syncData.collections.managed.find(c => c.name === 'Tokens');
+    const componentsCollection = syncData.collections.managed.find(c => c.name === 'Components');
+    
+    primitives = primitivesCollection?.variableCount || 0;
+    semantic = tokensCollection?.variableCount || 0;
+    components = componentsCollection?.variableCount || 0;
+    total = primitives + semantic + components;
+  } else {
+    // Fallback to Token Map data
+    const tokens = getTokens();
+    primitives = tokens.filter(t => t.collection === 'Primitives').length;
+    semantic = tokens.filter(t => t.collection === 'Tokens').length;
+    components = tokens.filter(t => t.collection === 'Components').length;
+    total = tokens.length;
+  }
 
   return `
     <div class="tm-stats">
@@ -520,7 +595,7 @@ export function renderStats(): string {
         <span class="tm-stat-label">Компоненты</span>
       </div>
       <div class="tm-stat">
-        <span class="tm-stat-value">${enabled}/${tokens.length}</span>
+        <span class="tm-stat-value">${total}/${total}</span>
         <span class="tm-stat-label">Активных</span>
       </div>
     </div>
@@ -574,6 +649,21 @@ export function renderTokenManager(): string {
         ${renderSettingsPanel()}
       </div>
     `}
+    
+    <!-- Sync Modal -->
+    ${renderSyncModal()}
+  `;
+}
+
+function renderSyncModal(): string {
+  if (!syncModalOpen) return '';
+  
+  return `
+    <div class="sync-modal-overlay" id="sync-modal">
+      <div class="sync-modal">
+        ${renderSyncPanel()}
+      </div>
+    </div>
   `;
 }
 
@@ -671,6 +761,11 @@ export function initTokenManagerEvents(container: HTMLElement, refreshCallback: 
       }
     }
 
+    // Open Sync Modal
+    if (target.closest('.tm-sync-btn')) {
+      openSyncModal(container, refreshCallback);
+    }
+
     // Go to primitives tab
     if (target.classList.contains('tm-goto-primitives')) {
       const primitivesTab = document.querySelector('[data-tab="primitives"]');
@@ -715,6 +810,11 @@ export function initTokenManagerEvents(container: HTMLElement, refreshCallback: 
       const overlay = container.querySelector('#settings-modal-overlay') as HTMLElement;
       if (overlay) {
         overlay.classList.add('open');
+        // Initialize breakpoints settings listeners
+        const bpContainer = overlay.querySelector('#breakpoints-settings-container') as HTMLElement;
+        if (bpContainer) {
+          initBreakpointsSettingsListeners(bpContainer);
+        }
       }
     }
 
@@ -752,6 +852,19 @@ export function initTokenManagerEvents(container: HTMLElement, refreshCallback: 
       const overlay = container.querySelector('#settings-modal-overlay') as HTMLElement;
       if (overlay) {
         overlay.classList.remove('open');
+      }
+    }
+    
+    // Reset ALL system to defaults
+    if (target.classList.contains('ts-reset-all-defaults')) {
+      if (confirm('⚠️ Вы уверены, что хотите сбросить ВСЮ систему?\n\nЭто удалит:\n• Все токены Token Manager\n• Настройки Typography (примитивы, семантика, брейкпоинты)\n• Настройки Spacing, Gap, Radius\n• Настройки Colors\n\nЭто действие нельзя отменить!')) {
+        resetAllSystemToDefaults();
+        refreshCallback();
+        // Close modal after reset
+        const overlay = container.querySelector('#settings-modal-overlay') as HTMLElement;
+        if (overlay) {
+          overlay.classList.remove('open');
+        }
       }
     }
   });
@@ -839,6 +952,84 @@ function resetSettings(): void {
     darkModeEnabled: true,
   };
   state.hasUnsavedChanges = true;
+}
+
+/**
+ * Глобальный сброс всей системы к дефолтным настройкам
+ * Сбрасывает: Token Manager, Typography, Spacing, Gap, Radius, Colors
+ */
+async function resetAllSystemToDefaults(): Promise<void> {
+  // 1. Сбрасываем настройки Token Manager
+  resetSettings();
+  
+  // 2. Очищаем все токены
+  clearAllTokens();
+  
+  // 3. Очищаем storage для всех подсистем (using figma.clientStorage)
+  await clearStorageKeys([
+    STORAGE_KEYS.TOKEN_MANAGER_STATE,
+    STORAGE_KEYS.TOKEN_MANAGER_SETTINGS,
+    STORAGE_KEYS.TYPOGRAPHY_STATE,
+    STORAGE_KEYS.SPACING_STATE,
+    STORAGE_KEYS.GAP_STATE,
+    STORAGE_KEYS.RADIUS_STATE,
+    STORAGE_KEYS.ICON_SIZE_STATE,
+    STORAGE_KEYS.COLORS_STATE,
+    STORAGE_KEYS.GENERATED_PALETTES,
+  ]);
+  
+  // 4. Сбрасываем все UI модули к дефолтным настройкам
+  try {
+    await resetTypographyToDefaults();
+  } catch (e) {
+    // Typography UI may not be initialized
+  }
+  
+  try {
+    await resetColorsToDefaults();
+  } catch (e) {
+    // Colors UI may not be initialized
+  }
+  
+  try {
+    await resetSpacingToDefaults();
+  } catch (e) {
+    // Spacing UI may not be initialized
+  }
+  
+  try {
+    await resetGapToDefaults();
+  } catch (e) {
+    // Gap UI may not be initialized
+  }
+  
+  try {
+    await resetRadiusToDefaults();
+  } catch (e) {
+    // Radius UI may not be initialized
+  }
+  
+  try {
+    await resetIconSizeToDefaults();
+  } catch (e) {
+    // Icon Size UI may not be initialized
+  }
+  
+  // 5. Сохраняем сброшенное состояние Token Manager
+  saveState();
+  
+  // 6. Показываем уведомление
+  // Используем CustomEvent для коммуникации с UI
+  window.dispatchEvent(new CustomEvent('system-reset-complete'));
+  
+  // Показываем нотификацию через Figma API
+  parent.postMessage({
+    pluginMessage: {
+      type: 'notify',
+      message: '🔄 Система сброшена к настройкам по умолчанию. Перезагрузите плагин для полного сброса.',
+      options: { timeout: 5000 },
+    },
+  }, '*');
 }
 
 // ============================================
@@ -1378,5 +1569,112 @@ function importToTokenMap(): void {
     alert(`Все ${result.skipped} токенов уже существуют в Token Map.`);
   } else {
     alert('Нет токенов для импорта.');
+  }
+}
+// ============================================
+// SYNC MODAL
+// ============================================
+
+let syncRefreshCallback: (() => void) | null = null;
+
+function openSyncModal(container: HTMLElement, refreshCallback: () => void): void {
+  syncModalOpen = true;
+  syncRefreshCallback = refreshCallback;
+  
+  // Initialize sync UI with callback to get plugin variables
+  initSyncUI(getPluginVariablesForCollection);
+  
+  refreshCallback();
+  
+  // After render, initialize listeners and load data
+  setTimeout(() => {
+    const syncModal = container.querySelector('#sync-modal');
+    if (syncModal) {
+      initSyncListeners(syncModal as HTMLElement);
+      loadCollectionsFromFigma();
+      
+      // Close on overlay click
+      syncModal.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).classList.contains('sync-modal-overlay')) {
+          closeSyncModal(container);
+        }
+      });
+    }
+  }, 0);
+  
+  // Listen for close event
+  document.addEventListener('sync-panel-close', () => {
+    closeSyncModal(container);
+  }, { once: true });
+}
+
+function closeSyncModal(container: HTMLElement): void {
+  syncModalOpen = false;
+  if (syncRefreshCallback) {
+    syncRefreshCallback();
+  }
+}
+
+/**
+ * Получить plugin variables для конкретной коллекции
+ * Это callback для sync-ui
+ */
+function getPluginVariablesForCollection(collectionName: string): PluginVariable[] {
+  const tokens = getTokens();
+  const settings = getSettings();
+  const result: PluginVariable[] = [];
+  
+  // Фильтруем токены по коллекции
+  const collectionTokens = tokens.filter(t => t.collection === collectionName && t.enabled);
+  
+  for (const token of collectionTokens) {
+    const fullPath = buildFullPath(token.path, token.name, settings.separator);
+    
+    // Определяем тип и значение
+    let type: 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN' = 'FLOAT';
+    let modeValues: Record<string, any> = {};
+    
+    if (token.type === 'COLOR') {
+      type = 'COLOR';
+      const colorValue = token.value as TMColorValue;
+      if (colorValue && colorValue.rgba) {
+        modeValues['Mode 1'] = { 
+          r: colorValue.rgba.r, 
+          g: colorValue.rgba.g, 
+          b: colorValue.rgba.b 
+        };
+      }
+    } else if (token.type === 'NUMBER') {
+      type = 'FLOAT';
+      modeValues['Mode 1'] = token.value as number;
+    } else if (token.type === 'STRING') {
+      type = 'STRING';
+      modeValues['Mode 1'] = token.value as string;
+    } else if (token.type === 'BOOLEAN') {
+      type = 'BOOLEAN';
+      modeValues['Mode 1'] = token.value as boolean;
+    }
+    
+    result.push({
+      name: fullPath,
+      type,
+      description: token.description,
+      modeValues,
+    });
+  }
+  
+  return result;
+}
+
+/**
+ * Обработчик сообщений от Figma для sync
+ */
+export function handleSyncMessageFromFigma(msg: any): void {
+  const container = document.querySelector('.token-manager') as HTMLElement;
+  if (!container) return;
+  
+  const syncModal = container.querySelector('#sync-modal') as HTMLElement;
+  if (syncModal) {
+    handleSyncMessage(msg, syncModal);
   }
 }

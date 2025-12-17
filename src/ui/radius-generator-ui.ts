@@ -17,6 +17,8 @@ import {
   getEnabledRadiusPrimitives,
 } from '../types/radius-tokens';
 
+import { storageGet, storageSet, storageDelete, STORAGE_KEYS } from './storage-utils';
+
 // ============================================
 // STATE
 // ============================================
@@ -30,13 +32,10 @@ let activeRadiusTab: 'primitives' | 'semantic' | 'export' = 'primitives';
 // ============================================
 
 export function initRadiusUI(): void {
-  // Load state (in-memory only for Figma)
-  loadRadiusState();
-  
   const container = document.getElementById('prim-radius');
   if (!container) return;
   
-  // Render content
+  // Render content with defaults first
   renderRadiusPrimitives();
   renderRadiusCategoryTabs();
   renderRadiusSemanticTokens();
@@ -92,6 +91,13 @@ export function initRadiusUI(): void {
       return;
     }
   };
+  
+  // Load state asynchronously
+  loadRadiusState().then(() => {
+    renderRadiusPrimitives();
+    renderRadiusCategoryTabs();
+    renderRadiusSemanticTokens();
+  });
 }
 
 // ============================================
@@ -120,17 +126,57 @@ function setActiveRadiusTab(tab: 'primitives' | 'semantic' | 'export'): void {
 }
 
 // ============================================
-// STATE MANAGEMENT
+// STATE MANAGEMENT (using figma.clientStorage via postMessage)
 // ============================================
 
-function loadRadiusState(): void {
-  // localStorage is disabled in Figma plugin iframes - always use defaults
-  radiusState = createDefaultRadiusState();
+async function loadRadiusState(): Promise<void> {
+  try {
+    const saved = await storageGet<RadiusState>(STORAGE_KEYS.RADIUS_STATE);
+    if (saved) {
+      const defaults = createDefaultRadiusState();
+      radiusState = {
+        ...defaults,
+        ...saved,
+        primitives: saved.primitives || defaults.primitives,
+        semanticTokens: saved.semanticTokens || defaults.semanticTokens,
+      };
+      console.log('[Radius] State loaded');
+    } else {
+      radiusState = createDefaultRadiusState();
+      console.log('[Radius] No saved state, using defaults');
+    }
+  } catch (e) {
+    console.error('[Radius] Failed to load state:', e);
+    radiusState = createDefaultRadiusState();
+  }
 }
 
-function saveRadiusState(): void {
-  // localStorage is disabled in Figma plugin iframes
-  // State changes are kept in memory only during current session
+async function saveRadiusState(): Promise<void> {
+  try {
+    await storageSet(STORAGE_KEYS.RADIUS_STATE, radiusState);
+    console.log('[Radius] State saved');
+  } catch (e) {
+    console.error('[Radius] Failed to save state:', e);
+  }
+}
+
+/** Сброс Radius к дефолтным значениям */
+export async function resetRadiusToDefaults(): Promise<void> {
+  try {
+    await storageDelete(STORAGE_KEYS.RADIUS_STATE);
+  } catch (e) {
+    console.warn('[Radius] Failed to clear storage:', e);
+  }
+  
+  radiusState = createDefaultRadiusState();
+  activeRadiusCategory = 'interactive';
+  activeRadiusTab = 'primitives';
+  
+  renderRadiusPrimitives();
+  renderRadiusCategoryTabs();
+  renderRadiusSemanticTokens();
+  
+  console.log('[Radius] Reset to defaults');
 }
 
 // ============================================

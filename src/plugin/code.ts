@@ -100,6 +100,13 @@ function rgbaToHex(r: number, g: number, b: number, a: number = 1): string {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}${a < 1 ? toHex(a) : ''}`;
 }
 
+function rgbToHex(color: RGB | RGBA): string {
+  const r = Math.round(color.r * 255).toString(16).padStart(2, '0');
+  const g = Math.round(color.g * 255).toString(16).padStart(2, '0');
+  const b = Math.round(color.b * 255).toString(16).padStart(2, '0');
+  return `#${r}${g}${b}`;
+}
+
 function hexToRgba(hex: string): { r: number; g: number; b: number; a: number } {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})?$/i.exec(hex);
   if (!result) {
@@ -2997,6 +3004,200 @@ async function createColorPaintStyles(payload: ColorPaintStylesPayload): Promise
 }
 
 // ============================================
+// SYNC: APPLY CHANGES
+// ============================================
+
+interface SyncChangePayload {
+  type: 'add' | 'update' | 'delete';
+  variableName: string;
+  figmaId?: string;
+  pluginVariable?: {
+    name: string;
+    type: 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN';
+    description?: string;
+    modeValues: Record<string, any>;
+    aliasTo?: string;
+  };
+}
+
+interface SyncResultPayload {
+  success: boolean;
+  collectionName: string;
+  created: number;
+  updated: number;
+  deleted: number;
+  errors: string[];
+  warnings: string[];
+}
+
+async function applySyncChanges(
+  collectionName: string,
+  changes: SyncChangePayload[],
+  modesToAdd: string[]
+): Promise<SyncResultPayload> {
+  const result: SyncResultPayload = {
+    success: true,
+    collectionName,
+    created: 0,
+    updated: 0,
+    deleted: 0,
+    errors: [],
+    warnings: [],
+  };
+  
+  try {
+    // 1. Получаем или создаём коллекцию
+    const collections = await figma.variables.getLocalVariableCollectionsAsync();
+    let collection = collections.find(c => c.name === collectionName);
+    
+    if (!collection) {
+      collection = figma.variables.createVariableCollection(collectionName);
+    }
+    
+    // 2. Добавляем новые режимы
+    const modeMap = new Map<string, string>();
+    for (const mode of collection.modes) {
+      modeMap.set(mode.name, mode.modeId);
+    }
+    
+    for (const modeName of modesToAdd) {
+      if (!modeMap.has(modeName)) {
+        try {
+          // Первый режим - переименовываем default
+          if (collection.modes.length === 1 && collection.modes[0].name === 'Mode 1') {
+            collection.renameMode(collection.defaultModeId, modeName);
+            modeMap.set(modeName, collection.defaultModeId);
+          } else {
+            const newModeId = collection.addMode(modeName);
+            modeMap.set(modeName, newModeId);
+          }
+        } catch (error) {
+          result.warnings.push(`Не удалось добавить режим "${modeName}": лимит Figma`);
+        }
+      }
+    }
+    
+    // 3. Получаем существующие переменные
+    const allVariables = await figma.variables.getLocalVariablesAsync();
+    const collectionVars = allVariables.filter(v => v.variableCollectionId === collection!.id);
+    const varMap = new Map<string, Variable>();
+    collectionVars.forEach(v => varMap.set(v.name, v));
+    
+    // Также получаем все переменные для разрешения алиасов
+    const allVarsByName = new Map<string, Variable>();
+    allVariables.forEach(v => allVarsByName.set(v.name, v));
+    
+    // 4. Применяем изменения
+    for (const change of changes) {
+      try {
+        if (change.type === 'add' && change.pluginVariable) {
+          // Создаём новую переменную
+          const pv = change.pluginVariable;
+          const figmaType = pv.type as VariableResolvedDataType;
+          
+          const newVar = figma.variables.createVariable(pv.name, collection!, figmaType);
+          if (pv.description) {
+            newVar.description = pv.description;
+          }
+          
+          // Устанавливаем значения для режимов
+          for (const [modeName, value] of Object.entries(pv.modeValues)) {
+            const modeId = modeMap.get(modeName);
+            if (!modeId) continue;
+            
+            // Проверяем, является ли значение ссылкой на алиас
+            if (pv.aliasTo) {
+              const aliasVar = allVarsByName.get(pv.aliasTo);
+              if (aliasVar) {
+                const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: aliasVar.id };
+                newVar.setValueForMode(modeId, alias);
+              }
+            } else if (typeof value === 'string' && value.startsWith('{') && value.endsWith('}')) {
+              // Значение - ссылка на другую переменную
+              const refName = value.slice(1, -1).replace(/\./g, '/');
+              const refVar = allVarsByName.get(refName);
+              if (refVar) {
+                const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: refVar.id };
+                newVar.setValueForMode(modeId, alias);
+              } else {
+                // Нет переменной для алиаса - устанавливаем как число если это число
+                const numValue = parseFloat(value.replace(/[{}]/g, '').split('/').pop() || '0');
+                if (!isNaN(numValue)) {
+                  newVar.setValueForMode(modeId, numValue);
+                }
+              }
+            } else {
+              // Обычное значение
+              newVar.setValueForMode(modeId, value);
+            }
+          }
+          
+          result.created++;
+          
+        } else if (change.type === 'update' && change.figmaId && change.pluginVariable) {
+          // Обновляем существующую переменную
+          const existingVar = await figma.variables.getVariableByIdAsync(change.figmaId);
+          if (!existingVar) {
+            result.errors.push(`Переменная не найдена: ${change.variableName}`);
+            continue;
+          }
+          
+          const pv = change.pluginVariable;
+          
+          if (pv.description !== undefined) {
+            existingVar.description = pv.description;
+          }
+          
+          // Обновляем значения для режимов
+          for (const [modeName, value] of Object.entries(pv.modeValues)) {
+            const modeId = modeMap.get(modeName);
+            if (!modeId) continue;
+            
+            if (pv.aliasTo) {
+              const aliasVar = allVarsByName.get(pv.aliasTo);
+              if (aliasVar) {
+                const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: aliasVar.id };
+                existingVar.setValueForMode(modeId, alias);
+              }
+            } else if (typeof value === 'string' && value.startsWith('{') && value.endsWith('}')) {
+              const refName = value.slice(1, -1).replace(/\./g, '/');
+              const refVar = allVarsByName.get(refName);
+              if (refVar) {
+                const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: refVar.id };
+                existingVar.setValueForMode(modeId, alias);
+              }
+            } else {
+              existingVar.setValueForMode(modeId, value);
+            }
+          }
+          
+          result.updated++;
+          
+        } else if (change.type === 'delete' && change.figmaId) {
+          // Удаляем переменную
+          const existingVar = await figma.variables.getVariableByIdAsync(change.figmaId);
+          if (existingVar) {
+            existingVar.remove();
+            result.deleted++;
+          }
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        result.errors.push(`Ошибка для "${change.variableName}": ${errorMsg}`);
+      }
+    }
+    
+    result.success = result.errors.length === 0;
+    
+  } catch (error) {
+    result.success = false;
+    result.errors.push(error instanceof Error ? error.message : 'Unknown error');
+  }
+  
+  return result;
+}
+
+// ============================================
 // SEMANTIC TYPOGRAPHY VARIABLES
 // ============================================
 
@@ -3005,6 +3206,12 @@ interface BreakpointConfig {
   label: string;
   minWidth: number;
   scale: number;
+}
+
+interface TypographyDeviceValues {
+  fontSize?: string;
+  lineHeight?: string;
+  letterSpacing?: string;
 }
 
 interface SemanticTypographyVariablesPayload {
@@ -3023,6 +3230,10 @@ interface SemanticTypographyVariablesPayload {
     description?: string;
     category: string;
     subcategory?: string;
+    // NEW: per-device overrides
+    deviceOverrides?: Record<string, TypographyDeviceValues>;
+    // NEW: auto-scale flag (default false = same value everywhere)
+    responsive?: boolean;
   }>;
   primitives: {
     fontSizes: Array<{ name: string; value: number }>;
@@ -3076,6 +3287,9 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
   if (!primitivesCollection) {
     primitivesCollection = figma.variables.createVariableCollection('Primitives');
   }
+  
+  // ВАЖНО: Сначала создаём примитивы типографики, если их ещё нет
+  await createExtendedTypographyPrimitives(primitivesCollection);
   
   // Typography collection (NOT Tokens!) - for semantic typography with device modes
   let typographyCollection = collections.find(c => c.name === 'Typography');
@@ -3143,6 +3357,9 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
       const baseLetterSpacing = parseFloat(parseTokenReference(token.letterSpacing));
       const fontWeightKey = parseTokenReference(token.fontWeight);
       
+      // Флаг responsive - если true, масштабируем; если false - одинаковое значение везде
+      const isResponsive = token.responsive === true;
+      
       // =============== fontSize ===============
       const fontSizeVarName = `${tokenPath}/fontSize`;
       let fontSizeVar = existingVariables.find(v => 
@@ -3161,8 +3378,24 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
           const modeId = modeIds.get(bp.name);
           if (!modeId) continue;
           
-          const scaledValue = getScaledValue(baseFontSize, bp.scale, 2);
-          const closestPrimitive = findClosestPrimitiveVar(scaledValue, primitiveVarMap, 'font/size/');
+          // Определяем значение для этого breakpoint
+          let targetFontSize: number;
+          
+          // 1. Проверяем deviceOverrides
+          const deviceOverride = token.deviceOverrides?.[bp.name];
+          if (deviceOverride?.fontSize) {
+            targetFontSize = parseFloat(parseTokenReference(deviceOverride.fontSize));
+          } 
+          // 2. Если responsive=true, масштабируем базовое значение
+          else if (isResponsive) {
+            targetFontSize = getScaledValue(baseFontSize, bp.scale, 2);
+          }
+          // 3. Иначе используем базовое значение (одинаковое везде)
+          else {
+            targetFontSize = baseFontSize;
+          }
+          
+          const closestPrimitive = findClosestPrimitiveVar(targetFontSize, primitiveVarMap, 'font/size/');
           
           if (closestPrimitive) {
             const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: closestPrimitive.id };
@@ -3198,8 +3431,19 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
           const modeId = modeIds.get(bp.name);
           if (!modeId) continue;
           
-          const scaledValue = getScaledValue(baseLineHeight, bp.scale, 5);
-          const closestPrimitive = findClosestPrimitiveVar(scaledValue, primitiveVarMap, 'font/lineHeight/');
+          // Определяем значение для этого breakpoint
+          let targetLineHeight: number;
+          
+          const deviceOverride = token.deviceOverrides?.[bp.name];
+          if (deviceOverride?.lineHeight) {
+            targetLineHeight = parseFloat(parseTokenReference(deviceOverride.lineHeight));
+          } else if (isResponsive) {
+            targetLineHeight = getScaledValue(baseLineHeight, bp.scale, 5);
+          } else {
+            targetLineHeight = baseLineHeight;
+          }
+          
+          const closestPrimitive = findClosestPrimitiveVar(targetLineHeight, primitiveVarMap, 'font/lineHeight/');
           
           if (closestPrimitive) {
             const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: closestPrimitive.id };
@@ -6481,6 +6725,126 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         break;
       }
 
+      // Create Paint Styles from ALL Figma Variables in Components collection
+      case 'create-paint-styles-from-figma': {
+        figma.notify('⏳ Загрузка цветов из Figma...');
+        
+        try {
+          // Get all local variable collections
+          const collections = await figma.variables.getLocalVariableCollectionsAsync();
+          
+          // Find Components collection (primary) or Tokens (fallback)
+          let targetCollection = collections.find(c => c.name === 'Components');
+          let collectionName = 'Components';
+          
+          if (!targetCollection) {
+            targetCollection = collections.find(c => c.name === 'Tokens');
+            collectionName = 'Tokens';
+          }
+          
+          if (!targetCollection) {
+            targetCollection = collections.find(c => c.name === 'Primitives');
+            collectionName = 'Primitives';
+          }
+          
+          if (!targetCollection) {
+            figma.notify('⚠️ Не найдены коллекции цветов. Сначала сгенерируйте цвета.');
+            break;
+          }
+          
+          // Get all variables from the collection
+          const allVariables = await figma.variables.getLocalVariablesAsync('COLOR');
+          const collectionVariables = allVariables.filter(v => v.variableCollectionId === targetCollection!.id);
+          
+          if (collectionVariables.length === 0) {
+            figma.notify(`⚠️ Нет цветов в коллекции ${collectionName}`);
+            break;
+          }
+          
+          // Get first mode for resolving values
+          const modeId = targetCollection.modes[0].modeId;
+          
+          // Helper function to recursively resolve alias chains
+          async function resolveColorValue(value: VariableValue, depth: number = 0): Promise<RGB | RGBA | null> {
+            // Prevent infinite loops
+            if (depth > 10) return null;
+            
+            // Direct color value
+            if (value && typeof value === 'object' && 'r' in value) {
+              return value as RGB | RGBA;
+            }
+            
+            // Alias - resolve recursively
+            if (value && typeof value === 'object' && 'type' in value && (value as any).type === 'VARIABLE_ALIAS') {
+              try {
+                const aliasedVar = await figma.variables.getVariableByIdAsync((value as any).id);
+                if (aliasedVar) {
+                  // Get value from first available mode
+                  const aliasValue = aliasedVar.valuesByMode[Object.keys(aliasedVar.valuesByMode)[0]];
+                  return resolveColorValue(aliasValue, depth + 1);
+                }
+              } catch (e) {
+                // Can't resolve
+              }
+            }
+            
+            return null;
+          }
+          
+          // Prepare colors for paint styles
+          const colors: ColorPaintStylesPayload['colors'] = [];
+          
+          for (const variable of collectionVariables) {
+            const value = variable.valuesByMode[modeId];
+            
+            // Resolve the color (handles both direct values and alias chains)
+            const resolvedColor = await resolveColorValue(value);
+            
+            if (resolvedColor) {
+              colors.push({
+                name: variable.name,
+                hex: rgbToHex(resolvedColor),
+                r: resolvedColor.r,
+                g: resolvedColor.g,
+                b: resolvedColor.b,
+                a: 'a' in resolvedColor ? resolvedColor.a : 1,
+                description: variable.description || '',
+                category: variable.name.split('/')[0] || 'color',
+                shade: '',
+              });
+            }
+          }
+          
+          if (colors.length === 0) {
+            figma.notify('⚠️ Не удалось получить цвета из переменных');
+            break;
+          }
+          
+          figma.notify(`⏳ Создание ${colors.length} Paint Styles из ${collectionName}...`);
+          
+          const result = await createColorPaintStyles({ colors, structureMode: 'grouped' });
+          
+          figma.ui.postMessage({
+            type: 'color-paint-styles-created',
+            payload: { 
+              success: result.errors.length === 0,
+              created: result.created,
+              updated: result.updated,
+              errors: result.errors
+            }
+          });
+          
+          if (result.errors.length > 0) {
+            figma.notify(`⚠️ Paint Styles: ${result.created} создано, ${result.updated} обновлено, ${result.errors.length} ошибок`);
+          } else {
+            figma.notify(`✅ Paint Styles из ${collectionName}: ${result.created} создано, ${result.updated} обновлено`);
+          }
+        } catch (error) {
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown'}`);
+        }
+        break;
+      }
+
       case 'create-semantic-typography-variables': {
         const payload = msg.payload as SemanticTypographyVariablesPayload;
         
@@ -6867,6 +7231,235 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           figma.ui.postMessage({ type: 'docs-radius-created', pageName: result.pageName });
         } catch (error) {
           figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      // ========================================
+      // SYNC HANDLERS
+      // ========================================
+
+      case 'sync-get-collections': {
+        // Получить список коллекций из Figma
+        try {
+          const collections = await figma.variables.getLocalVariableCollectionsAsync();
+          const collectionsData = collections.map(c => ({
+            id: c.id,
+            name: c.name,
+            modes: c.modes.map(m => ({ modeId: m.modeId, name: m.name })),
+            defaultModeId: c.defaultModeId,
+            variableCount: c.variableIds.length,
+          }));
+          
+          figma.ui.postMessage({
+            type: 'sync-collections-loaded',
+            payload: { collections: collectionsData }
+          });
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'sync-error',
+            payload: { error: error instanceof Error ? error.message : 'Failed to load collections' }
+          });
+        }
+        break;
+      }
+
+      case 'sync-get-variables': {
+        // Получить переменные из конкретной коллекции
+        const { collectionId } = msg.payload as { collectionId: string };
+        try {
+          const allVariables = await figma.variables.getLocalVariablesAsync();
+          const collectionVars = allVariables.filter(v => v.variableCollectionId === collectionId);
+          const collection = await figma.variables.getVariableCollectionByIdAsync(collectionId);
+          
+          if (!collection) {
+            throw new Error('Collection not found');
+          }
+          
+          // Преобразуем в формат для UI
+          const variablesData = collectionVars.map(v => {
+            const modeValues = collection.modes.map(mode => {
+              const value = v.valuesByMode[mode.modeId];
+              
+              // Проверяем, является ли значение алиасом
+              let aliasId: string | undefined;
+              let aliasName: string | undefined;
+              let resolvedValue: VariableValue | null = value;
+              
+              if (typeof value === 'object' && value !== null && 'type' in value && value.type === 'VARIABLE_ALIAS') {
+                aliasId = (value as VariableAlias).id;
+                // Получаем имя переменной-алиаса
+                const aliasVar = allVariables.find(av => av.id === aliasId);
+                aliasName = aliasVar?.name;
+                resolvedValue = null; // Для алиасов значение неизвестно
+              }
+              
+              return {
+                modeId: mode.modeId,
+                modeName: mode.name,
+                value: resolvedValue,
+                aliasId,
+                aliasName,
+              };
+            });
+            
+            return {
+              id: v.id,
+              name: v.name,
+              resolvedType: v.resolvedType,
+              description: v.description || '',
+              collectionId: v.variableCollectionId,
+              collectionName: collection.name,
+              modeValues,
+              scopes: v.scopes,
+            };
+          });
+          
+          figma.ui.postMessage({
+            type: 'sync-variables-loaded',
+            payload: { 
+              collectionId,
+              variables: variablesData 
+            }
+          });
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'sync-error',
+            payload: { error: error instanceof Error ? error.message : 'Failed to load variables' }
+          });
+        }
+        break;
+      }
+
+      case 'sync-apply-changes': {
+        // Применить изменения из diff
+        const { collectionName, changes, modesToAdd } = msg.payload as {
+          collectionName: string;
+          changes: Array<{
+            type: 'add' | 'update' | 'delete';
+            variableName: string;
+            figmaId?: string;
+            pluginVariable?: {
+              name: string;
+              type: 'COLOR' | 'FLOAT' | 'STRING' | 'BOOLEAN';
+              description?: string;
+              modeValues: Record<string, any>;
+              aliasTo?: string;
+            };
+          }>;
+          modesToAdd: string[];
+        };
+        
+        try {
+          figma.notify(`⏳ Синхронизация ${collectionName}...`);
+          
+          const result = await applySyncChanges(collectionName, changes, modesToAdd);
+          
+          figma.ui.postMessage({
+            type: 'sync-applied',
+            payload: result
+          });
+          
+          if (result.success) {
+            figma.notify(`✅ Синхронизация: +${result.created}, ~${result.updated}, -${result.deleted}`);
+          } else {
+            figma.notify(`⚠️ Синхронизация завершена с ошибками`);
+          }
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'sync-error',
+            payload: { error: error instanceof Error ? error.message : 'Sync failed' }
+          });
+          figma.notify(`❌ Ошибка синхронизации: ${error instanceof Error ? error.message : 'Unknown'}`);
+        }
+        break;
+      }
+
+      case 'sync-delete-variable': {
+        // Удалить одну переменную
+        const { variableId } = msg.payload as { variableId: string };
+        try {
+          const variable = await figma.variables.getVariableByIdAsync(variableId);
+          if (variable) {
+            variable.remove();
+            figma.ui.postMessage({ type: 'sync-variable-deleted', payload: { variableId } });
+          }
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'sync-error',
+            payload: { error: error instanceof Error ? error.message : 'Delete failed' }
+          });
+        }
+        break;
+      }
+
+      // ============================================================
+      // CLIENT STORAGE HANDLERS (for UI persistence)
+      // ============================================================
+      case 'storage-get': {
+        const { key, requestId } = msg.payload as { key: string; requestId: string };
+        try {
+          const data = await figma.clientStorage.getAsync(key);
+          figma.ui.postMessage({
+            type: 'storage-get-response',
+            payload: { key, data, requestId, success: true }
+          });
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'storage-get-response',
+            payload: { key, data: null, requestId, success: false, error: String(error) }
+          });
+        }
+        break;
+      }
+
+      case 'storage-set': {
+        const { key, data, requestId } = msg.payload as { key: string; data: any; requestId: string };
+        try {
+          await figma.clientStorage.setAsync(key, data);
+          figma.ui.postMessage({
+            type: 'storage-set-response',
+            payload: { key, requestId, success: true }
+          });
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'storage-set-response',
+            payload: { key, requestId, success: false, error: String(error) }
+          });
+        }
+        break;
+      }
+
+      case 'storage-delete': {
+        const { key, requestId } = msg.payload as { key: string; requestId: string };
+        try {
+          await figma.clientStorage.deleteAsync(key);
+          figma.ui.postMessage({
+            type: 'storage-delete-response',
+            payload: { key, requestId, success: true }
+          });
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'storage-delete-response',
+            payload: { key, requestId, success: false, error: String(error) }
+          });
+        }
+        break;
+      }
+
+      case 'storage-get-all-keys': {
+        const { requestId } = msg.payload as { requestId: string };
+        try {
+          const keys = await figma.clientStorage.keysAsync();
+          figma.ui.postMessage({
+            type: 'storage-get-all-keys-response',
+            payload: { keys, requestId, success: true }
+          });
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'storage-get-all-keys-response',
+            payload: { keys: [], requestId, success: false, error: String(error) }
+          });
         }
         break;
       }
