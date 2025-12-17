@@ -4,10 +4,12 @@
   "description": "Figma plugin for Design Tokens Architecture - Primitives, Tokens, Components structure",
   "main": "dist/code.js",
   "scripts": {
-    "build": "webpack --mode production",
+    "build": "npm run typecheck && webpack --mode production",
+    "build:fast": "webpack --mode production",
     "watch": "webpack --mode development --watch",
     "dev": "webpack --mode development",
     "typecheck": "tsc --noEmit",
+    "precommit": "npm run typecheck && npm run build",
     "clean": "rimraf dist"
   },
   "keywords": [],
