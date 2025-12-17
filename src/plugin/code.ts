@@ -3286,15 +3286,20 @@ async function createIconSizePrimitives(primitives: Array<{ name: string; value:
   return result;
 }
 
+// ============================================
+// ICON SIZE SEMANTIC COLLECTION (with device modes like Spacing/Gap)
+// ============================================
+
 interface IconSizeSemanticData {
   tokens: Array<{
-    id: string;           // "iconSize.interactive.button"
+    id: string;           // "is-1"
+    path: string;         // "iconSize.interactive.button"
     category: string;     // "interactive"
-    subcategory: string;  // "button"
     name: string;         // "button"
-    primitiveRef: string; // "{iconSize.16}"
-    value: number;        // 16
     description?: string;
+    desktop: string;      // "16" (primitive name)
+    tablet: string;       // "16"
+    mobile: string;       // "16"
   }>;
 }
 
@@ -3315,6 +3320,32 @@ async function createIconSizeSemanticCollection(data: IconSizeSemanticData): Pro
   let iconSizeCollection = collections.find(c => c.name === 'Icon Size');
   if (!iconSizeCollection) {
     iconSizeCollection = figma.variables.createVariableCollection('Icon Size');
+  }
+  
+  // Setup modes: Desktop, Tablet, Mobile
+  const modeNames = ['Desktop', 'Tablet', 'Mobile'];
+  const modeIds: { [key: string]: string } = {};
+  
+  // Get existing modes
+  const existingModes = iconSizeCollection.modes;
+  
+  // Rename first mode to Desktop
+  if (existingModes.length > 0) {
+    iconSizeCollection.renameMode(existingModes[0].modeId, 'Desktop');
+    modeIds['Desktop'] = existingModes[0].modeId;
+  }
+  
+  // Add Tablet and Mobile modes if they don't exist
+  for (let i = 1; i < modeNames.length; i++) {
+    const modeName = modeNames[i];
+    const existingMode = iconSizeCollection.modes.find(m => m.name === modeName);
+    
+    if (existingMode) {
+      modeIds[modeName] = existingMode.modeId;
+    } else {
+      const newModeId = iconSizeCollection.addMode(modeName);
+      modeIds[modeName] = newModeId;
+    }
   }
   
   // Get all existing variables
@@ -3340,8 +3371,8 @@ async function createIconSizeSemanticCollection(data: IconSizeSemanticData): Pro
   // Create/update semantic tokens
   for (const token of data.tokens) {
     try {
-      // Convert id: "iconSize.interactive.button" -> "iconSize/interactive/button"
-      const varName = token.id.replace(/\./g, '/');
+      // Convert path: "iconSize.interactive.button" -> "iconSize/interactive/button"
+      const varName = token.path.replace(/\./g, '/');
       
       // Get or create variable
       let variable = existingVarMap.get(varName);
@@ -3355,25 +3386,41 @@ async function createIconSizeSemanticCollection(data: IconSizeSemanticData): Pro
         variable.description = token.description;
       }
       
-      // Extract primitive value from primitiveRef: "{iconSize.16}" -> "16"
-      const primitiveMatch = token.primitiveRef.match(/\{iconSize\.(\d+)\}/);
-      const primitiveKey = primitiveMatch ? primitiveMatch[1] : String(token.value);
-      
-      // Set alias to primitive
-      const primitive = primitiveVarMap.get(primitiveKey);
-      if (primitive) {
-        const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: primitive.id };
-        variable.setValueForMode(iconSizeCollection.defaultModeId, alias);
+      // Set alias for Desktop mode
+      const desktopPrimitive = primitiveVarMap.get(token.desktop);
+      if (desktopPrimitive && modeIds['Desktop']) {
+        const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: desktopPrimitive.id };
+        variable.setValueForMode(modeIds['Desktop'], alias);
         result.aliased++;
-      } else {
-        // If primitive not found, set direct value
-        variable.setValueForMode(iconSizeCollection.defaultModeId, token.value);
-        result.errors.push(`Примитив iconSize/${primitiveKey} не найден для ${token.id}, использовано прямое значение ${token.value}px`);
+      } else if (modeIds['Desktop']) {
+        // Fallback to direct value if primitive not found
+        variable.setValueForMode(modeIds['Desktop'], parseInt(token.desktop) || 16);
+        result.errors.push(`Примитив iconSize/${token.desktop} не найден для ${token.path} (Desktop)`);
+      }
+      
+      // Set alias for Tablet mode
+      const tabletPrimitive = primitiveVarMap.get(token.tablet);
+      if (tabletPrimitive && modeIds['Tablet']) {
+        const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: tabletPrimitive.id };
+        variable.setValueForMode(modeIds['Tablet'], alias);
+        result.aliased++;
+      } else if (modeIds['Tablet']) {
+        variable.setValueForMode(modeIds['Tablet'], parseInt(token.tablet) || 16);
+      }
+      
+      // Set alias for Mobile mode
+      const mobilePrimitive = primitiveVarMap.get(token.mobile);
+      if (mobilePrimitive && modeIds['Mobile']) {
+        const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: mobilePrimitive.id };
+        variable.setValueForMode(modeIds['Mobile'], alias);
+        result.aliased++;
+      } else if (modeIds['Mobile']) {
+        variable.setValueForMode(modeIds['Mobile'], parseInt(token.mobile) || 16);
       }
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      result.errors.push(`Ошибка создания ${token.id}: ${errorMessage}`);
+      result.errors.push(`Ошибка создания ${token.path}: ${errorMessage}`);
     }
   }
   
@@ -6190,12 +6237,13 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       case 'create-icon-size-semantic': {
         const tokens = (msg.tokens || []) as unknown as Array<{ 
           id: string; 
+          path: string;
           category: string;
-          subcategory: string;
           name: string;
-          primitiveRef: string;
-          value: number;
           description?: string;
+          desktop: string;
+          tablet: string;
+          mobile: string;
         }>;
         
         figma.notify(`⏳ Создание ${tokens.length} семантических токенов icon size...`);

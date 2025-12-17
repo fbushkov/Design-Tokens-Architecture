@@ -1,51 +1,20 @@
+/**
+ * Icon Size Tokens Type Definitions
+ * 2-tier architecture with device modes (like Spacing/Gap)
+ * 
+ * Level 1: Primitives (iconSize.10, iconSize.16...) - in Primitives collection
+ * Level 2: Semantic (iconSize.interactive.button) - in Icon Size collection with Desktop/Tablet/Mobile modes
+ */
+
 // ============================================
-// ICON SIZE TOKEN TYPES
+// PRIMITIVES
 // ============================================
 
-// Primitive icon sizes
 export interface IconSizePrimitive {
-  name: string;
-  value: number;
+  name: string;   // "10", "12", "16"...
+  value: number;  // 10, 12, 16...
   selected: boolean;
 }
-
-// Icon Size categories
-export type IconSizeCategory = 
-  | 'interactive'
-  | 'form'
-  | 'navigation'
-  | 'status'
-  | 'notification'
-  | 'data'
-  | 'media'
-  | 'empty'
-  | 'modal'
-  | 'card'
-  | 'list'
-  | 'action'
-  | 'loading'
-  | 'special';
-
-// Semantic icon size token
-export interface IconSizeSemanticToken {
-  id: string;
-  category: IconSizeCategory;
-  subcategory: string;
-  name: string;
-  primitiveRef: string; // e.g., '{iconSize.16}'
-  value: number; // resolved value
-  description?: string;
-}
-
-// Icon Size state
-export interface IconSizeState {
-  primitives: IconSizePrimitive[];
-  semanticTokens: IconSizeSemanticToken[];
-}
-
-// ============================================
-// DEFAULT PRIMITIVES
-// ============================================
 
 export const DEFAULT_ICON_SIZE_PRIMITIVES: IconSizePrimitive[] = [
   { name: '10', value: 10, selected: true },
@@ -67,194 +36,222 @@ export const DEFAULT_ICON_SIZE_PRIMITIVES: IconSizePrimitive[] = [
 ];
 
 // ============================================
+// SEMANTIC TOKENS (with device modes)
+// ============================================
+
+export type IconSizeCategory = 
+  | 'interactive'
+  | 'form'
+  | 'navigation'
+  | 'status'
+  | 'notification'
+  | 'data'
+  | 'media'
+  | 'empty'
+  | 'modal'
+  | 'card'
+  | 'list'
+  | 'action'
+  | 'loading'
+  | 'special';
+
+export const ICON_SIZE_CATEGORIES: Record<IconSizeCategory, { label: string; description: string }> = {
+  interactive: { label: 'Interactive', description: 'Buttons, links, menu items, tabs' },
+  form: { label: 'Form', description: 'Inputs, selects, checkboxes, radio, validation' },
+  navigation: { label: 'Navigation', description: 'Breadcrumbs, pagination, expand/collapse, back/close' },
+  status: { label: 'Status', description: 'Badges, tags, chips, indicators' },
+  notification: { label: 'Notification', description: 'Alerts, toasts, banners' },
+  data: { label: 'Data', description: 'Tables, metrics, charts' },
+  media: { label: 'Media', description: 'Avatars, placeholders, media players' },
+  empty: { label: 'Empty States', description: 'Empty state illustrations and icons' },
+  modal: { label: 'Modal', description: 'Modal dialogs and confirmations' },
+  card: { label: 'Card', description: 'Card header, action, meta icons' },
+  list: { label: 'List', description: 'List items, bullets, drag handles' },
+  action: { label: 'Action', description: 'FAB, context menu, primary/secondary actions' },
+  loading: { label: 'Loading', description: 'Spinners and loaders' },
+  special: { label: 'Special', description: 'Logos, social icons, ratings, steppers' },
+};
+
+// Semantic token with device-specific values
+export interface IconSizeSemanticToken {
+  id: string;
+  path: string;           // "iconSize.interactive.button"
+  category: IconSizeCategory;
+  name: string;
+  description?: string;
+  // Device-specific references to primitives (primitive name like "16" -> {iconSize.16})
+  desktop: string;
+  tablet: string;
+  mobile: string;
+}
+
+export interface IconSizeState {
+  primitives: IconSizePrimitive[];
+  semanticTokens: IconSizeSemanticToken[];
+}
+
+// ============================================
 // DEFAULT SEMANTIC TOKENS
+// По умолчанию значения одинаковые для всех устройств,
+// но могут быть изменены при необходимости
 // ============================================
 
 export const DEFAULT_ICON_SIZE_SEMANTIC_TOKENS: IconSizeSemanticToken[] = [
   // ============================================
   // INTERACTIVE - buttons, links, menu items, tabs
   // ============================================
-  { id: 'iconSize.interactive.buttonLarge', category: 'interactive', subcategory: 'button', name: 'buttonLarge', primitiveRef: '{iconSize.20}', value: 20, description: 'Large button icon' },
-  { id: 'iconSize.interactive.button', category: 'interactive', subcategory: 'button', name: 'button', primitiveRef: '{iconSize.16}', value: 16, description: 'Default button icon' },
-  { id: 'iconSize.interactive.buttonCompact', category: 'interactive', subcategory: 'button', name: 'buttonCompact', primitiveRef: '{iconSize.14}', value: 14, description: 'Compact button icon' },
-  
-  { id: 'iconSize.interactive.buttonIconOnly', category: 'interactive', subcategory: 'button', name: 'buttonIconOnly', primitiveRef: '{iconSize.20}', value: 20, description: 'Icon-only button' },
-  { id: 'iconSize.interactive.buttonIconOnlyCompact', category: 'interactive', subcategory: 'button', name: 'buttonIconOnlyCompact', primitiveRef: '{iconSize.16}', value: 16, description: 'Compact icon-only button' },
-  
-  { id: 'iconSize.interactive.link', category: 'interactive', subcategory: 'link', name: 'link', primitiveRef: '{iconSize.16}', value: 16, description: 'Link icon' },
-  { id: 'iconSize.interactive.linkCompact', category: 'interactive', subcategory: 'link', name: 'linkCompact', primitiveRef: '{iconSize.14}', value: 14, description: 'Compact link icon' },
-  
-  { id: 'iconSize.interactive.menuItem', category: 'interactive', subcategory: 'menu', name: 'menuItem', primitiveRef: '{iconSize.16}', value: 16, description: 'Menu item icon' },
-  { id: 'iconSize.interactive.menuItemCompact', category: 'interactive', subcategory: 'menu', name: 'menuItemCompact', primitiveRef: '{iconSize.14}', value: 14, description: 'Compact menu item icon' },
-  
-  { id: 'iconSize.interactive.tab', category: 'interactive', subcategory: 'tab', name: 'tab', primitiveRef: '{iconSize.18}', value: 18, description: 'Tab icon' },
-  { id: 'iconSize.interactive.tabCompact', category: 'interactive', subcategory: 'tab', name: 'tabCompact', primitiveRef: '{iconSize.16}', value: 16, description: 'Compact tab icon' },
-  
+  { id: 'is-1', path: 'iconSize.interactive.buttonLarge', category: 'interactive', name: 'buttonLarge', desktop: '20', tablet: '20', mobile: '20', description: 'Large button icon' },
+  { id: 'is-2', path: 'iconSize.interactive.button', category: 'interactive', name: 'button', desktop: '16', tablet: '16', mobile: '16', description: 'Default button icon' },
+  { id: 'is-3', path: 'iconSize.interactive.buttonCompact', category: 'interactive', name: 'buttonCompact', desktop: '14', tablet: '14', mobile: '14', description: 'Compact button icon' },
+  { id: 'is-4', path: 'iconSize.interactive.buttonIconOnly', category: 'interactive', name: 'buttonIconOnly', desktop: '20', tablet: '20', mobile: '20', description: 'Icon-only button' },
+  { id: 'is-5', path: 'iconSize.interactive.buttonIconOnlyCompact', category: 'interactive', name: 'buttonIconOnlyCompact', desktop: '16', tablet: '16', mobile: '16', description: 'Compact icon-only button' },
+  { id: 'is-6', path: 'iconSize.interactive.link', category: 'interactive', name: 'link', desktop: '16', tablet: '16', mobile: '16', description: 'Link icon' },
+  { id: 'is-7', path: 'iconSize.interactive.linkCompact', category: 'interactive', name: 'linkCompact', desktop: '14', tablet: '14', mobile: '14', description: 'Compact link icon' },
+  { id: 'is-8', path: 'iconSize.interactive.menuItem', category: 'interactive', name: 'menuItem', desktop: '16', tablet: '16', mobile: '16', description: 'Menu item icon' },
+  { id: 'is-9', path: 'iconSize.interactive.menuItemCompact', category: 'interactive', name: 'menuItemCompact', desktop: '14', tablet: '14', mobile: '14', description: 'Compact menu item icon' },
+  { id: 'is-10', path: 'iconSize.interactive.tab', category: 'interactive', name: 'tab', desktop: '18', tablet: '18', mobile: '18', description: 'Tab icon' },
+  { id: 'is-11', path: 'iconSize.interactive.tabCompact', category: 'interactive', name: 'tabCompact', desktop: '16', tablet: '16', mobile: '16', description: 'Compact tab icon' },
+
   // ============================================
   // FORM - inputs, selects, checkboxes
   // ============================================
-  { id: 'iconSize.form.inputPrefix', category: 'form', subcategory: 'input', name: 'inputPrefix', primitiveRef: '{iconSize.16}', value: 16, description: 'Input prefix icon' },
-  { id: 'iconSize.form.inputSuffix', category: 'form', subcategory: 'input', name: 'inputSuffix', primitiveRef: '{iconSize.16}', value: 16, description: 'Input suffix icon' },
-  { id: 'iconSize.form.inputAction', category: 'form', subcategory: 'input', name: 'inputAction', primitiveRef: '{iconSize.18}', value: 18, description: 'Input action icon' },
-  
-  { id: 'iconSize.form.selectArrow', category: 'form', subcategory: 'select', name: 'selectArrow', primitiveRef: '{iconSize.16}', value: 16, description: 'Select dropdown arrow' },
-  { id: 'iconSize.form.clearButton', category: 'form', subcategory: 'select', name: 'clearButton', primitiveRef: '{iconSize.14}', value: 14, description: 'Clear button icon' },
-  
-  { id: 'iconSize.form.checkbox', category: 'form', subcategory: 'checkbox', name: 'checkbox', primitiveRef: '{iconSize.16}', value: 16, description: 'Checkbox icon' },
-  { id: 'iconSize.form.radio', category: 'form', subcategory: 'radio', name: 'radio', primitiveRef: '{iconSize.16}', value: 16, description: 'Radio button icon' },
-  { id: 'iconSize.form.switch', category: 'form', subcategory: 'switch', name: 'switch', primitiveRef: '{iconSize.14}', value: 14, description: 'Switch icon' },
-  
-  { id: 'iconSize.form.validation', category: 'form', subcategory: 'validation', name: 'validation', primitiveRef: '{iconSize.14}', value: 14, description: 'Validation status icon' },
-  { id: 'iconSize.form.required', category: 'form', subcategory: 'validation', name: 'required', primitiveRef: '{iconSize.10}', value: 10, description: 'Required indicator' },
-  
+  { id: 'is-20', path: 'iconSize.form.inputPrefix', category: 'form', name: 'inputPrefix', desktop: '16', tablet: '16', mobile: '16', description: 'Input prefix icon' },
+  { id: 'is-21', path: 'iconSize.form.inputSuffix', category: 'form', name: 'inputSuffix', desktop: '16', tablet: '16', mobile: '16', description: 'Input suffix icon' },
+  { id: 'is-22', path: 'iconSize.form.inputAction', category: 'form', name: 'inputAction', desktop: '18', tablet: '18', mobile: '18', description: 'Input action icon' },
+  { id: 'is-23', path: 'iconSize.form.selectArrow', category: 'form', name: 'selectArrow', desktop: '16', tablet: '16', mobile: '16', description: 'Select dropdown arrow' },
+  { id: 'is-24', path: 'iconSize.form.clearButton', category: 'form', name: 'clearButton', desktop: '14', tablet: '14', mobile: '14', description: 'Clear button icon' },
+  { id: 'is-25', path: 'iconSize.form.checkbox', category: 'form', name: 'checkbox', desktop: '16', tablet: '16', mobile: '16', description: 'Checkbox icon' },
+  { id: 'is-26', path: 'iconSize.form.radio', category: 'form', name: 'radio', desktop: '16', tablet: '16', mobile: '16', description: 'Radio button icon' },
+  { id: 'is-27', path: 'iconSize.form.switch', category: 'form', name: 'switch', desktop: '14', tablet: '14', mobile: '14', description: 'Switch icon' },
+  { id: 'is-28', path: 'iconSize.form.validation', category: 'form', name: 'validation', desktop: '14', tablet: '14', mobile: '14', description: 'Validation status icon' },
+  { id: 'is-29', path: 'iconSize.form.required', category: 'form', name: 'required', desktop: '10', tablet: '10', mobile: '10', description: 'Required indicator' },
+
   // ============================================
   // NAVIGATION - breadcrumbs, pagination, arrows
   // ============================================
-  { id: 'iconSize.navigation.item', category: 'navigation', subcategory: 'item', name: 'item', primitiveRef: '{iconSize.20}', value: 20, description: 'Navigation item icon' },
-  { id: 'iconSize.navigation.itemCompact', category: 'navigation', subcategory: 'item', name: 'itemCompact', primitiveRef: '{iconSize.16}', value: 16, description: 'Compact navigation item' },
-  
-  { id: 'iconSize.navigation.breadcrumbSeparator', category: 'navigation', subcategory: 'breadcrumb', name: 'breadcrumbSeparator', primitiveRef: '{iconSize.14}', value: 14, description: 'Breadcrumb separator' },
-  { id: 'iconSize.navigation.breadcrumbHome', category: 'navigation', subcategory: 'breadcrumb', name: 'breadcrumbHome', primitiveRef: '{iconSize.16}', value: 16, description: 'Breadcrumb home icon' },
-  
-  { id: 'iconSize.navigation.paginationArrow', category: 'navigation', subcategory: 'pagination', name: 'paginationArrow', primitiveRef: '{iconSize.16}', value: 16, description: 'Pagination arrow' },
-  
-  { id: 'iconSize.navigation.expand', category: 'navigation', subcategory: 'expand', name: 'expand', primitiveRef: '{iconSize.16}', value: 16, description: 'Expand icon' },
-  { id: 'iconSize.navigation.collapse', category: 'navigation', subcategory: 'expand', name: 'collapse', primitiveRef: '{iconSize.16}', value: 16, description: 'Collapse icon' },
-  
-  { id: 'iconSize.navigation.menuArrow', category: 'navigation', subcategory: 'menu', name: 'menuArrow', primitiveRef: '{iconSize.12}', value: 12, description: 'Menu arrow' },
-  { id: 'iconSize.navigation.submenuArrow', category: 'navigation', subcategory: 'menu', name: 'submenuArrow', primitiveRef: '{iconSize.14}', value: 14, description: 'Submenu arrow' },
-  
-  { id: 'iconSize.navigation.back', category: 'navigation', subcategory: 'control', name: 'back', primitiveRef: '{iconSize.20}', value: 20, description: 'Back navigation' },
-  { id: 'iconSize.navigation.close', category: 'navigation', subcategory: 'control', name: 'close', primitiveRef: '{iconSize.20}', value: 20, description: 'Close icon' },
-  { id: 'iconSize.navigation.hamburger', category: 'navigation', subcategory: 'control', name: 'hamburger', primitiveRef: '{iconSize.24}', value: 24, description: 'Hamburger menu' },
-  
+  { id: 'is-30', path: 'iconSize.navigation.item', category: 'navigation', name: 'item', desktop: '20', tablet: '20', mobile: '20', description: 'Navigation item icon' },
+  { id: 'is-31', path: 'iconSize.navigation.itemCompact', category: 'navigation', name: 'itemCompact', desktop: '16', tablet: '16', mobile: '16', description: 'Compact navigation item' },
+  { id: 'is-32', path: 'iconSize.navigation.breadcrumbSeparator', category: 'navigation', name: 'breadcrumbSeparator', desktop: '14', tablet: '14', mobile: '14', description: 'Breadcrumb separator' },
+  { id: 'is-33', path: 'iconSize.navigation.breadcrumbHome', category: 'navigation', name: 'breadcrumbHome', desktop: '16', tablet: '16', mobile: '16', description: 'Breadcrumb home icon' },
+  { id: 'is-34', path: 'iconSize.navigation.paginationArrow', category: 'navigation', name: 'paginationArrow', desktop: '16', tablet: '16', mobile: '16', description: 'Pagination arrow' },
+  { id: 'is-35', path: 'iconSize.navigation.expand', category: 'navigation', name: 'expand', desktop: '16', tablet: '16', mobile: '16', description: 'Expand icon' },
+  { id: 'is-36', path: 'iconSize.navigation.collapse', category: 'navigation', name: 'collapse', desktop: '16', tablet: '16', mobile: '16', description: 'Collapse icon' },
+  { id: 'is-37', path: 'iconSize.navigation.menuArrow', category: 'navigation', name: 'menuArrow', desktop: '12', tablet: '12', mobile: '12', description: 'Menu arrow' },
+  { id: 'is-38', path: 'iconSize.navigation.submenuArrow', category: 'navigation', name: 'submenuArrow', desktop: '14', tablet: '14', mobile: '14', description: 'Submenu arrow' },
+  { id: 'is-39', path: 'iconSize.navigation.back', category: 'navigation', name: 'back', desktop: '20', tablet: '20', mobile: '20', description: 'Back navigation' },
+  { id: 'is-40', path: 'iconSize.navigation.close', category: 'navigation', name: 'close', desktop: '20', tablet: '20', mobile: '20', description: 'Close icon' },
+  { id: 'is-41', path: 'iconSize.navigation.hamburger', category: 'navigation', name: 'hamburger', desktop: '24', tablet: '24', mobile: '24', description: 'Hamburger menu' },
+
   // ============================================
   // STATUS - badges, tags, chips, indicators
   // ============================================
-  { id: 'iconSize.status.badge', category: 'status', subcategory: 'badge', name: 'badge', primitiveRef: '{iconSize.12}', value: 12, description: 'Badge icon' },
-  { id: 'iconSize.status.tag', category: 'status', subcategory: 'tag', name: 'tag', primitiveRef: '{iconSize.14}', value: 14, description: 'Tag icon' },
-  { id: 'iconSize.status.chip', category: 'status', subcategory: 'chip', name: 'chip', primitiveRef: '{iconSize.16}', value: 16, description: 'Chip icon' },
-  { id: 'iconSize.status.chipRemove', category: 'status', subcategory: 'chip', name: 'chipRemove', primitiveRef: '{iconSize.14}', value: 14, description: 'Chip remove icon' },
-  
-  { id: 'iconSize.status.indicator', category: 'status', subcategory: 'indicator', name: 'indicator', primitiveRef: '{iconSize.12}', value: 12, description: 'Status indicator' },
-  { id: 'iconSize.status.dot', category: 'status', subcategory: 'indicator', name: 'dot', primitiveRef: '{iconSize.10}', value: 10, description: 'Status dot' },
-  
+  { id: 'is-50', path: 'iconSize.status.badge', category: 'status', name: 'badge', desktop: '12', tablet: '12', mobile: '12', description: 'Badge icon' },
+  { id: 'is-51', path: 'iconSize.status.tag', category: 'status', name: 'tag', desktop: '14', tablet: '14', mobile: '14', description: 'Tag icon' },
+  { id: 'is-52', path: 'iconSize.status.chip', category: 'status', name: 'chip', desktop: '16', tablet: '16', mobile: '16', description: 'Chip icon' },
+  { id: 'is-53', path: 'iconSize.status.chipRemove', category: 'status', name: 'chipRemove', desktop: '14', tablet: '14', mobile: '14', description: 'Chip remove icon' },
+  { id: 'is-54', path: 'iconSize.status.indicator', category: 'status', name: 'indicator', desktop: '12', tablet: '12', mobile: '12', description: 'Status indicator' },
+  { id: 'is-55', path: 'iconSize.status.dot', category: 'status', name: 'dot', desktop: '10', tablet: '10', mobile: '10', description: 'Status dot' },
+
   // ============================================
   // NOTIFICATION - alerts, toasts, banners
   // ============================================
-  { id: 'iconSize.notification.alert', category: 'notification', subcategory: 'alert', name: 'alert', primitiveRef: '{iconSize.20}', value: 20, description: 'Alert icon' },
-  { id: 'iconSize.notification.alertCompact', category: 'notification', subcategory: 'alert', name: 'alertCompact', primitiveRef: '{iconSize.16}', value: 16, description: 'Compact alert icon' },
-  
-  { id: 'iconSize.notification.toast', category: 'notification', subcategory: 'toast', name: 'toast', primitiveRef: '{iconSize.20}', value: 20, description: 'Toast icon' },
-  { id: 'iconSize.notification.toastClose', category: 'notification', subcategory: 'toast', name: 'toastClose', primitiveRef: '{iconSize.16}', value: 16, description: 'Toast close icon' },
-  
-  { id: 'iconSize.notification.banner', category: 'notification', subcategory: 'banner', name: 'banner', primitiveRef: '{iconSize.24}', value: 24, description: 'Banner icon' },
-  { id: 'iconSize.notification.bannerClose', category: 'notification', subcategory: 'banner', name: 'bannerClose', primitiveRef: '{iconSize.20}', value: 20, description: 'Banner close icon' },
-  
+  { id: 'is-60', path: 'iconSize.notification.alert', category: 'notification', name: 'alert', desktop: '20', tablet: '20', mobile: '20', description: 'Alert icon' },
+  { id: 'is-61', path: 'iconSize.notification.alertCompact', category: 'notification', name: 'alertCompact', desktop: '16', tablet: '16', mobile: '16', description: 'Compact alert icon' },
+  { id: 'is-62', path: 'iconSize.notification.toast', category: 'notification', name: 'toast', desktop: '20', tablet: '20', mobile: '20', description: 'Toast icon' },
+  { id: 'is-63', path: 'iconSize.notification.toastClose', category: 'notification', name: 'toastClose', desktop: '16', tablet: '16', mobile: '16', description: 'Toast close icon' },
+  { id: 'is-64', path: 'iconSize.notification.banner', category: 'notification', name: 'banner', desktop: '24', tablet: '24', mobile: '24', description: 'Banner icon' },
+  { id: 'is-65', path: 'iconSize.notification.bannerClose', category: 'notification', name: 'bannerClose', desktop: '20', tablet: '20', mobile: '20', description: 'Banner close icon' },
+
   // ============================================
   // DATA - tables, metrics, charts
   // ============================================
-  { id: 'iconSize.data.tableAction', category: 'data', subcategory: 'table', name: 'tableAction', primitiveRef: '{iconSize.16}', value: 16, description: 'Table action icon' },
-  { id: 'iconSize.data.tableSort', category: 'data', subcategory: 'table', name: 'tableSort', primitiveRef: '{iconSize.14}', value: 14, description: 'Table sort icon' },
-  { id: 'iconSize.data.tableExpand', category: 'data', subcategory: 'table', name: 'tableExpand', primitiveRef: '{iconSize.16}', value: 16, description: 'Table expand icon' },
-  
-  { id: 'iconSize.data.metricTrend', category: 'data', subcategory: 'metric', name: 'metricTrend', primitiveRef: '{iconSize.16}', value: 16, description: 'Metric trend icon' },
-  { id: 'iconSize.data.metricInfo', category: 'data', subcategory: 'metric', name: 'metricInfo', primitiveRef: '{iconSize.14}', value: 14, description: 'Metric info icon' },
-  
-  { id: 'iconSize.data.chartLegend', category: 'data', subcategory: 'chart', name: 'chartLegend', primitiveRef: '{iconSize.12}', value: 12, description: 'Chart legend icon' },
-  
+  { id: 'is-70', path: 'iconSize.data.tableAction', category: 'data', name: 'tableAction', desktop: '16', tablet: '16', mobile: '16', description: 'Table action icon' },
+  { id: 'is-71', path: 'iconSize.data.tableSort', category: 'data', name: 'tableSort', desktop: '14', tablet: '14', mobile: '14', description: 'Table sort icon' },
+  { id: 'is-72', path: 'iconSize.data.tableExpand', category: 'data', name: 'tableExpand', desktop: '16', tablet: '16', mobile: '16', description: 'Table expand icon' },
+  { id: 'is-73', path: 'iconSize.data.metricTrend', category: 'data', name: 'metricTrend', desktop: '16', tablet: '16', mobile: '16', description: 'Metric trend icon' },
+  { id: 'is-74', path: 'iconSize.data.metricInfo', category: 'data', name: 'metricInfo', desktop: '14', tablet: '14', mobile: '14', description: 'Metric info icon' },
+  { id: 'is-75', path: 'iconSize.data.chartLegend', category: 'data', name: 'chartLegend', desktop: '12', tablet: '12', mobile: '12', description: 'Chart legend icon' },
+
   // ============================================
   // MEDIA - avatars, placeholders, players
   // ============================================
-  { id: 'iconSize.media.avatarBadge', category: 'media', subcategory: 'avatar', name: 'avatarBadge', primitiveRef: '{iconSize.12}', value: 12, description: 'Avatar badge icon' },
-  { id: 'iconSize.media.avatarStatus', category: 'media', subcategory: 'avatar', name: 'avatarStatus', primitiveRef: '{iconSize.10}', value: 10, description: 'Avatar status icon' },
-  
-  { id: 'iconSize.media.placeholder', category: 'media', subcategory: 'placeholder', name: 'placeholder', primitiveRef: '{iconSize.48}', value: 48, description: 'Media placeholder icon' },
-  { id: 'iconSize.media.placeholderCompact', category: 'media', subcategory: 'placeholder', name: 'placeholderCompact', primitiveRef: '{iconSize.32}', value: 32, description: 'Compact placeholder' },
-  
-  { id: 'iconSize.media.playButton', category: 'media', subcategory: 'player', name: 'playButton', primitiveRef: '{iconSize.48}', value: 48, description: 'Play button icon' },
-  { id: 'iconSize.media.playButtonCompact', category: 'media', subcategory: 'player', name: 'playButtonCompact', primitiveRef: '{iconSize.32}', value: 32, description: 'Compact play button' },
-  
-  { id: 'iconSize.media.controls', category: 'media', subcategory: 'player', name: 'controls', primitiveRef: '{iconSize.24}', value: 24, description: 'Media controls icon' },
-  { id: 'iconSize.media.controlsCompact', category: 'media', subcategory: 'player', name: 'controlsCompact', primitiveRef: '{iconSize.20}', value: 20, description: 'Compact media controls' },
-  
+  { id: 'is-80', path: 'iconSize.media.avatarBadge', category: 'media', name: 'avatarBadge', desktop: '12', tablet: '12', mobile: '12', description: 'Avatar badge icon' },
+  { id: 'is-81', path: 'iconSize.media.avatarStatus', category: 'media', name: 'avatarStatus', desktop: '10', tablet: '10', mobile: '10', description: 'Avatar status icon' },
+  { id: 'is-82', path: 'iconSize.media.placeholder', category: 'media', name: 'placeholder', desktop: '48', tablet: '48', mobile: '48', description: 'Media placeholder icon' },
+  { id: 'is-83', path: 'iconSize.media.placeholderCompact', category: 'media', name: 'placeholderCompact', desktop: '32', tablet: '32', mobile: '32', description: 'Compact placeholder' },
+  { id: 'is-84', path: 'iconSize.media.playButton', category: 'media', name: 'playButton', desktop: '48', tablet: '48', mobile: '48', description: 'Play button icon' },
+  { id: 'is-85', path: 'iconSize.media.playButtonCompact', category: 'media', name: 'playButtonCompact', desktop: '32', tablet: '32', mobile: '32', description: 'Compact play button' },
+  { id: 'is-86', path: 'iconSize.media.controls', category: 'media', name: 'controls', desktop: '24', tablet: '24', mobile: '24', description: 'Media controls icon' },
+  { id: 'is-87', path: 'iconSize.media.controlsCompact', category: 'media', name: 'controlsCompact', desktop: '20', tablet: '20', mobile: '20', description: 'Compact media controls' },
+
   // ============================================
   // EMPTY - empty states, illustrations
   // ============================================
-  { id: 'iconSize.empty.illustration', category: 'empty', subcategory: 'illustration', name: 'illustration', primitiveRef: '{iconSize.96}', value: 96, description: 'Empty state illustration' },
-  { id: 'iconSize.empty.illustrationCompact', category: 'empty', subcategory: 'illustration', name: 'illustrationCompact', primitiveRef: '{iconSize.64}', value: 64, description: 'Compact illustration' },
-  
-  { id: 'iconSize.empty.icon', category: 'empty', subcategory: 'icon', name: 'icon', primitiveRef: '{iconSize.48}', value: 48, description: 'Empty state icon' },
-  { id: 'iconSize.empty.iconCompact', category: 'empty', subcategory: 'icon', name: 'iconCompact', primitiveRef: '{iconSize.32}', value: 32, description: 'Compact empty state icon' },
-  
+  { id: 'is-90', path: 'iconSize.empty.illustration', category: 'empty', name: 'illustration', desktop: '96', tablet: '96', mobile: '72', description: 'Empty state illustration' },
+  { id: 'is-91', path: 'iconSize.empty.illustrationCompact', category: 'empty', name: 'illustrationCompact', desktop: '64', tablet: '64', mobile: '48', description: 'Compact illustration' },
+  { id: 'is-92', path: 'iconSize.empty.icon', category: 'empty', name: 'icon', desktop: '48', tablet: '48', mobile: '40', description: 'Empty state icon' },
+  { id: 'is-93', path: 'iconSize.empty.iconCompact', category: 'empty', name: 'iconCompact', desktop: '32', tablet: '32', mobile: '28', description: 'Compact empty state icon' },
+
   // ============================================
   // MODAL - dialogs, confirmations
   // ============================================
-  { id: 'iconSize.modal.close', category: 'modal', subcategory: 'control', name: 'close', primitiveRef: '{iconSize.20}', value: 20, description: 'Modal close icon' },
-  { id: 'iconSize.modal.headerIcon', category: 'modal', subcategory: 'header', name: 'headerIcon', primitiveRef: '{iconSize.24}', value: 24, description: 'Modal header icon' },
-  { id: 'iconSize.modal.confirmationIcon', category: 'modal', subcategory: 'confirmation', name: 'confirmationIcon', primitiveRef: '{iconSize.48}', value: 48, description: 'Confirmation dialog icon' },
-  
+  { id: 'is-100', path: 'iconSize.modal.close', category: 'modal', name: 'close', desktop: '20', tablet: '20', mobile: '20', description: 'Modal close icon' },
+  { id: 'is-101', path: 'iconSize.modal.headerIcon', category: 'modal', name: 'headerIcon', desktop: '24', tablet: '24', mobile: '24', description: 'Modal header icon' },
+  { id: 'is-102', path: 'iconSize.modal.confirmationIcon', category: 'modal', name: 'confirmationIcon', desktop: '48', tablet: '48', mobile: '40', description: 'Confirmation dialog icon' },
+
   // ============================================
   // CARD - card components
   // ============================================
-  { id: 'iconSize.card.headerIcon', category: 'card', subcategory: 'header', name: 'headerIcon', primitiveRef: '{iconSize.24}', value: 24, description: 'Card header icon' },
-  { id: 'iconSize.card.action', category: 'card', subcategory: 'action', name: 'action', primitiveRef: '{iconSize.18}', value: 18, description: 'Card action icon' },
-  { id: 'iconSize.card.meta', category: 'card', subcategory: 'meta', name: 'meta', primitiveRef: '{iconSize.14}', value: 14, description: 'Card meta icon' },
-  { id: 'iconSize.card.feature', category: 'card', subcategory: 'feature', name: 'feature', primitiveRef: '{iconSize.32}', value: 32, description: 'Card feature icon' },
-  
+  { id: 'is-110', path: 'iconSize.card.headerIcon', category: 'card', name: 'headerIcon', desktop: '24', tablet: '24', mobile: '24', description: 'Card header icon' },
+  { id: 'is-111', path: 'iconSize.card.action', category: 'card', name: 'action', desktop: '18', tablet: '18', mobile: '18', description: 'Card action icon' },
+  { id: 'is-112', path: 'iconSize.card.meta', category: 'card', name: 'meta', desktop: '14', tablet: '14', mobile: '14', description: 'Card meta icon' },
+  { id: 'is-113', path: 'iconSize.card.feature', category: 'card', name: 'feature', desktop: '32', tablet: '32', mobile: '28', description: 'Card feature icon' },
+
   // ============================================
   // LIST - list items
   // ============================================
-  { id: 'iconSize.list.itemIcon', category: 'list', subcategory: 'item', name: 'itemIcon', primitiveRef: '{iconSize.20}', value: 20, description: 'List item icon' },
-  { id: 'iconSize.list.itemIconCompact', category: 'list', subcategory: 'item', name: 'itemIconCompact', primitiveRef: '{iconSize.16}', value: 16, description: 'Compact list item icon' },
-  
-  { id: 'iconSize.list.bullet', category: 'list', subcategory: 'bullet', name: 'bullet', primitiveRef: '{iconSize.10}', value: 10, description: 'List bullet' },
-  { id: 'iconSize.list.checkbox', category: 'list', subcategory: 'checkbox', name: 'checkbox', primitiveRef: '{iconSize.18}', value: 18, description: 'List checkbox icon' },
-  
-  { id: 'iconSize.list.dragHandle', category: 'list', subcategory: 'drag', name: 'dragHandle', primitiveRef: '{iconSize.16}', value: 16, description: 'Drag handle icon' },
-  { id: 'iconSize.list.expandArrow', category: 'list', subcategory: 'expand', name: 'expandArrow', primitiveRef: '{iconSize.16}', value: 16, description: 'List expand arrow' },
-  
+  { id: 'is-120', path: 'iconSize.list.itemIcon', category: 'list', name: 'itemIcon', desktop: '20', tablet: '20', mobile: '20', description: 'List item icon' },
+  { id: 'is-121', path: 'iconSize.list.itemIconCompact', category: 'list', name: 'itemIconCompact', desktop: '16', tablet: '16', mobile: '16', description: 'Compact list item icon' },
+  { id: 'is-122', path: 'iconSize.list.bullet', category: 'list', name: 'bullet', desktop: '10', tablet: '10', mobile: '10', description: 'List bullet' },
+  { id: 'is-123', path: 'iconSize.list.checkbox', category: 'list', name: 'checkbox', desktop: '18', tablet: '18', mobile: '18', description: 'List checkbox icon' },
+  { id: 'is-124', path: 'iconSize.list.dragHandle', category: 'list', name: 'dragHandle', desktop: '16', tablet: '16', mobile: '16', description: 'Drag handle icon' },
+  { id: 'is-125', path: 'iconSize.list.expandArrow', category: 'list', name: 'expandArrow', desktop: '16', tablet: '16', mobile: '16', description: 'List expand arrow' },
+
   // ============================================
   // ACTION - FAB, context menu, more
   // ============================================
-  { id: 'iconSize.action.primary', category: 'action', subcategory: 'primary', name: 'primary', primitiveRef: '{iconSize.20}', value: 20, description: 'Primary action icon' },
-  { id: 'iconSize.action.secondary', category: 'action', subcategory: 'secondary', name: 'secondary', primitiveRef: '{iconSize.18}', value: 18, description: 'Secondary action icon' },
-  { id: 'iconSize.action.tertiary', category: 'action', subcategory: 'tertiary', name: 'tertiary', primitiveRef: '{iconSize.16}', value: 16, description: 'Tertiary action icon' },
-  
-  { id: 'iconSize.action.fab', category: 'action', subcategory: 'fab', name: 'fab', primitiveRef: '{iconSize.24}', value: 24, description: 'FAB icon' },
-  { id: 'iconSize.action.fabCompact', category: 'action', subcategory: 'fab', name: 'fabCompact', primitiveRef: '{iconSize.20}', value: 20, description: 'Compact FAB icon' },
-  
-  { id: 'iconSize.action.contextMenu', category: 'action', subcategory: 'context', name: 'contextMenu', primitiveRef: '{iconSize.16}', value: 16, description: 'Context menu icon' },
-  { id: 'iconSize.action.more', category: 'action', subcategory: 'more', name: 'more', primitiveRef: '{iconSize.20}', value: 20, description: 'More actions icon' },
-  
+  { id: 'is-130', path: 'iconSize.action.primary', category: 'action', name: 'primary', desktop: '20', tablet: '20', mobile: '20', description: 'Primary action icon' },
+  { id: 'is-131', path: 'iconSize.action.secondary', category: 'action', name: 'secondary', desktop: '18', tablet: '18', mobile: '18', description: 'Secondary action icon' },
+  { id: 'is-132', path: 'iconSize.action.tertiary', category: 'action', name: 'tertiary', desktop: '16', tablet: '16', mobile: '16', description: 'Tertiary action icon' },
+  { id: 'is-133', path: 'iconSize.action.fab', category: 'action', name: 'fab', desktop: '24', tablet: '24', mobile: '24', description: 'FAB icon' },
+  { id: 'is-134', path: 'iconSize.action.fabCompact', category: 'action', name: 'fabCompact', desktop: '20', tablet: '20', mobile: '20', description: 'Compact FAB icon' },
+  { id: 'is-135', path: 'iconSize.action.contextMenu', category: 'action', name: 'contextMenu', desktop: '16', tablet: '16', mobile: '16', description: 'Context menu icon' },
+  { id: 'is-136', path: 'iconSize.action.more', category: 'action', name: 'more', desktop: '20', tablet: '20', mobile: '20', description: 'More actions icon' },
+
   // ============================================
   // LOADING - spinners, loaders
   // ============================================
-  { id: 'iconSize.loading.spinner', category: 'loading', subcategory: 'spinner', name: 'spinner', primitiveRef: '{iconSize.20}', value: 20, description: 'Default spinner' },
-  { id: 'iconSize.loading.spinnerCompact', category: 'loading', subcategory: 'spinner', name: 'spinnerCompact', primitiveRef: '{iconSize.16}', value: 16, description: 'Compact spinner' },
-  { id: 'iconSize.loading.spinnerLarge', category: 'loading', subcategory: 'spinner', name: 'spinnerLarge', primitiveRef: '{iconSize.32}', value: 32, description: 'Large spinner' },
-  
-  { id: 'iconSize.loading.button', category: 'loading', subcategory: 'button', name: 'button', primitiveRef: '{iconSize.16}', value: 16, description: 'Button loading spinner' },
-  { id: 'iconSize.loading.page', category: 'loading', subcategory: 'page', name: 'page', primitiveRef: '{iconSize.48}', value: 48, description: 'Page loading spinner' },
-  
+  { id: 'is-140', path: 'iconSize.loading.spinner', category: 'loading', name: 'spinner', desktop: '20', tablet: '20', mobile: '20', description: 'Default spinner' },
+  { id: 'is-141', path: 'iconSize.loading.spinnerCompact', category: 'loading', name: 'spinnerCompact', desktop: '16', tablet: '16', mobile: '16', description: 'Compact spinner' },
+  { id: 'is-142', path: 'iconSize.loading.spinnerLarge', category: 'loading', name: 'spinnerLarge', desktop: '32', tablet: '32', mobile: '32', description: 'Large spinner' },
+  { id: 'is-143', path: 'iconSize.loading.button', category: 'loading', name: 'button', desktop: '16', tablet: '16', mobile: '16', description: 'Button loading spinner' },
+  { id: 'is-144', path: 'iconSize.loading.page', category: 'loading', name: 'page', desktop: '48', tablet: '48', mobile: '40', description: 'Page loading spinner' },
+
   // ============================================
   // SPECIAL - logos, social, rating, stepper
   // ============================================
-  { id: 'iconSize.special.logo', category: 'special', subcategory: 'logo', name: 'logo', primitiveRef: '{iconSize.32}', value: 32, description: 'Logo icon' },
-  { id: 'iconSize.special.logoCompact', category: 'special', subcategory: 'logo', name: 'logoCompact', primitiveRef: '{iconSize.24}', value: 24, description: 'Compact logo' },
-  { id: 'iconSize.special.logoLarge', category: 'special', subcategory: 'logo', name: 'logoLarge', primitiveRef: '{iconSize.48}', value: 48, description: 'Large logo' },
-  
-  { id: 'iconSize.special.social', category: 'special', subcategory: 'social', name: 'social', primitiveRef: '{iconSize.24}', value: 24, description: 'Social icon' },
-  { id: 'iconSize.special.socialCompact', category: 'special', subcategory: 'social', name: 'socialCompact', primitiveRef: '{iconSize.20}', value: 20, description: 'Compact social icon' },
-  
-  { id: 'iconSize.special.rating', category: 'special', subcategory: 'rating', name: 'rating', primitiveRef: '{iconSize.18}', value: 18, description: 'Rating star icon' },
-  { id: 'iconSize.special.ratingCompact', category: 'special', subcategory: 'rating', name: 'ratingCompact', primitiveRef: '{iconSize.14}', value: 14, description: 'Compact rating star' },
-  
-  { id: 'iconSize.special.step', category: 'special', subcategory: 'stepper', name: 'step', primitiveRef: '{iconSize.24}', value: 24, description: 'Stepper icon' },
-  { id: 'iconSize.special.stepCompact', category: 'special', subcategory: 'stepper', name: 'stepCompact', primitiveRef: '{iconSize.20}', value: 20, description: 'Compact stepper icon' },
+  { id: 'is-150', path: 'iconSize.special.logo', category: 'special', name: 'logo', desktop: '32', tablet: '32', mobile: '28', description: 'Logo icon' },
+  { id: 'is-151', path: 'iconSize.special.logoCompact', category: 'special', name: 'logoCompact', desktop: '24', tablet: '24', mobile: '24', description: 'Compact logo' },
+  { id: 'is-152', path: 'iconSize.special.logoLarge', category: 'special', name: 'logoLarge', desktop: '48', tablet: '48', mobile: '40', description: 'Large logo' },
+  { id: 'is-153', path: 'iconSize.special.social', category: 'special', name: 'social', desktop: '24', tablet: '24', mobile: '24', description: 'Social icon' },
+  { id: 'is-154', path: 'iconSize.special.socialCompact', category: 'special', name: 'socialCompact', desktop: '20', tablet: '20', mobile: '20', description: 'Compact social icon' },
+  { id: 'is-155', path: 'iconSize.special.rating', category: 'special', name: 'rating', desktop: '18', tablet: '18', mobile: '18', description: 'Rating star icon' },
+  { id: 'is-156', path: 'iconSize.special.ratingCompact', category: 'special', name: 'ratingCompact', desktop: '14', tablet: '14', mobile: '14', description: 'Compact rating star' },
+  { id: 'is-157', path: 'iconSize.special.step', category: 'special', name: 'step', desktop: '24', tablet: '24', mobile: '24', description: 'Stepper icon' },
+  { id: 'is-158', path: 'iconSize.special.stepCompact', category: 'special', name: 'stepCompact', desktop: '20', tablet: '20', mobile: '20', description: 'Compact stepper icon' },
 ];
 
-// Category labels for UI
+// Category labels for UI (backward compatibility)
 export const ICON_SIZE_CATEGORY_LABELS: Record<IconSizeCategory, string> = {
   interactive: 'Interactive',
   form: 'Form',
@@ -272,7 +269,7 @@ export const ICON_SIZE_CATEGORY_LABELS: Record<IconSizeCategory, string> = {
   special: 'Special',
 };
 
-// Category descriptions
+// Category descriptions (backward compatibility)
 export const ICON_SIZE_CATEGORY_DESCRIPTIONS: Record<IconSizeCategory, string> = {
   interactive: 'Buttons, links, menu items, tabs',
   form: 'Inputs, selects, checkboxes, radio, validation',
@@ -289,3 +286,19 @@ export const ICON_SIZE_CATEGORY_DESCRIPTIONS: Record<IconSizeCategory, string> =
   loading: 'Spinners and loaders',
   special: 'Logos, social icons, ratings, steppers',
 };
+
+// Helper functions
+export function getIconSizeTokensByCategory(category: IconSizeCategory): IconSizeSemanticToken[] {
+  return DEFAULT_ICON_SIZE_SEMANTIC_TOKENS.filter(t => t.category === category);
+}
+
+export function getEnabledIconSizePrimitives(primitives: IconSizePrimitive[]): IconSizePrimitive[] {
+  return primitives.filter(p => p.selected);
+}
+
+export function createDefaultIconSizeState(): IconSizeState {
+  return {
+    primitives: [...DEFAULT_ICON_SIZE_PRIMITIVES],
+    semanticTokens: [...DEFAULT_ICON_SIZE_SEMANTIC_TOKENS],
+  };
+}

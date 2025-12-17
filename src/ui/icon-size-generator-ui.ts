@@ -1,9 +1,9 @@
 /**
  * Icon Size Generator UI
- * 2-tier architecture (like Spacing/Gap/Radius)
+ * 2-tier architecture with device modes (like Spacing/Gap)
  * 
  * Level 1: Primitives (iconSize.10, iconSize.16...) → Primitives collection
- * Level 2: Semantic (iconSize.interactive.button) → Icon Size collection
+ * Level 2: Semantic (iconSize.interactive.button) → Icon Size collection with Desktop/Tablet/Mobile modes
  */
 
 import {
@@ -12,8 +12,7 @@ import {
   IconSizeCategory,
   DEFAULT_ICON_SIZE_PRIMITIVES,
   DEFAULT_ICON_SIZE_SEMANTIC_TOKENS,
-  ICON_SIZE_CATEGORY_LABELS,
-  ICON_SIZE_CATEGORY_DESCRIPTIONS,
+  ICON_SIZE_CATEGORIES,
 } from '../types/icon-size-tokens';
 
 // ============================================
@@ -216,7 +215,7 @@ function renderIconSizeCategoryTabs(): void {
   
   container.innerHTML = categories.map(cat => {
     const isActive = activeIconSizeCategory === cat;
-    const label = cat === 'all' ? 'Все' : ICON_SIZE_CATEGORY_LABELS[cat];
+    const label = cat === 'all' ? 'Все' : ICON_SIZE_CATEGORIES[cat].label;
     const count = cat === 'all' 
       ? iconSizeState.semanticTokens.length
       : iconSizeState.semanticTokens.filter(t => t.category === cat).length;
@@ -231,7 +230,7 @@ function renderIconSizeCategoryTabs(): void {
 }
 
 // ============================================
-// RENDER SEMANTIC TOKENS
+// RENDER SEMANTIC TOKENS (with device modes)
 // ============================================
 
 function renderIconSizeSemanticTokens(): void {
@@ -257,27 +256,33 @@ function renderIconSizeSemanticTokens(): void {
     html += `
       <div class="spacing-semantic-category">
         <div class="semantic-category-header">
-          <span class="semantic-category-name">${ICON_SIZE_CATEGORY_LABELS[category]}</span>
-          <span class="semantic-category-desc">${ICON_SIZE_CATEGORY_DESCRIPTIONS[category]}</span>
+          <span class="semantic-category-name">${ICON_SIZE_CATEGORIES[category].label}</span>
+          <span class="semantic-category-desc">${ICON_SIZE_CATEGORIES[category].description}</span>
         </div>
         <div class="spacing-semantic-tokens">
-          ${tokens.map(t => `
-            <div class="spacing-semantic-item" title="${t.description || t.id}">
-              <div class="semantic-icon-preview" style="width: ${Math.min(t.value, 32)}px; height: ${Math.min(t.value, 32)}px;">
+          ${tokens.map(t => {
+            // Check if values differ across devices
+            const hasDifference = t.desktop !== t.tablet || t.tablet !== t.mobile;
+            const previewSize = Math.min(parseInt(t.desktop), 32);
+            
+            return `
+            <div class="spacing-semantic-item ${hasDifference ? 'has-variation' : ''}" title="${t.description || t.path}">
+              <div class="semantic-icon-preview" style="width: ${previewSize}px; height: ${previewSize}px;">
                 <svg viewBox="0 0 24 24" fill="var(--color-primary)" style="width: 100%; height: 100%;">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                 </svg>
               </div>
               <div class="semantic-token-info">
                 <span class="semantic-token-name">${t.name}</span>
-                <span class="semantic-token-path">${t.id}</span>
+                <span class="semantic-token-path">${t.path}</span>
               </div>
-              <div class="semantic-token-value">
-                <span class="ref">${t.primitiveRef}</span>
-                <span class="resolved">${t.value}px</span>
+              <div class="semantic-token-devices">
+                <span class="device-value" title="Desktop">🖥 ${t.desktop}</span>
+                <span class="device-value" title="Tablet">📱 ${t.tablet}</span>
+                <span class="device-value" title="Mobile">📲 ${t.mobile}</span>
               </div>
             </div>
-          `).join('')}
+          `}).join('')}
         </div>
       </div>
     `;
@@ -314,14 +319,24 @@ function exportIconSizePrimitivesToFigma(): void {
 }
 
 function exportIconSizeSemanticToFigma(): void {
+  // Send tokens with device mode structure
   parent.postMessage({
     pluginMessage: {
       type: 'create-icon-size-semantic',
-      tokens: iconSizeState.semanticTokens
+      tokens: iconSizeState.semanticTokens.map(t => ({
+        id: t.id,
+        path: t.path,
+        category: t.category,
+        name: t.name,
+        description: t.description,
+        desktop: t.desktop,
+        tablet: t.tablet,
+        mobile: t.mobile,
+      }))
     }
   }, '*');
   
-  showExportStatus('Семантические токены отправлены в Figma...', 'info');
+  showExportStatus('Семантические токены с режимами устройств отправлены в Figma...', 'info');
 }
 
 function generateIconSizeDocumentation(): void {
@@ -346,21 +361,39 @@ function exportIconSizeCode(format: 'css' | 'scss' | 'json'): void {
     enabled.forEach(p => {
       content += `  --icon-size-${p.name}: ${p.value}px;\n`;
     });
-    content += `\n  /* Icon Size Semantic Tokens */\n`;
+    content += `\n  /* Icon Size Semantic Tokens (Desktop values) */\n`;
     iconSizeState.semanticTokens.forEach(t => {
-      const cssName = t.id.replace(/\./g, '-');
-      content += `  --${cssName}: var(--icon-size-${t.value});\n`;
+      const cssName = t.path.replace(/\./g, '-');
+      content += `  --${cssName}: var(--icon-size-${t.desktop});\n`;
     });
     content += `}\n`;
+    
+    // Add media queries for tablet/mobile
+    content += `\n/* Tablet */\n@media (max-width: 1024px) {\n  :root {\n`;
+    iconSizeState.semanticTokens.filter(t => t.tablet !== t.desktop).forEach(t => {
+      const cssName = t.path.replace(/\./g, '-');
+      content += `    --${cssName}: var(--icon-size-${t.tablet});\n`;
+    });
+    content += `  }\n}\n`;
+    
+    content += `\n/* Mobile */\n@media (max-width: 768px) {\n  :root {\n`;
+    iconSizeState.semanticTokens.filter(t => t.mobile !== t.tablet).forEach(t => {
+      const cssName = t.path.replace(/\./g, '-');
+      content += `    --${cssName}: var(--icon-size-${t.mobile});\n`;
+    });
+    content += `  }\n}\n`;
+    
   } else if (format === 'scss') {
     content = `// Icon Size Primitives\n`;
     enabled.forEach(p => {
       content += `$icon-size-${p.name}: ${p.value}px;\n`;
     });
-    content += `\n// Icon Size Semantic Tokens\n`;
+    content += `\n// Icon Size Semantic Tokens (with device variations)\n`;
     iconSizeState.semanticTokens.forEach(t => {
-      const scssName = t.id.replace(/\./g, '-');
-      content += `$${scssName}: $icon-size-${t.value};\n`;
+      const scssName = t.path.replace(/\./g, '-');
+      content += `$${scssName}-desktop: $icon-size-${t.desktop};\n`;
+      content += `$${scssName}-tablet: $icon-size-${t.tablet};\n`;
+      content += `$${scssName}-mobile: $icon-size-${t.mobile};\n`;
     });
   } else if (format === 'json') {
     const data = {
@@ -368,9 +401,10 @@ function exportIconSizeCode(format: 'css' | 'scss' | 'json'): void {
         enabled.map(p => [`iconSize.${p.name}`, { value: p.value, type: 'number' }])
       ),
       semantic: Object.fromEntries(
-        iconSizeState.semanticTokens.map(t => [t.id, { 
-          value: t.primitiveRef,
-          resolvedValue: t.value,
+        iconSizeState.semanticTokens.map(t => [t.path, { 
+          desktop: { ref: `{iconSize.${t.desktop}}`, value: parseInt(t.desktop) },
+          tablet: { ref: `{iconSize.${t.tablet}}`, value: parseInt(t.tablet) },
+          mobile: { ref: `{iconSize.${t.mobile}}`, value: parseInt(t.mobile) },
           type: 'number',
           description: t.description
         }])
