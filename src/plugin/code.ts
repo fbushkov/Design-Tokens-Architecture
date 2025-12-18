@@ -3354,7 +3354,7 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
       // Извлекаем базовые значения из токена
       const baseFontSize = parseFloat(parseTokenReference(token.fontSize));
       const baseLineHeight = parseFloat(parseTokenReference(token.lineHeight));
-      const baseLetterSpacing = parseFloat(parseTokenReference(token.letterSpacing));
+      const letterSpacingKey = parseTokenReference(token.letterSpacing); // Ключ, не число! (e.g., 'n025', '000')
       const fontWeightKey = parseTokenReference(token.fontWeight);
       
       // Флаг responsive - если true, масштабируем; если false - одинаковое значение везде
@@ -3474,7 +3474,8 @@ async function createSemanticTypographyVariables(payload: SemanticTypographyVari
       letterSpacingVar.description = `${token.description || token.name} - Letter spacing`;
       
       // Letter spacing обычно не масштабируется, используем одинаковое значение для всех режимов
-      const letterSpacingPrimitiveName = `font/letterSpacing/${baseLetterSpacing}`;
+      // Ключ типа 'n025', '000', '010' - ищем примитив напрямую по имени
+      const letterSpacingPrimitiveName = `font/letterSpacing/${letterSpacingKey}`;
       const letterSpacingPrimitive = primitiveVarMap.get(letterSpacingPrimitiveName);
       
       if (letterSpacingPrimitive) {

@@ -277,9 +277,9 @@ function renderSemanticEffects(): string {
         `).join('')}
       </div>
       
-      <div class="semantic-tokens-list">
+      <div class="effects-semantic-list">
         ${tokens.length === 0 ? `
-          <div class="empty-state">
+          <div class="effects-empty-state">
             <p>Нет токенов в категории "${activeEffectsCategory}"</p>
             <button class="btn btn-primary btn-add-effect-token">+ Добавить токен</button>
           </div>
@@ -317,16 +317,16 @@ function renderEffectToken(token: EffectSemanticToken): string {
   
   return `
     <div class="effect-token" data-token-id="${token.id}">
-      <div class="token-header">
-        <span class="token-path">${token.path}</span>
-        <div class="token-actions">
+      <div class="effect-token-header">
+        <span class="effect-token-path">${token.path}</span>
+        <div class="effect-token-actions">
           <button class="btn btn-icon btn-edit-token" title="Редактировать">✏️</button>
           <button class="btn btn-icon btn-delete-token" title="Удалить">🗑</button>
         </div>
       </div>
       
       ${isShadow ? `
-        <div class="token-preview shadow-preview">
+        <div class="effect-token-preview shadow-preview">
           <div class="preview-box" style="box-shadow: ${token.shadowType === 'inset' ? 'inset ' : ''}${
             getPrimitiveValue('offsetX', token.offsetX)}px ${
             getPrimitiveValue('offsetY', token.offsetY)}px ${
@@ -334,7 +334,7 @@ function renderEffectToken(token: EffectSemanticToken): string {
             getPrimitiveValue('spread', token.spread)}px ${
             getColorValue(token.color)}"></div>
         </div>
-        <div class="token-values">
+        <div class="effect-token-values">
           <span>X: ${token.offsetX}</span>
           <span>Y: ${token.offsetY}</span>
           <span>Blur: ${token.blur}</span>
@@ -345,20 +345,20 @@ function renderEffectToken(token: EffectSemanticToken): string {
       ` : ''}
       
       ${isBackdrop ? `
-        <div class="token-preview backdrop-preview">
+        <div class="effect-token-preview backdrop-preview">
           <div class="preview-blur" style="backdrop-filter: blur(${getPrimitiveValue('backdrop', token.backdropBlur)}px); opacity: ${getPrimitiveValue('opacity', token.backdropOpacity) / 100}"></div>
         </div>
-        <div class="token-values">
+        <div class="effect-token-values">
           <span>Blur: ${token.backdropBlur}</span>
           <span>Opacity: ${token.backdropOpacity}%</span>
         </div>
       ` : ''}
       
       ${isOpacity ? `
-        <div class="token-preview opacity-preview">
+        <div class="effect-token-preview opacity-preview">
           <div class="preview-opacity" style="opacity: ${getPrimitiveValue('opacity', token.opacity) / 100}"></div>
         </div>
-        <div class="token-values">
+        <div class="effect-token-values">
           <span>Opacity: ${token.opacity}%</span>
         </div>
       ` : ''}
