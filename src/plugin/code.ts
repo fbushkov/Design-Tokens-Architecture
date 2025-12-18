@@ -4307,6 +4307,342 @@ async function generateIconSizeDocumentation(): Promise<DocGeneratorResult> {
 }
 
 // ============================================
+// EFFECTS PRIMITIVES & SEMANTIC (Shadows, Blur, Opacity)
+// ============================================
+
+interface EffectsPrimitivesPayload {
+  shadowOffsetX: Array<{ name: string; value: number }>;
+  shadowOffsetY: Array<{ name: string; value: number }>;
+  shadowBlur: Array<{ name: string; value: number }>;
+  shadowSpread: Array<{ name: string; value: number }>;
+  shadowColors: Array<{ name: string; baseColor: string; opacity: number }>;
+  blurs: Array<{ name: string; value: number }>;
+  opacities: Array<{ name: string; value: number }>;
+}
+
+interface EffectsSemanticPayload {
+  semanticTokens: Array<{
+    id: string;
+    path: string;
+    category: string;
+    name: string;
+    // Shadow properties (optional)
+    offsetX?: string;
+    offsetY?: string;
+    blur?: string;
+    spread?: string;
+    color?: string;
+    shadowType?: 'drop' | 'inset';
+    // Backdrop blur (optional)
+    backdropBlur?: string;
+    backdropOpacity?: string;
+    // Opacity (optional)
+    opacity?: string;
+  }>;
+}
+
+async function createEffectsPrimitives(payload: EffectsPrimitivesPayload): Promise<{ created: number; updated: number; errors: string[] }> {
+  const result = { created: 0, updated: 0, errors: [] as string[] };
+  
+  // Get or create Primitives collection
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  let primitivesCollection = collections.find(c => c.name === 'Primitives');
+  
+  if (!primitivesCollection) {
+    primitivesCollection = figma.variables.createVariableCollection('Primitives');
+  }
+  
+  // Get existing variables
+  const existingVariables = await figma.variables.getLocalVariablesAsync();
+  
+  // Helper to create/update FLOAT primitive
+  const createFloatPrimitive = async (prefix: string, name: string, value: number, description: string) => {
+    try {
+      const varName = `${prefix}/${name}`;
+      let existingVar = existingVariables.find(v => 
+        v.name === varName && v.variableCollectionId === primitivesCollection!.id
+      );
+      
+      if (existingVar) {
+        existingVar.setValueForMode(primitivesCollection!.defaultModeId, value);
+        result.updated++;
+      } else {
+        const newVar = figma.variables.createVariable(varName, primitivesCollection!, 'FLOAT');
+        newVar.setValueForMode(primitivesCollection!.defaultModeId, value);
+        newVar.description = description;
+        result.created++;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания ${prefix}/${name}: ${errorMessage}`);
+    }
+  };
+  
+  // Helper to create/update COLOR primitive
+  const createColorPrimitive = async (prefix: string, name: string, baseColor: string, opacity: number) => {
+    try {
+      const varName = `${prefix}/${name}`;
+      let existingVar = existingVariables.find(v => 
+        v.name === varName && v.variableCollectionId === primitivesCollection!.id
+      );
+      
+      // Convert base color to RGBA
+      let rgb: { r: number; g: number; b: number };
+      switch (baseColor) {
+        case 'black':
+          rgb = { r: 0, g: 0, b: 0 };
+          break;
+        case 'white':
+          rgb = { r: 1, g: 1, b: 1 };
+          break;
+        case 'brand':
+          rgb = { r: 0.231, g: 0.51, b: 0.965 }; // #3B82F6
+          break;
+        case 'error':
+          rgb = { r: 0.937, g: 0.267, b: 0.267 }; // #EF4444
+          break;
+        case 'success':
+          rgb = { r: 0.133, g: 0.773, b: 0.369 }; // #22C55E
+          break;
+        case 'warning':
+          rgb = { r: 0.965, g: 0.69, b: 0.173 }; // #F6B02C
+          break;
+        default:
+          rgb = { r: 0, g: 0, b: 0 };
+      }
+      
+      const colorValue: RGBA = { ...rgb, a: opacity / 100 };
+      
+      if (existingVar) {
+        existingVar.setValueForMode(primitivesCollection!.defaultModeId, colorValue);
+        result.updated++;
+      } else {
+        const newVar = figma.variables.createVariable(varName, primitivesCollection!, 'COLOR');
+        newVar.setValueForMode(primitivesCollection!.defaultModeId, colorValue);
+        newVar.description = `${baseColor} @ ${opacity}% opacity`;
+        result.created++;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания ${prefix}/${name}: ${errorMessage}`);
+    }
+  };
+  
+  // Create Shadow Offset X primitives
+  for (const prim of payload.shadowOffsetX) {
+    await createFloatPrimitive('shadow/offsetX', prim.name, prim.value, `Shadow offset X: ${prim.value}px`);
+  }
+  
+  // Create Shadow Offset Y primitives
+  for (const prim of payload.shadowOffsetY) {
+    await createFloatPrimitive('shadow/offsetY', prim.name, prim.value, `Shadow offset Y: ${prim.value}px`);
+  }
+  
+  // Create Shadow Blur primitives
+  for (const prim of payload.shadowBlur) {
+    await createFloatPrimitive('shadow/blur', prim.name, prim.value, `Shadow blur: ${prim.value}px`);
+  }
+  
+  // Create Shadow Spread primitives
+  for (const prim of payload.shadowSpread) {
+    await createFloatPrimitive('shadow/spread', prim.name, prim.value, `Shadow spread: ${prim.value}px`);
+  }
+  
+  // Create Shadow Color primitives
+  for (const prim of payload.shadowColors) {
+    await createColorPrimitive('shadow/color', prim.name, prim.baseColor, prim.opacity);
+  }
+  
+  // Create Backdrop Blur primitives
+  for (const prim of payload.blurs) {
+    await createFloatPrimitive('blur', prim.name, prim.value, `Backdrop blur: ${prim.value}px`);
+  }
+  
+  // Create Opacity primitives
+  for (const prim of payload.opacities) {
+    await createFloatPrimitive('opacity', prim.name, prim.value / 100, `Opacity: ${prim.value}%`);
+  }
+  
+  return result;
+}
+
+async function createEffectsSemanticCollection(payload: EffectsSemanticPayload): Promise<{ created: number; aliased: number; errors: string[] }> {
+  const result = { created: 0, aliased: 0, errors: [] as string[] };
+  
+  // Get all collections
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  
+  // Find Primitives collection
+  const primitivesCollection = collections.find(c => c.name === 'Primitives');
+  if (!primitivesCollection) {
+    result.errors.push('Коллекция Primitives не найдена. Сначала создайте примитивы.');
+    return result;
+  }
+  
+  // Find or create Effects collection
+  let effectsCollection = collections.find(c => c.name === 'Effects');
+  if (!effectsCollection) {
+    effectsCollection = figma.variables.createVariableCollection('Effects');
+  }
+  
+  // Get all existing variables
+  const allFloatVariables = await figma.variables.getLocalVariablesAsync('FLOAT');
+  const allColorVariables = await figma.variables.getLocalVariablesAsync('COLOR');
+  
+  // Build primitive variable maps
+  const primitiveFloatMap = new Map<string, Variable>();
+  const primitiveColorMap = new Map<string, Variable>();
+  
+  allFloatVariables.forEach(v => {
+    if (v.variableCollectionId === primitivesCollection.id) {
+      primitiveFloatMap.set(v.name, v);
+    }
+  });
+  
+  allColorVariables.forEach(v => {
+    if (v.variableCollectionId === primitivesCollection.id) {
+      primitiveColorMap.set(v.name, v);
+    }
+  });
+  
+  // Existing semantic variables in Effects collection
+  const existingEffectsVars = [...allFloatVariables, ...allColorVariables].filter(
+    v => v.variableCollectionId === effectsCollection!.id
+  );
+  const existingVarMap = new Map<string, Variable>();
+  existingEffectsVars.forEach(v => existingVarMap.set(v.name, v));
+  
+  // Create semantic tokens
+  for (const token of payload.semanticTokens) {
+    try {
+      // Convert path: "effect.elevation.100" -> "effect/elevation/100"
+      const basePath = token.path.replace(/\./g, '/');
+      
+      // Create variables for shadow properties
+      if (token.offsetX !== undefined) {
+        // Shadow token - create multiple variables for each property
+        const props = ['offsetX', 'offsetY', 'blur', 'spread'];
+        const values = [token.offsetX, token.offsetY, token.blur, token.spread];
+        const prefixes = ['shadow/offsetX', 'shadow/offsetY', 'shadow/blur', 'shadow/spread'];
+        
+        for (let i = 0; i < props.length; i++) {
+          const varName = `${basePath}/${props[i]}`;
+          const primRef = `${prefixes[i]}/${values[i]}`;
+          const primitive = primitiveFloatMap.get(primRef);
+          
+          let variable = existingVarMap.get(varName);
+          if (!variable) {
+            variable = figma.variables.createVariable(varName, effectsCollection!, 'FLOAT');
+            result.created++;
+          }
+          
+          if (primitive) {
+            const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: primitive.id };
+            variable.setValueForMode(effectsCollection!.defaultModeId, alias);
+            result.aliased++;
+          } else {
+            // Fallback to direct value
+            const numValue = parseFloat(values[i] || '0') || 0;
+            variable.setValueForMode(effectsCollection!.defaultModeId, numValue);
+          }
+        }
+        
+        // Create color variable
+        if (token.color) {
+          const colorVarName = `${basePath}/color`;
+          const colorPrimRef = `shadow/color/${token.color}`;
+          const colorPrimitive = primitiveColorMap.get(colorPrimRef);
+          
+          let colorVar = existingVarMap.get(colorVarName);
+          if (!colorVar) {
+            colorVar = figma.variables.createVariable(colorVarName, effectsCollection!, 'COLOR');
+            result.created++;
+          }
+          
+          if (colorPrimitive) {
+            const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: colorPrimitive.id };
+            colorVar.setValueForMode(effectsCollection!.defaultModeId, alias);
+            result.aliased++;
+          }
+        }
+      }
+      
+      // Create backdrop blur variable
+      if (token.backdropBlur !== undefined) {
+        const blurVarName = `${basePath}/blur`;
+        const blurPrimRef = `blur/${token.backdropBlur}`;
+        const blurPrimitive = primitiveFloatMap.get(blurPrimRef);
+        
+        let blurVar = existingVarMap.get(blurVarName);
+        if (!blurVar) {
+          blurVar = figma.variables.createVariable(blurVarName, effectsCollection!, 'FLOAT');
+          result.created++;
+        }
+        
+        if (blurPrimitive) {
+          const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: blurPrimitive.id };
+          blurVar.setValueForMode(effectsCollection!.defaultModeId, alias);
+          result.aliased++;
+        } else {
+          const numValue = parseFloat(token.backdropBlur) || 0;
+          blurVar.setValueForMode(effectsCollection!.defaultModeId, numValue);
+        }
+        
+        // Create backdrop opacity variable
+        if (token.backdropOpacity) {
+          const opacityVarName = `${basePath}/opacity`;
+          const opacityPrimRef = `opacity/${token.backdropOpacity}`;
+          const opacityPrimitive = primitiveFloatMap.get(opacityPrimRef);
+          
+          let opacityVar = existingVarMap.get(opacityVarName);
+          if (!opacityVar) {
+            opacityVar = figma.variables.createVariable(opacityVarName, effectsCollection!, 'FLOAT');
+            result.created++;
+          }
+          
+          if (opacityPrimitive) {
+            const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: opacityPrimitive.id };
+            opacityVar.setValueForMode(effectsCollection!.defaultModeId, alias);
+            result.aliased++;
+          } else {
+            const numValue = parseFloat(token.backdropOpacity) / 100 || 0;
+            opacityVar.setValueForMode(effectsCollection!.defaultModeId, numValue);
+          }
+        }
+      }
+      
+      // Create standalone opacity variable
+      if (token.opacity !== undefined && token.backdropBlur === undefined) {
+        const opacityVarName = `${basePath}/value`;
+        const opacityPrimRef = `opacity/${token.opacity}`;
+        const opacityPrimitive = primitiveFloatMap.get(opacityPrimRef);
+        
+        let opacityVar = existingVarMap.get(opacityVarName);
+        if (!opacityVar) {
+          opacityVar = figma.variables.createVariable(opacityVarName, effectsCollection!, 'FLOAT');
+          result.created++;
+        }
+        
+        if (opacityPrimitive) {
+          const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: opacityPrimitive.id };
+          opacityVar.setValueForMode(effectsCollection!.defaultModeId, alias);
+          result.aliased++;
+        } else {
+          const numValue = parseFloat(token.opacity) / 100 || 0;
+          opacityVar.setValueForMode(effectsCollection!.defaultModeId, numValue);
+        }
+      }
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания ${token.path}: ${errorMessage}`);
+    }
+  }
+  
+  return result;
+}
+
+// ============================================
 // SPACING PRIMITIVES & SEMANTIC
 // ============================================
 
@@ -7059,6 +7395,83 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
             error: error instanceof Error ? error.message : 'Unknown error',
           });
           figma.notify(`❌ Ошибка генерации: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      // ========================================
+      // EFFECTS HANDLERS (Shadows, Blur, Opacity)
+      // ========================================
+
+      case 'create-effects-primitives': {
+        const payload = msg.payload as EffectsPrimitivesPayload;
+        
+        const totalPrimitives = 
+          payload.shadowOffsetX.length +
+          payload.shadowOffsetY.length +
+          payload.shadowBlur.length +
+          payload.shadowSpread.length +
+          payload.shadowColors.length +
+          payload.blurs.length +
+          payload.opacities.length;
+        
+        figma.notify(`⏳ Создание ${totalPrimitives} примитивов effects...`);
+        
+        try {
+          const result = await createEffectsPrimitives(payload);
+          
+          figma.ui.postMessage({
+            type: 'effects-primitives-created',
+            payload: {
+              created: result.created,
+              updated: result.updated,
+              errors: result.errors
+            }
+          });
+          
+          if (result.errors.length > 0) {
+            figma.notify(`⚠️ Effects примитивы: ${result.created} создано, ${result.updated} обновлено, ${result.errors.length} ошибок`);
+          } else {
+            figma.notify(`✅ Effects примитивы: ${result.created} создано, ${result.updated} обновлено`);
+          }
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'effects-error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      case 'create-effects-semantic': {
+        const payload = msg.payload as EffectsSemanticPayload;
+        
+        figma.notify(`⏳ Создание ${payload.semanticTokens.length} семантических токенов effects...`);
+        
+        try {
+          const result = await createEffectsSemanticCollection(payload);
+          
+          figma.ui.postMessage({
+            type: 'effects-semantic-created',
+            payload: {
+              created: result.created,
+              aliased: result.aliased,
+              errors: result.errors
+            }
+          });
+          
+          if (result.errors.length > 0) {
+            figma.notify(`⚠️ Effects: ${result.created} создано, ${result.aliased} алиасов, ${result.errors.length} ошибок`);
+          } else {
+            figma.notify(`✅ Effects: ${result.created} создано, ${result.aliased} алиасов`);
+          }
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'effects-error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
         break;
       }

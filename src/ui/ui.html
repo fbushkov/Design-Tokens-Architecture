@@ -4802,6 +4802,377 @@
       background: var(--color-bg-secondary);
     }
 
+    /* ========================================
+       EFFECTS GENERATOR STYLES
+       ======================================== */
+    
+    .effects-generator {
+      padding: var(--spacing-md);
+    }
+    
+    .effects-tabs {
+      display: flex;
+      gap: var(--spacing-xs);
+      margin-bottom: var(--spacing-md);
+      border-bottom: 1px solid var(--color-border);
+      padding-bottom: var(--spacing-sm);
+    }
+    
+    .effects-tab {
+      padding: var(--spacing-sm) var(--spacing-md);
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      transition: all 0.15s;
+    }
+    
+    .effects-tab:hover {
+      color: var(--color-text);
+      background: var(--color-bg-secondary);
+    }
+    
+    .effects-tab.active {
+      color: var(--color-primary);
+      background: var(--color-primary-subtle);
+      border-bottom: 2px solid var(--color-primary);
+    }
+    
+    /* Primitives tabs */
+    .primitives-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: var(--spacing-md);
+    }
+    
+    .prim-tab {
+      padding: 6px 10px;
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: var(--color-text-secondary);
+    }
+    
+    .prim-tab:hover {
+      border-color: var(--color-primary);
+    }
+    
+    .prim-tab.active {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: white;
+    }
+    
+    /* Primitives grid */
+    .primitives-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .primitives-header {
+      display: grid;
+      grid-template-columns: 1fr 100px 32px;
+      gap: 8px;
+      font-size: 10px;
+      color: var(--color-text-tertiary);
+      padding: 4px 8px;
+      text-transform: uppercase;
+    }
+    
+    .primitive-row {
+      display: grid;
+      grid-template-columns: 1fr 100px 32px;
+      gap: 8px;
+      align-items: center;
+      padding: 8px;
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border);
+    }
+    
+    .primitive-row:hover {
+      border-color: var(--color-primary);
+    }
+    
+    .primitive-name {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--color-text);
+    }
+    
+    .primitive-value {
+      padding: 4px 8px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-xs);
+      font-size: 11px;
+      font-family: var(--font-mono);
+      background: var(--color-bg);
+      color: var(--color-text);
+      width: 100%;
+    }
+    
+    .primitive-value:focus {
+      border-color: var(--color-primary);
+      outline: none;
+    }
+    
+    .btn-delete-primitive {
+      padding: 4px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      opacity: 0.5;
+      transition: opacity 0.15s;
+    }
+    
+    .btn-delete-primitive:hover {
+      opacity: 1;
+    }
+    
+    .btn-add-primitive {
+      margin-top: 8px;
+    }
+    
+    /* Color primitives */
+    .color-primitives {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-md);
+    }
+    
+    .color-group {
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-sm);
+    }
+    
+    .color-group-header {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: var(--spacing-xs);
+      text-transform: capitalize;
+    }
+    
+    .color-swatches {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    
+    .color-swatch {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      cursor: pointer;
+    }
+    
+    .swatch-preview {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border);
+    }
+    
+    .swatch-label {
+      font-size: 9px;
+      color: var(--color-text-secondary);
+    }
+    
+    /* Opacity primitives */
+    .opacity-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+    
+    .opacity-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px;
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-border);
+    }
+    
+    .opacity-preview {
+      width: 40px;
+      height: 40px;
+      background: var(--color-primary);
+      border-radius: var(--radius-sm);
+    }
+    
+    .opacity-label {
+      font-size: 10px;
+      font-weight: 500;
+    }
+    
+    .opacity-value {
+      font-size: 9px;
+      color: var(--color-text-secondary);
+    }
+    
+    /* Category tabs (semantic) */
+    .category-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: var(--spacing-md);
+    }
+    
+    .cat-tab {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: var(--color-text-secondary);
+    }
+    
+    .cat-tab:hover {
+      border-color: var(--color-primary);
+    }
+    
+    .cat-tab.active {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: white;
+    }
+    
+    .cat-count {
+      background: rgba(0,0,0,0.1);
+      padding: 2px 6px;
+      border-radius: var(--radius-xs);
+      font-size: 9px;
+    }
+    
+    .cat-tab.active .cat-count {
+      background: rgba(255,255,255,0.2);
+    }
+    
+    /* Semantic tokens list */
+    .semantic-tokens-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .effect-token {
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    
+    .effect-token:hover {
+      border-color: var(--color-primary);
+    }
+    
+    .token-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: var(--color-bg-tertiary);
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .token-path {
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: var(--color-text);
+    }
+    
+    .token-actions {
+      display: flex;
+      gap: 4px;
+    }
+    
+    .token-preview {
+      padding: 12px;
+      display: flex;
+      justify-content: center;
+    }
+    
+    .shadow-preview .preview-box {
+      width: 80px;
+      height: 60px;
+      background: var(--color-bg);
+      border-radius: var(--radius-md);
+    }
+    
+    .backdrop-preview .preview-blur {
+      width: 80px;
+      height: 60px;
+      background: rgba(59, 130, 246, 0.2);
+      border-radius: var(--radius-md);
+    }
+    
+    .opacity-preview .preview-opacity {
+      width: 80px;
+      height: 60px;
+      background: var(--color-primary);
+      border-radius: var(--radius-md);
+    }
+    
+    .token-values {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 8px 12px;
+      font-size: 10px;
+      color: var(--color-text-secondary);
+      border-top: 1px solid var(--color-border);
+    }
+    
+    .token-values span {
+      background: var(--color-bg);
+      padding: 2px 6px;
+      border-radius: var(--radius-xs);
+    }
+    
+    .token-values .badge {
+      background: var(--color-primary-subtle);
+      color: var(--color-primary);
+    }
+    
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: var(--spacing-xl);
+      color: var(--color-text-secondary);
+    }
+    
+    .empty-state p {
+      margin-bottom: var(--spacing-md);
+    }
+    
+    /* Effects actions */
+    .effects-actions {
+      display: flex;
+      gap: var(--spacing-sm);
+      margin-top: var(--spacing-md);
+      padding-top: var(--spacing-md);
+      border-top: 1px solid var(--color-border);
+    }
+
   </style>
 </head>
 <body>
@@ -4829,7 +5200,7 @@
       <button class="sub-tab" data-subtab="prim-gap">↔️ Gap</button>
       <button class="sub-tab" data-subtab="prim-radius">⬜ Радиусы</button>
       <button class="sub-tab" data-subtab="prim-icon-size">🎯 Icon Size</button>
-      <button class="sub-tab" data-subtab="prim-shadows">🌑 Тени</button>
+      <button class="sub-tab" data-subtab="prim-shadows">🌑 Effects</button>
       <button class="sub-tab" data-subtab="prim-borders">🔲 Границы</button>
     </div>
 
@@ -4858,8 +5229,8 @@
         </div>
         <div class="prim-category-card" data-goto="prim-shadows">
           <div class="prim-card-icon">🌑</div>
-          <div class="prim-card-title">Тени</div>
-          <div class="prim-card-count" id="count-shadows">5 уровней</div>
+          <div class="prim-card-title">Effects</div>
+          <div class="prim-card-count" id="count-shadows">Тени, Blur, Opacity</div>
         </div>
         <div class="prim-category-card" data-goto="prim-borders">
           <div class="prim-card-icon">🔲</div>
@@ -5626,45 +5997,10 @@
       </div>
     </div>
 
-    <!-- Shadows -->
+    <!-- Effects (Shadows, Blur, Opacity) -->
     <div id="prim-shadows" class="sub-tab-content">
-      <div class="info-box">
-        <strong>🌑 Тени и elevation</strong><br>
-        Создайте систему теней для передачи глубины интерфейса.
-      </div>
-
-      <div class="section">
-        <div class="form-row">
-          <div class="form-group" style="flex: 1;">
-            <label class="form-label">Цвет тени</label>
-            <div class="color-input-group">
-              <input type="color" id="shadow-color" value="#000000">
-              <input type="text" class="form-input" id="shadow-color-hex" value="#000000">
-            </div>
-          </div>
-          <div class="form-group" style="flex: 1;">
-            <label class="form-label">Базовая прозрачность</label>
-            <input type="range" id="shadow-opacity" min="0" max="50" value="10" class="form-range">
-            <span id="shadow-opacity-value">10%</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Превью теней</div>
-        <div id="shadow-preview" class="shadow-preview">
-          <div class="shadow-item shadow-xs">xs</div>
-          <div class="shadow-item shadow-sm">sm</div>
-          <div class="shadow-item shadow-md">md</div>
-          <div class="shadow-item shadow-lg">lg</div>
-          <div class="shadow-item shadow-xl">xl</div>
-        </div>
-      </div>
-
-      <div class="section">
-        <button class="btn btn-primary" id="btn-generate-shadows">
-          ✨ Сгенерировать тени
-        </button>
+      <div class="effects-container">
+        <!-- Effects UI will be rendered here by effects-generator-ui.ts -->
       </div>
     </div>
 

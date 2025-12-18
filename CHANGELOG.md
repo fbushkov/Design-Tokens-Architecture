@@ -1,5 +1,52 @@
 # 📝 Changelog - Design Tokens Plugin
 
+## [2025-12-18] - Effects System (Shadows, Blur, Opacity) 🌑
+
+### ✅ Добавлено
+
+#### Effects модуль — полная система эффектов
+2-уровневая архитектура (Primitives → Semantic) для теней, размытия и прозрачности:
+
+**Level 1 — Примитивы:**
+- `shadow/offsetX/` — смещение тени по X (-32 до +32 px)
+- `shadow/offsetY/` — смещение тени по Y (-32 до +32 px)
+- `shadow/blur/` — размытие тени (0-64 px)
+- `shadow/spread/` — распространение тени (-16 до +16 px)
+- `shadow/color/` — цвета теней (black, white, brand, error, success, warning с разной прозрачностью)
+- `blur/` — backdrop blur (0-64 px)
+- `opacity/` — прозрачность (0-100%)
+
+**Level 2 — Семантика (12 категорий, ~50 токенов):**
+| Категория | Описание | Примеры |
+|-----------|----------|--------|
+| elevation | Уровни высоты | raised, float, dropdown, popover, modal |
+| focus | Состояния фокуса | ring, ringOffset, glow |
+| button | Тени кнопок | default, hover, active, floating |
+| card | Тени карточек | default, hover, raised, floating |
+| input | Тени инпутов | focus, error, active |
+| modal | Тени модальных окон | overlay, panel, content |
+| dropdown | Тени выпадающих меню | menu, item, separator |
+| directional | Направленные тени | top, right, bottom, left |
+| inset | Внутренние тени | soft, medium, strong, pressed |
+| glow | Эффекты свечения | brand, success, error, warning |
+| backdrop | Backdrop blur | light, medium, heavy, ultraHeavy, modal, overlay, header |
+| opacity | Прозрачность состояний | disabled, placeholder, hover, subtle, muted и др. |
+
+**Файлы:**
+- `src/types/effects-tokens.ts` — типы и дефолтные значения
+- `src/ui/effects-generator-ui.ts` — UI компонент с вкладками Примитивы/Семантика
+- `src/plugin/code.ts` — функции `createEffectsPrimitives()` и `createEffectsSemanticCollection()`
+
+**UI:**
+- Вкладка "🌑 Effects" в секции Примитивы
+- Вкладки: Примитивы (первая) | Семантика
+- 7 подвкладок примитивов: Offset X, Offset Y, Blur, Spread, Colors, Backdrop, Opacity
+- 12 категорий семантических токенов с фильтрацией
+- Превью теней, blur и opacity
+- Экспорт в Figma Variables: коллекция `Effects`
+
+---
+
 ## [2025-12-17] - Export Selected Changes & Token Manager Improvements 🎯
 
 ### ✅ Добавлено

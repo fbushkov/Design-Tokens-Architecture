@@ -225,6 +225,7 @@ export const MANAGED_COLLECTIONS = [
   'Icon Size',
   'Radius',
   'Typography',
+  'Effects',
 ] as const;
 
 export type ManagedCollectionName = typeof MANAGED_COLLECTIONS[number];

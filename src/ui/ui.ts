@@ -54,6 +54,13 @@ import {
 } from './icon-size-generator-ui';
 
 import {
+  renderEffectsGenerator,
+  initEffectsEvents,
+  loadEffectsState,
+  initEffectsUI,
+} from './effects-generator-ui';
+
+import {
   handleStorageMessage,
 } from './storage-utils';
 
@@ -449,6 +456,9 @@ initRadiusUI();
 
 // Initialize Icon Size UI (2-tier for icon sizes)
 initIconSizeUI();
+
+// Initialize Effects UI (shadows, blur, opacity)
+initEffectsUI();
 
 // Listen for token-generated event to refresh Token Manager
 document.addEventListener('tokens-generated', () => {
