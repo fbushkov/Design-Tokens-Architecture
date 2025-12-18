@@ -5058,7 +5058,8 @@ async function createSpacingSemanticCollection(data: SpacingSemanticData): Promi
         variable.setValueForMode(modeIds['Desktop'], alias);
         result.aliased++;
       } else if (modeIds['Desktop']) {
-        // Fallback to value if primitive not found
+        // Fallback to value if primitive not found - log warning
+        console.warn(`[Spacing] Примитив space/${token.desktop.ref} не найден для ${varName} (Desktop), используем значение ${token.desktop.value}`);
         variable.setValueForMode(modeIds['Desktop'], token.desktop.value);
       }
       
@@ -5069,6 +5070,7 @@ async function createSpacingSemanticCollection(data: SpacingSemanticData): Promi
         variable.setValueForMode(modeIds['Tablet'], alias);
         result.aliased++;
       } else if (modeIds['Tablet']) {
+        console.warn(`[Spacing] Примитив space/${token.tablet.ref} не найден для ${varName} (Tablet), используем значение ${token.tablet.value}`);
         variable.setValueForMode(modeIds['Tablet'], token.tablet.value);
       }
       
@@ -5079,12 +5081,14 @@ async function createSpacingSemanticCollection(data: SpacingSemanticData): Promi
         variable.setValueForMode(modeIds['Mobile'], alias);
         result.aliased++;
       } else if (modeIds['Mobile']) {
+        console.warn(`[Spacing] Примитив space/${token.mobile.ref} не найден для ${varName} (Mobile), используем значение ${token.mobile.value}`);
         variable.setValueForMode(modeIds['Mobile'], token.mobile.value);
       }
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      result.errors.push(`Ошибка создания ${token.path}: ${errorMessage}`);
+      console.error(`[Spacing] Ошибка создания ${token.path}:`, error);
+      result.errors.push(`${token.path}: ${errorMessage}`);
     }
   }
   
