@@ -7450,11 +7450,11 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         figma.notify(`⏳ Экспортируем ${changes.length} изменений...`);
         
         const results = {
-          typography: { created: 0, updated: 0 },
-          spacing: { created: 0, updated: 0 },
-          gap: { created: 0, updated: 0 },
-          radius: { created: 0, updated: 0 },
-          iconSize: { created: 0, updated: 0 },
+          typography: { created: 0, updated: 0, deleted: 0 },
+          spacing: { created: 0, updated: 0, deleted: 0 },
+          gap: { created: 0, updated: 0, deleted: 0 },
+          radius: { created: 0, updated: 0, deleted: 0 },
+          iconSize: { created: 0, updated: 0, deleted: 0 },
           errors: [] as string[]
         };
         
@@ -7478,8 +7478,61 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           const radiusChanges = changes.filter(c => c.module === 'radius');
           const iconSizeChanges = changes.filter(c => c.module === 'iconSize');
           
-          // Process Typography changes
-          if (typographyChanges.length > 0 && typographyData?.state) {
+          // ========================================
+          // PROCESS DELETIONS FIRST
+          // ========================================
+          const deleteChanges = changes.filter(c => c.type === 'delete');
+          if (deleteChanges.length > 0) {
+            const collections = await figma.variables.getLocalVariableCollectionsAsync();
+            
+            for (const change of deleteChanges) {
+              try {
+                // Map module to collection name
+                const collectionName = {
+                  'typography': 'Typography',
+                  'spacing': 'Spacing',
+                  'gap': 'Gap',
+                  'radius': 'Radius',
+                  'iconSize': 'Icon Size',
+                  'colors': 'Primitives'
+                }[change.module] || change.module;
+                
+                const collection = collections.find(c => c.name === collectionName);
+                if (!collection) {
+                  results.errors.push(`Collection ${collectionName} not found for delete`);
+                  continue;
+                }
+                
+                // Get all variables in collection
+                const variables = await Promise.all(
+                  collection.variableIds.map(id => figma.variables.getVariableByIdAsync(id))
+                );
+                
+                // Find variable to delete by name
+                // change.name could be "gap.modal.new" or "gap/modal/new"
+                const searchName = change.name.replace(/\./g, '/');
+                const variable = variables.find(v => v && v.name === searchName);
+                
+                if (variable) {
+                  variable.remove();
+                  // Track deleted count
+                  if (change.module === 'gap') results.gap.deleted++;
+                  else if (change.module === 'spacing') results.spacing.deleted++;
+                  else if (change.module === 'radius') results.radius.deleted++;
+                  else if (change.module === 'iconSize') results.iconSize.deleted++;
+                  else if (change.module === 'typography') results.typography.deleted++;
+                } else {
+                  results.errors.push(`Variable ${searchName} not found in ${collectionName}`);
+                }
+              } catch (e) {
+                results.errors.push(`Delete ${change.name}: ${e instanceof Error ? e.message : String(e)}`);
+              }
+            }
+          }
+          
+          // Process Typography changes (non-delete)
+          const typographyAddUpdates = typographyChanges.filter(c => c.type !== 'delete');
+          if (typographyAddUpdates.length > 0 && typographyData?.state) {
             try {
               const typographyState = typographyData.state;
               const changedNames = new Set(typographyChanges.map(c => c.name));
@@ -7559,12 +7612,13 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
             }
           }
           
-          // Process Spacing changes
-          if (spacingChanges.length > 0) {
+          // Process Spacing changes (non-delete)
+          const spacingAddUpdates = spacingChanges.filter(c => c.type !== 'delete');
+          if (spacingAddUpdates.length > 0) {
             const spacingData = await figma.clientStorage.getAsync('spacing-state');
             if (spacingData) {
               try {
-                const changedNames = new Set(spacingChanges.map(c => c.name));
+                const changedNames = new Set(spacingAddUpdates.map(c => c.name));
                 
                 // Find tokens matching changes
                 const tokensToExport = spacingData.semanticTokens?.filter((t: any) =>
@@ -7594,12 +7648,13 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
             }
           }
           
-          // Process Gap changes
-          if (gapChanges.length > 0) {
+          // Process Gap changes (non-delete)
+          const gapAddUpdates = gapChanges.filter(c => c.type !== 'delete');
+          if (gapAddUpdates.length > 0) {
             const gapData = await figma.clientStorage.getAsync('gap-state');
             if (gapData) {
               try {
-                const changedNames = new Set(gapChanges.map(c => c.name));
+                const changedNames = new Set(gapAddUpdates.map(c => c.name));
                 
                 const tokensToExport = gapData.semanticTokens?.filter((t: any) =>
                   changedNames.has(t.path) || changedNames.has(t.name)
@@ -7623,12 +7678,13 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
             }
           }
           
-          // Process Radius changes
-          if (radiusChanges.length > 0) {
+          // Process Radius changes (non-delete)
+          const radiusAddUpdates = radiusChanges.filter(c => c.type !== 'delete');
+          if (radiusAddUpdates.length > 0) {
             const radiusData = await figma.clientStorage.getAsync('radius-state');
             if (radiusData) {
               try {
-                const changedNames = new Set(radiusChanges.map(c => c.name));
+                const changedNames = new Set(radiusAddUpdates.map(c => c.name));
                 
                 const tokensToExport = radiusData.semanticTokens?.filter((t: any) =>
                   changedNames.has(t.path) || changedNames.has(t.name)
@@ -7651,11 +7707,13 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           }
           
           // Process Icon Size changes
-          if (iconSizeChanges.length > 0) {
+          // Process Icon Size changes (non-delete)
+          const iconSizeAddUpdates = iconSizeChanges.filter(c => c.type !== 'delete');
+          if (iconSizeAddUpdates.length > 0) {
             const iconSizeData = await figma.clientStorage.getAsync('icon-size-state');
             if (iconSizeData) {
               try {
-                const changedNames = new Set(iconSizeChanges.map(c => c.name));
+                const changedNames = new Set(iconSizeAddUpdates.map(c => c.name));
                 
                 const tokensToExport = iconSizeData.semanticTokens?.filter((t: any) =>
                   changedNames.has(t.path) || changedNames.has(t.name)
@@ -7684,20 +7742,36 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           
           // Build summary message
           const parts: string[] = [];
-          if (results.typography.created > 0 || results.typography.updated > 0) {
-            parts.push(`Typography: ${results.typography.created}+${results.typography.updated}`);
+          if (results.gap.created > 0 || results.gap.deleted > 0) {
+            const gapParts: string[] = [];
+            if (results.gap.created > 0) gapParts.push(`+${results.gap.created}`);
+            if (results.gap.deleted > 0) gapParts.push(`-${results.gap.deleted}`);
+            parts.push(`Gap: ${gapParts.join(' ')}`);
           }
-          if (results.spacing.created > 0) {
-            parts.push(`Spacing: ${results.spacing.created}`);
+          if (results.radius.created > 0 || results.radius.deleted > 0) {
+            const radiusParts: string[] = [];
+            if (results.radius.created > 0) radiusParts.push(`+${results.radius.created}`);
+            if (results.radius.deleted > 0) radiusParts.push(`-${results.radius.deleted}`);
+            parts.push(`Radius: ${radiusParts.join(' ')}`);
           }
-          if (results.gap.created > 0) {
-            parts.push(`Gap: ${results.gap.created}`);
+          if (results.iconSize.created > 0 || results.iconSize.deleted > 0) {
+            const iconParts: string[] = [];
+            if (results.iconSize.created > 0) iconParts.push(`+${results.iconSize.created}`);
+            if (results.iconSize.deleted > 0) iconParts.push(`-${results.iconSize.deleted}`);
+            parts.push(`Icon Size: ${iconParts.join(' ')}`);
           }
-          if (results.radius.created > 0) {
-            parts.push(`Radius: ${results.radius.created}`);
+          if (results.spacing.created > 0 || results.spacing.deleted > 0) {
+            const spacingParts: string[] = [];
+            if (results.spacing.created > 0) spacingParts.push(`+${results.spacing.created}`);
+            if (results.spacing.deleted > 0) spacingParts.push(`-${results.spacing.deleted}`);
+            parts.push(`Spacing: ${spacingParts.join(' ')}`);
           }
-          if (results.iconSize.created > 0) {
-            parts.push(`Icon Size: ${results.iconSize.created}`);
+          if (results.typography.created > 0 || results.typography.updated > 0 || results.typography.deleted > 0) {
+            const typoParts: string[] = [];
+            if (results.typography.created > 0) typoParts.push(`+${results.typography.created}`);
+            if (results.typography.updated > 0) typoParts.push(`~${results.typography.updated}`);
+            if (results.typography.deleted > 0) typoParts.push(`-${results.typography.deleted}`);
+            parts.push(`Typography: ${typoParts.join(' ')}`);
           }
           
           if (parts.length > 0) {
