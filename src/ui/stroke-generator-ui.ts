@@ -263,7 +263,7 @@ export async function resetStrokeToDefaults(): Promise<void> {
 // ============================================
 
 function loadAllStrokeTokens(): void {
-  strokeState.semanticTokens = [...COMPLETE_STROKE_SEMANTIC_TOKENS];
+  strokeState.semanticTokens = [...COMPLETE_STROKE_SEMANTIC_TOKENS] as unknown as StrokeSemanticToken[];
   saveStrokeState();
   renderStrokeCategoryTabs();
   renderStrokeSemanticTokens();
@@ -655,45 +655,40 @@ function groupTokensByPath(tokens: StrokeSemanticToken[]): Record<string, { widt
 }
 
 function getColorOptions(): string {
-  // Color options for stroke.color references
+  /**
+   * Color options referencing Tokens collection
+   * Format: {category}/{name}/{name} for semantic colors in Tokens
+   * 
+   * Available stroke colors in Tokens:
+   * - stroke/default/default, stroke/default/default-hover
+   * - stroke/subtle/subtle
+   * - stroke/strong/strong
+   * - stroke/focus/focus
+   * - stroke/error/error
+   * - stroke/disabled/disabled
+   * 
+   * Feedback colors:
+   * - feedback/success-stroke/success-stroke
+   * - feedback/warning-stroke/warning-stroke
+   * - feedback/info-stroke/info-stroke
+   * - feedback/error-stroke/error-stroke
+   */
   const colors = [
+    // Core stroke colors from Tokens
+    { value: 'stroke/subtle/subtle', label: 'stroke — subtle' },
+    { value: 'stroke/default/default', label: 'stroke — default' },
+    { value: 'stroke/default/default-hover', label: 'stroke — default hover' },
+    { value: 'stroke/strong/strong', label: 'stroke — strong' },
+    { value: 'stroke/focus/focus', label: 'stroke — focus' },
+    { value: 'stroke/error/error', label: 'stroke — error' },
+    { value: 'stroke/disabled/disabled', label: 'stroke — disabled' },
+    // Feedback stroke colors from Tokens
+    { value: 'feedback/success-stroke/success-stroke', label: 'feedback — success' },
+    { value: 'feedback/warning-stroke/warning-stroke', label: 'feedback — warning' },
+    { value: 'feedback/info-stroke/info-stroke', label: 'feedback — info' },
+    { value: 'feedback/error-stroke/error-stroke', label: 'feedback — error' },
+    // Special values
     { value: 'transparent', label: 'transparent' },
-    { value: 'white', label: 'white' },
-    { value: 'black', label: 'black' },
-    // Neutral
-    { value: 'neutral.100', label: 'neutral.100' },
-    { value: 'neutral.200', label: 'neutral.200' },
-    { value: 'neutral.300', label: 'neutral.300' },
-    { value: 'neutral.400', label: 'neutral.400' },
-    { value: 'neutral.500', label: 'neutral.500' },
-    { value: 'neutral.600', label: 'neutral.600' },
-    { value: 'neutral.700', label: 'neutral.700' },
-    { value: 'neutral.800', label: 'neutral.800' },
-    { value: 'neutral.900', label: 'neutral.900' },
-    // Brand
-    { value: 'brand.100', label: 'brand.100' },
-    { value: 'brand.200', label: 'brand.200' },
-    { value: 'brand.300', label: 'brand.300' },
-    { value: 'brand.500', label: 'brand.500' },
-    { value: 'brand.600', label: 'brand.600' },
-    { value: 'brand.700', label: 'brand.700' },
-    // Error
-    { value: 'error.200', label: 'error.200' },
-    { value: 'error.300', label: 'error.300' },
-    { value: 'error.500', label: 'error.500' },
-    { value: 'error.600', label: 'error.600' },
-    // Warning
-    { value: 'warning.200', label: 'warning.200' },
-    { value: 'warning.300', label: 'warning.300' },
-    { value: 'warning.500', label: 'warning.500' },
-    // Success
-    { value: 'success.200', label: 'success.200' },
-    { value: 'success.300', label: 'success.300' },
-    { value: 'success.500', label: 'success.500' },
-    // Info
-    { value: 'info.200', label: 'info.200' },
-    { value: 'info.300', label: 'info.300' },
-    { value: 'info.500', label: 'info.500' },
   ];
   
   return colors.map(c => `<option value="${c.value}">${c.label}</option>`).join('');
@@ -728,7 +723,7 @@ function addStrokeSemanticToken(): void {
     path: `${basePath}.color`,
     category: activeStrokeCategory as StrokeCategory,
     property: 'color',
-    colorRef: 'neutral.300',
+    colorRef: 'stroke/default/default',  // Reference Tokens collection
   };
   
   strokeState.semanticTokens.push(widthToken, styleToken, colorToken);
@@ -741,7 +736,7 @@ function addStrokeSemanticToken(): void {
     type: 'add',
     category: activeStrokeCategory,
     name: basePath,
-    newValue: 'width:1, style:solid, color:neutral.300',
+    newValue: 'width:1, style:solid, color:stroke/default/default',
   });
 }
 

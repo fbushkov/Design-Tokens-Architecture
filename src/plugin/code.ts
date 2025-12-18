@@ -4038,91 +4038,9 @@ async function createStrokePrimitives(payload: StrokePrimitivesPayload): Promise
     }
   }
   
-  // Create stroke COLOR primitives (aliases to existing colors)
-  // These are special: they reference color primitives from color/{palette}.{shade}
-  // For transparent, white, black - use useBaseColor approach
-  const colorAliases: Array<{ name: string; colorRef: string }> = [
-    { name: 'transparent', colorRef: 'transparent-light' },
-    { name: 'white', colorRef: 'white' },
-    { name: 'black', colorRef: 'black' },
-    // Neutral
-    { name: 'neutral.100', colorRef: 'neutral.100' },
-    { name: 'neutral.200', colorRef: 'neutral.200' },
-    { name: 'neutral.300', colorRef: 'neutral.300' },
-    { name: 'neutral.400', colorRef: 'neutral.400' },
-    { name: 'neutral.500', colorRef: 'neutral.500' },
-    { name: 'neutral.600', colorRef: 'neutral.600' },
-    { name: 'neutral.700', colorRef: 'neutral.700' },
-    { name: 'neutral.800', colorRef: 'neutral.800' },
-    { name: 'neutral.900', colorRef: 'neutral.900' },
-    // Brand
-    { name: 'brand.100', colorRef: 'brand.100' },
-    { name: 'brand.200', colorRef: 'brand.200' },
-    { name: 'brand.300', colorRef: 'brand.300' },
-    { name: 'brand.500', colorRef: 'brand.500' },
-    { name: 'brand.600', colorRef: 'brand.600' },
-    { name: 'brand.700', colorRef: 'brand.700' },
-    // Error
-    { name: 'error.200', colorRef: 'error.200' },
-    { name: 'error.300', colorRef: 'error.300' },
-    { name: 'error.500', colorRef: 'error.500' },
-    { name: 'error.600', colorRef: 'error.600' },
-    // Warning
-    { name: 'warning.200', colorRef: 'warning.200' },
-    { name: 'warning.300', colorRef: 'warning.300' },
-    { name: 'warning.500', colorRef: 'warning.500' },
-    // Success
-    { name: 'success.200', colorRef: 'success.200' },
-    { name: 'success.300', colorRef: 'success.300' },
-    { name: 'success.500', colorRef: 'success.500' },
-    // Info
-    { name: 'info.200', colorRef: 'info.200' },
-    { name: 'info.300', colorRef: 'info.300' },
-    { name: 'info.500', colorRef: 'info.500' },
-  ];
-  
-  const existingColors = existingVariables.filter(v => v.resolvedType === 'COLOR');
-  
-  for (const colorAlias of colorAliases) {
-    try {
-      const varName = `stroke/color/${colorAlias.name}`;
-      
-      // Find source color variable
-      // Color could be in format: color/neutral/100 or color/white
-      let sourceVarName = colorAlias.colorRef.includes('.') 
-        ? `color/${colorAlias.colorRef.replace('.', '/')}`
-        : `color/${colorAlias.colorRef}`;
-      
-      const sourceVar = existingColors.find(v => 
-        v.name === sourceVarName && v.variableCollectionId === primitivesCollection!.id
-      );
-      
-      if (!sourceVar) {
-        // Don't error, just skip - color primitives may not exist yet
-        console.log(`[Stroke] Color ${sourceVarName} not found, skipping stroke/color/${colorAlias.name}`);
-        continue;
-      }
-      
-      let existingVar = existingColors.find(v => 
-        v.name === varName && v.variableCollectionId === primitivesCollection!.id
-      );
-      
-      const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: sourceVar.id };
-      
-      if (existingVar) {
-        existingVar.setValueForMode(primitivesCollection.defaultModeId, alias);
-        result.updated++;
-      } else {
-        const newVar = figma.variables.createVariable(varName, primitivesCollection, 'COLOR');
-        newVar.setValueForMode(primitivesCollection.defaultModeId, alias);
-        newVar.description = `Stroke color: ${colorAlias.colorRef}`;
-        result.created++;
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      result.errors.push(`Ошибка создания stroke/color/${colorAlias.name}: ${errorMessage}`);
-    }
-  }
+  // NOTE: Stroke COLOR primitives are NOT created here!
+  // Stroke semantic tokens reference colors directly from Tokens collection (border/*, stroke/*)
+  // This provides automatic light/dark mode support
   
   return result;
 }
@@ -4149,10 +4067,17 @@ async function createStrokeSemanticCollection(data: StrokeSemanticData): Promise
   // Get all collections
   const collections = await figma.variables.getLocalVariableCollectionsAsync();
   
-  // Find Primitives collection
+  // Find Primitives collection (for width, style)
   const primitivesCollection = collections.find(c => c.name === 'Primitives');
   if (!primitivesCollection) {
     result.errors.push('Коллекция Primitives не найдена. Сначала создайте примитивы.');
+    return result;
+  }
+  
+  // Find Tokens collection (for colors) - this has light/dark modes!
+  const tokensCollection = collections.find(c => c.name === 'Tokens');
+  if (!tokensCollection) {
+    result.errors.push('Коллекция Tokens не найдена. Сначала синхронизируйте цвета.');
     return result;
   }
   
@@ -4165,10 +4090,9 @@ async function createStrokeSemanticCollection(data: StrokeSemanticData): Promise
   // Get all existing variables
   const allVariables = await figma.variables.getLocalVariablesAsync();
   
-  // Create maps of primitive variables
+  // Create maps of primitive variables (width, style from Primitives)
   const widthPrimitiveMap = new Map<string, Variable>();
   const stylePrimitiveMap = new Map<string, Variable>();
-  const colorPrimitiveMap = new Map<string, Variable>();
   
   allVariables.forEach(v => {
     if (v.variableCollectionId === primitivesCollection.id) {
@@ -4183,11 +4107,28 @@ async function createStrokeSemanticCollection(data: StrokeSemanticData): Promise
       if (styleMatch && v.resolvedType === 'STRING') {
         stylePrimitiveMap.set(styleMatch[1], v);
       }
+    }
+  });
+  
+  // Create map of color tokens from Tokens collection
+  // These have format: border/default/default, stroke/focus, etc.
+  const colorTokenMap = new Map<string, Variable>();
+  allVariables.forEach(v => {
+    if (v.variableCollectionId === tokensCollection.id && v.resolvedType === 'COLOR') {
+      // Store by full name and also by shorthand
+      colorTokenMap.set(v.name, v);
       
-      // Color: stroke/color/neutral.300 -> "neutral.300"
-      const colorMatch = v.name.match(/stroke\/color\/(.+)/);
-      if (colorMatch && v.resolvedType === 'COLOR') {
-        colorPrimitiveMap.set(colorMatch[1], v);
+      // Also map common patterns:
+      // "border/default/default" -> "default"
+      // "border/subtle/subtle" -> "subtle"
+      // "stroke/focus" -> "focus"
+      const parts = v.name.split('/');
+      if (parts.length >= 2) {
+        const lastPart = parts[parts.length - 1];
+        // Map by last part for easy lookup
+        if (!colorTokenMap.has(lastPart)) {
+          colorTokenMap.set(lastPart, v);
+        }
       }
     }
   });
@@ -4220,7 +4161,23 @@ async function createStrokeSemanticCollection(data: StrokeSemanticData): Promise
       } else if (token.property === 'color') {
         varType = 'COLOR';
         if (token.colorRef) {
-          primitive = colorPrimitiveMap.get(token.colorRef);
+          // Try to find color in Tokens collection
+          // colorRef can be: "border/default/default", "stroke/focus", "default", etc.
+          primitive = colorTokenMap.get(token.colorRef);
+          
+          // If not found, try common patterns
+          if (!primitive) {
+            // Try with "border/" prefix
+            primitive = colorTokenMap.get(`border/${token.colorRef}/${token.colorRef}`);
+          }
+          if (!primitive) {
+            // Try with "stroke/" prefix
+            primitive = colorTokenMap.get(`stroke/${token.colorRef}`);
+          }
+          if (!primitive) {
+            // Try stroke/default/default pattern
+            primitive = colorTokenMap.get(`stroke/${token.colorRef}/${token.colorRef}`);
+          }
         }
       } else {
         result.errors.push(`Неизвестное свойство: ${token.property} для ${token.path}`);
@@ -4234,7 +4191,7 @@ async function createStrokeSemanticCollection(data: StrokeSemanticData): Promise
         result.created++;
       }
       
-      // Set alias to primitive
+      // Set alias to primitive/token
       if (primitive) {
         const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: primitive.id };
         variable.setValueForMode(strokeCollection.defaultModeId, alias);
@@ -4249,9 +4206,9 @@ async function createStrokeSemanticCollection(data: StrokeSemanticData): Promise
           variable.setValueForMode(strokeCollection.defaultModeId, token.styleRef || 'solid');
           console.warn(`[Stroke] Примитив stroke/style/${token.styleRef} не найден для ${token.path}, используется значение "${token.styleRef || 'solid'}"`);
         } else if (token.property === 'color') {
-          // Default gray color
+          // Default gray color - this means the color token wasn't found
           variable.setValueForMode(strokeCollection.defaultModeId, { r: 0.8, g: 0.8, b: 0.8, a: 1 });
-          console.warn(`[Stroke] Примитив stroke/color/${token.colorRef} не найден для ${token.path}, используется серый цвет`);
+          console.warn(`[Stroke] Цвет "${token.colorRef}" не найден в Tokens коллекции для ${token.path}`);
         }
       }
       
@@ -8194,6 +8151,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           });
           
           if (result.errors.length > 0) {
+            console.error('[Stroke] Errors:', result.errors);
             figma.notify(`⚠️ Stroke примитивы: ${result.created} создано, ${result.updated} обновлено, ${result.errors.length} ошибок`);
           } else {
             figma.notify(`✅ Stroke примитивы: ${result.created} создано, ${result.updated} обновлено`);

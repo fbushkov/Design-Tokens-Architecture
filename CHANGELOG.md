@@ -1,5 +1,45 @@
 # 📝 Changelog - Design Tokens Plugin
 
+## [2025-12-18] - Stroke Color Reference Fix 🔧
+
+### 🐛 Исправлено
+
+#### Критическое исправление: colorRef для Stroke токенов
+Проблема: Stroke semantic tokens использовали неправильные пути для цветов (`neutral.300`, `brand.500`), 
+вместо правильных путей к Tokens коллекции (`stroke/default/default`, `stroke/focus/focus`).
+
+**Изменения:**
+
+1. **stroke-tokens.ts** — теперь импортирует `COMPLETE_STROKE_SEMANTIC_TOKENS` из `stroke-defaults.ts`
+   - Убран дублирующий `DEFAULT_STROKE_SEMANTIC_TOKENS` со старыми colorRef
+   - Добавлен реэкспорт из stroke-defaults.ts с правильными путями
+
+2. **stroke-defaults.ts** — содержит правильные colorRef:
+   - `stroke/subtle/subtle` — тонкие границы
+   - `stroke/default/default` — стандартные границы
+   - `stroke/default/default-hover` — hover состояние
+   - `stroke/strong/strong` — усиленные границы
+   - `stroke/focus/focus` — фокус состояние
+   - `stroke/error/error` — ошибки
+   - `stroke/disabled/disabled` — неактивное состояние
+   - `feedback/success-stroke/success-stroke` — успех
+   - `feedback/warning-stroke/warning-stroke` — предупреждение
+   - `feedback/info-stroke/info-stroke` — информация
+
+3. **stroke-generator-ui.ts** — обновлён UI:
+   - `getColorOptions()` — выпадающий список теперь содержит правильные пути к Tokens
+   - `addStrokeSemanticToken()` — новые токены создаются с `colorRef: 'stroke/default/default'`
+
+**Архитектура цветов Stroke:**
+```
+Stroke (коллекция)
+  └── stroke/button/default/color → alias → Tokens.stroke/default/default
+  └── stroke/button/focus/color → alias → Tokens.stroke/focus/focus
+  └── stroke/input/error/color → alias → Tokens.stroke/error/error
+```
+
+---
+
 ## [2025-12-18] - Stroke (Border) Token System 🔲
 
 ### ✅ Добавлено
