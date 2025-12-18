@@ -195,12 +195,42 @@ async function createVariableCollection(name: string): Promise<VariableCollectio
   return figma.variables.createVariableCollection(name);
 }
 
+// Cache for existing variables to avoid repeated API calls
+let existingVariablesCache: Variable[] | null = null;
+
+// Invalidate cache - call this at start of sync operations
+function invalidateVariablesCache(): void {
+  existingVariablesCache = null;
+}
+
+// Get cached variables or fetch fresh
+async function getCachedVariables(): Promise<Variable[]> {
+  if (existingVariablesCache === null) {
+    existingVariablesCache = await figma.variables.getLocalVariablesAsync();
+  }
+  return existingVariablesCache;
+}
+
+// Safe variable creation - uses cache to check existence
 async function createVariable(
   name: string, 
   collection: VariableCollection, 
   type: VariableResolvedDataType
 ): Promise<Variable> {
-  return figma.variables.createVariable(name, collection, type);
+  // Use cached variables for lookup
+  const cachedVars = await getCachedVariables();
+  const existing = cachedVars.find(v => 
+    v.name === name && v.variableCollectionId === collection.id
+  );
+  
+  if (existing) {
+    return existing;
+  }
+  
+  const newVar = figma.variables.createVariable(name, collection, type);
+  // Add to cache
+  existingVariablesCache?.push(newVar);
+  return newVar;
 }
 
 // ============================================
@@ -780,6 +810,7 @@ interface SemanticColorMapping {
   states: string[];
   sourceColor: string;
   sourceStep: number; // 25-975, где 500 = base
+  useBaseColor?: 'white' | 'black' | 'transparent-light' | 'transparent-dark'; // Direct reference to base color
 }
 
 // ============================================
@@ -790,23 +821,23 @@ const SEMANTIC_COLOR_MAPPINGS: SemanticColorMapping[] = [
   // ============================================
   // BG (BACKGROUND) - All background colors
   // ============================================
-  // Page backgrounds
-  { category: 'bg', subcategory: 'page', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  // Page backgrounds - primary uses base white for true white background
+  { category: 'bg', subcategory: 'page', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
   { category: 'bg', subcategory: 'page', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 50 },
   { category: 'bg', subcategory: 'page', variant: 'tertiary', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
-  // Container/Card backgrounds
-  { category: 'bg', subcategory: 'card', variant: 'primary', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 25 },
+  // Container/Card backgrounds - primary uses base white
+  { category: 'bg', subcategory: 'card', variant: 'primary', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
   { category: 'bg', subcategory: 'card', variant: 'secondary', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 50 },
-  { category: 'bg', subcategory: 'card', variant: 'elevated', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  { category: 'bg', subcategory: 'card', variant: 'elevated', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
   // Interactive backgrounds
   { category: 'bg', subcategory: 'interactive', variant: 'primary', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 50 },
   { category: 'bg', subcategory: 'interactive', variant: 'secondary', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 100 },
-  // Overlay/Modal backgrounds
-  { category: 'bg', subcategory: 'overlay', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
-  { category: 'bg', subcategory: 'overlay', variant: 'light', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
-  { category: 'bg', subcategory: 'modal', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'bg', subcategory: 'drawer', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'bg', subcategory: 'popover', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  // Overlay/Modal backgrounds - overlays use transparent colors
+  { category: 'bg', subcategory: 'overlay', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 900, useBaseColor: 'transparent-dark' },
+  { category: 'bg', subcategory: 'overlay', variant: 'light', states: ['default'], sourceColor: 'neutral', sourceStep: 700, useBaseColor: 'transparent-light' },
+  { category: 'bg', subcategory: 'modal', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
+  { category: 'bg', subcategory: 'drawer', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
+  { category: 'bg', subcategory: 'popover', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
   { category: 'bg', subcategory: 'tooltip', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
   // Semantic backgrounds
   { category: 'bg', subcategory: 'brand', variant: 'subtle', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 50 },
@@ -842,8 +873,8 @@ const SEMANTIC_COLOR_MAPPINGS: SemanticColorMapping[] = [
   // ============================================
   // TEXT - All text colors
   // ============================================
-  // Primary text hierarchy
-  { category: 'text', subcategory: 'primary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 900 },
+  // Primary text hierarchy - primary uses base black for true dark text
+  { category: 'text', subcategory: 'primary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 900, useBaseColor: 'black' },
   { category: 'text', subcategory: 'secondary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 600 },
   { category: 'text', subcategory: 'tertiary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 400 },
   { category: 'text', subcategory: 'placeholder', states: ['default'], sourceColor: 'neutral', sourceStep: 400 },
@@ -857,15 +888,15 @@ const SEMANTIC_COLOR_MAPPINGS: SemanticColorMapping[] = [
   // Link text
   { category: 'text', subcategory: 'link', variant: 'default', states: ['default', 'hover', 'active', 'visited', 'disabled'], sourceColor: 'brand', sourceStep: 500 },
   { category: 'text', subcategory: 'link', variant: 'subtle', states: ['default', 'hover', 'active', 'visited', 'disabled'], sourceColor: 'neutral', sourceStep: 600 },
-  // Inverse text
-  { category: 'text', subcategory: 'inverse', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  // Inverse text - uses base white for light text on dark bg
+  { category: 'text', subcategory: 'inverse', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
   { category: 'text', subcategory: 'inverse', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
-  // On-color text (for colored backgrounds)
-  { category: 'text', subcategory: 'on-brand', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'text', subcategory: 'on-success', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'text', subcategory: 'on-warning', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
-  { category: 'text', subcategory: 'on-error', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'text', subcategory: 'on-info', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  // On-color text (for colored backgrounds) - uses base white
+  { category: 'text', subcategory: 'on-brand', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
+  { category: 'text', subcategory: 'on-success', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
+  { category: 'text', subcategory: 'on-warning', states: ['default'], sourceColor: 'neutral', sourceStep: 900, useBaseColor: 'black' },
+  { category: 'text', subcategory: 'on-error', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
+  { category: 'text', subcategory: 'on-info', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
   // Label text
   { category: 'text', subcategory: 'label', variant: 'default', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 700 },
   { category: 'text', subcategory: 'label', variant: 'required', states: ['default'], sourceColor: 'error', sourceStep: 500 },
@@ -1157,8 +1188,8 @@ const SEMANTIC_COLOR_MAPPINGS_DARK: SemanticColorMapping[] = [
   // ============================================
   // BG (BACKGROUND) - All background colors (dark theme)
   // ============================================
-  // Page backgrounds
-  { category: 'bg', subcategory: 'page', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 950 },
+  // Page backgrounds - use base black for dark theme
+  { category: 'bg', subcategory: 'page', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 950, useBaseColor: 'black' },
   { category: 'bg', subcategory: 'page', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
   { category: 'bg', subcategory: 'page', variant: 'tertiary', states: ['default'], sourceColor: 'neutral', sourceStep: 850 },
   // Container/Card backgrounds
@@ -1168,9 +1199,9 @@ const SEMANTIC_COLOR_MAPPINGS_DARK: SemanticColorMapping[] = [
   // Interactive backgrounds
   { category: 'bg', subcategory: 'interactive', variant: 'primary', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 850 },
   { category: 'bg', subcategory: 'interactive', variant: 'secondary', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 800 },
-  // Overlay/Modal backgrounds
-  { category: 'bg', subcategory: 'overlay', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 950 },
-  { category: 'bg', subcategory: 'overlay', variant: 'light', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  // Overlay/Modal backgrounds - overlays use transparent colors
+  { category: 'bg', subcategory: 'overlay', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 950, useBaseColor: 'transparent-dark' },
+  { category: 'bg', subcategory: 'overlay', variant: 'light', states: ['default'], sourceColor: 'neutral', sourceStep: 900, useBaseColor: 'transparent-light' },
   { category: 'bg', subcategory: 'modal', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
   { category: 'bg', subcategory: 'drawer', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
   { category: 'bg', subcategory: 'popover', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 850 },
@@ -1209,8 +1240,8 @@ const SEMANTIC_COLOR_MAPPINGS_DARK: SemanticColorMapping[] = [
   // ============================================
   // TEXT - All text colors (dark theme)
   // ============================================
-  // Primary text hierarchy
-  { category: 'text', subcategory: 'primary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 50 },
+  // Primary text hierarchy - primary uses base white for dark theme
+  { category: 'text', subcategory: 'primary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 50, useBaseColor: 'white' },
   { category: 'text', subcategory: 'secondary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 300 },
   { category: 'text', subcategory: 'tertiary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 500 },
   { category: 'text', subcategory: 'placeholder', states: ['default'], sourceColor: 'neutral', sourceStep: 500 },
@@ -1224,8 +1255,8 @@ const SEMANTIC_COLOR_MAPPINGS_DARK: SemanticColorMapping[] = [
   // Link text
   { category: 'text', subcategory: 'link', variant: 'default', states: ['default', 'hover', 'active', 'visited', 'disabled'], sourceColor: 'brand', sourceStep: 400 },
   { category: 'text', subcategory: 'link', variant: 'subtle', states: ['default', 'hover', 'active', 'visited', 'disabled'], sourceColor: 'neutral', sourceStep: 300 },
-  // Inverse text
-  { category: 'text', subcategory: 'inverse', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  // Inverse text - uses base black for inverse text in dark theme
+  { category: 'text', subcategory: 'inverse', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 900, useBaseColor: 'black' },
   { category: 'text', subcategory: 'inverse', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
   // On-color text
   { category: 'text', subcategory: 'on-brand', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
@@ -1528,6 +1559,9 @@ async function createColorVariablesWithStructure(
   variables: Array<{ name: string; value: { r: number; g: number; b: number; a: number }; description: string }>,
   themes?: ThemeConfig[]
 ): Promise<void> {
+  // Invalidate cache at start of sync to get fresh data
+  invalidateVariablesCache();
+  
   const collections = await getLocalVariableCollections();
   
   // Default themes if none provided
@@ -1633,14 +1667,22 @@ async function createColorVariablesWithStructure(
   // Theme switching is handled by Tokens collection
   const compDefaultModeId = componentsCollection.defaultModeId;
   
-  const existingVariables = await getLocalVariables();
+  // Use cached variables for performance
+  const existingVariables = await getCachedVariables();
   const createdPrimitives: Map<string, Variable> = new Map();
+  const processedPrimitiveNames = new Set<string>(); // Track processed names to avoid duplicates
   
   // 1. Create Primitive Variables
   // New structure: {color}/{step} where step is 25-975 (e.g., brand/500, neutral/25)
   // Primitives only have default mode
   for (const varData of variables) {
     const variableName = varData.name;
+    
+    // Skip if already processed in this session
+    if (processedPrimitiveNames.has(variableName)) {
+      continue;
+    }
+    processedPrimitiveNames.add(variableName);
     
     let variable = existingVariables.find(v => 
       v.name === variableName && 
@@ -1664,29 +1706,40 @@ async function createColorVariablesWithStructure(
     createdPrimitives.set(variableName, variable);
   }
   
-  // 1.0.1 Create Base Colors (white, black, transparent-light, transparent-dark)
-  // These are fundamental colors used across the system
-  const baseColorsData: Array<{ name: string; color: RGBA; description: string }> = [
-    { name: 'colors/base/white', color: { r: 1, g: 1, b: 1, a: 1 }, description: 'Pure white #FFFFFF' },
-    { name: 'colors/base/black', color: { r: 0, g: 0, b: 0, a: 1 }, description: 'Pure black #000000' },
-    { name: 'colors/base/transparent-light', color: { r: 0, g: 0, b: 0, a: 0.3 }, description: 'Semi-transparent dark overlay (30%)' },
-    { name: 'colors/base/transparent-dark', color: { r: 0, g: 0, b: 0, a: 0.7 }, description: 'Semi-transparent dark overlay (70%)' },
-  ];
+  // 1.0.1 Create Base Colors from passed variables (white, black, transparent-light, transparent-dark)
+  // These come from UI input, not hardcoded values
+  const baseColorNames = ['colors/base/white', 'colors/base/black', 'colors/base/transparent-light', 'colors/base/transparent-dark'];
   
-  for (const baseColor of baseColorsData) {
-    let variable = existingVariables.find(v => 
-      v.name === baseColor.name && 
-      v.variableCollectionId === primitivesCollection!.id
-    );
+  for (const baseColorName of baseColorNames) {
+    // Find the color in passed variables
+    const passedColor = variables.find(v => v.name === baseColorName);
     
-    if (!variable) {
-      variable = await createVariable(baseColor.name, primitivesCollection, 'COLOR');
+    console.log(`Base color ${baseColorName}:`, passedColor ? `found with a=${passedColor.value.a}` : 'NOT FOUND in variables');
+    
+    if (passedColor) {
+      let variable = existingVariables.find(v => 
+        v.name === baseColorName && 
+        v.variableCollectionId === primitivesCollection!.id
+      );
+      
+      if (!variable) {
+        variable = await createVariable(baseColorName, primitivesCollection, 'COLOR');
+      }
+      
+      const color: RGBA = {
+        r: passedColor.value.r,
+        g: passedColor.value.g,
+        b: passedColor.value.b,
+        a: passedColor.value.a ?? 1
+      };
+      
+      console.log(`Setting ${baseColorName} to RGBA:`, color);
+      
+      variable.setValueForMode(primitivesCollection.defaultModeId, color);
+      variable.description = passedColor.description || `Base color ${baseColorName.split('/').pop()}`;
+      
+      createdPrimitives.set(baseColorName, variable);
     }
-    
-    variable.setValueForMode(primitivesCollection.defaultModeId, baseColor.color);
-    variable.description = baseColor.description;
-    
-    createdPrimitives.set(baseColor.name, variable);
   }
   
   // 1.1 Create Primitive Palettes for Custom Themes
@@ -1728,6 +1781,7 @@ async function createColorVariablesWithStructure(
   // Helper function to get primitive reference for a mapping
   // Now uses unified scale: colors/{color}/{step} (e.g., colors/brand/500, colors/neutral/25)
   // For custom themes, 'brand' sourceColor is replaced with theme's color
+  // Can also use base colors (white, black, transparent) directly via useBaseColor
   const getPrimitiveForMapping = (
     mapping: SemanticColorMapping, 
     state: string, 
@@ -1741,6 +1795,12 @@ async function createColorVariablesWithStructure(
       m.subcategory === mapping.subcategory &&
       m.variant === mapping.variant
     ) || mapping;
+    
+    // Check for direct base color reference
+    if (actualMapping.useBaseColor && state === 'default') {
+      const baseColorName = `colors/base/${actualMapping.useBaseColor}`;
+      return createdPrimitives.get(baseColorName);
+    }
     
     let step = actualMapping.sourceStep;
     
@@ -1796,7 +1856,9 @@ async function createColorVariablesWithStructure(
   
   // 2. Create Semantic Token Variables with light/dark modes
   // Naming with category folders: bg/page/primary, bg/card/primary-hover, text/primary, etc.
-  const refreshedVariables = await getLocalVariables();
+  // Use cached variables instead of fresh fetch for performance
+  const refreshedVariables = await getCachedVariables();
+  const createdTokenNames = new Set<string>(); // Track created tokens to avoid duplicates
   
   for (const mapping of SEMANTIC_COLOR_MAPPINGS) {
     for (const state of mapping.states) {
@@ -1819,6 +1881,11 @@ async function createColorVariablesWithStructure(
           : `${mapping.category}/${mapping.subcategory}/${mapping.subcategory}-${state}`;
       }
       
+      // Skip if already created in this session
+      if (createdTokenNames.has(tokenName)) {
+        continue;
+      }
+      
       let tokenVar = refreshedVariables.find(v => 
         v.name === tokenName && 
         v.variableCollectionId === tokensCollection!.id
@@ -1826,6 +1893,7 @@ async function createColorVariablesWithStructure(
       
       if (!tokenVar) {
         tokenVar = await createVariable(tokenName, tokensCollection, 'COLOR');
+        createdTokenNames.add(tokenName);
       }
       
       // Set values for all theme modes
@@ -2025,7 +2093,7 @@ async function createColorVariablesWithStructure(
     // TOOLTIP COMPONENT
     // ============================================
     { name: 'tooltip/container/container-surface', source: 'surface/inverse/inverse' },
-    { name: 'tooltip/text/text-content', source: 'content/inverse/inverse-primary' },
+    { name: 'tooltip/text/text-content', source: 'content/inverse/inverse' },
     
     // ============================================
     // AVATAR COMPONENT
@@ -2285,8 +2353,14 @@ async function createColorVariablesWithStructure(
   ];
   
   const allVariables = await getLocalVariables();
+  const createdComponentNames = new Set<string>(); // Track created components to avoid duplicates
   
   for (const comp of componentMappings) {
+    // Skip if already created in this session
+    if (createdComponentNames.has(comp.name)) {
+      continue;
+    }
+    
     const sourceToken = allVariables.find(v => 
       v.name === comp.source && 
       v.variableCollectionId === tokensCollection!.id
@@ -2304,6 +2378,7 @@ async function createColorVariablesWithStructure(
     
     if (!compVar) {
       compVar = await createVariable(comp.name, componentsCollection, 'COLOR');
+      createdComponentNames.add(comp.name);
     }
     
     const aliasValue: VariableAlias = {
@@ -7073,14 +7148,50 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           }>;
         };
         
-        await createColorVariablesWithStructure(syncMsg.variables, syncMsg.themes);
-        await createBaseTokens();
-        
-        figma.notify('✅ Темы синхронизированы в Figma Variables');
-        figma.ui.postMessage({
-          type: 'themes-synced',
-          payload: { success: true }
-        });
+        try {
+          const stats = await createColorVariablesWithStructure(syncMsg.variables, syncMsg.themes);
+          await createBaseTokens();
+          
+          // Get actual counts from Figma
+          const allVars = await figma.variables.getLocalVariablesAsync();
+          const collections = await figma.variables.getLocalVariableCollectionsAsync();
+          
+          const primitivesCount = allVars.filter(v => {
+            const col = collections.find(c => c.id === v.variableCollectionId);
+            return col?.name === 'Primitives';
+          }).length;
+          
+          const tokensCount = allVars.filter(v => {
+            const col = collections.find(c => c.id === v.variableCollectionId);
+            return col?.name === 'Tokens';
+          }).length;
+          
+          const componentsCount = allVars.filter(v => {
+            const col = collections.find(c => c.id === v.variableCollectionId);
+            return col?.name === 'Components';
+          }).length;
+          
+          figma.notify(`✅ Синхронизировано: ${primitivesCount} примитивов, ${tokensCount} токенов, ${componentsCount} компонентов`);
+          figma.ui.postMessage({
+            type: 'themes-synced',
+            payload: { 
+              success: true,
+              stats: {
+                primitives: primitivesCount,
+                tokens: tokensCount,
+                components: componentsCount,
+                total: primitivesCount + tokensCount + componentsCount
+              }
+            }
+          });
+        } catch (error) {
+          console.error('Sync error:', error);
+          figma.notify(`❌ Ошибка синхронизации: ${error}`, { error: true });
+          figma.ui.postMessage({
+            type: 'themes-synced',
+            payload: { success: false, error: String(error) }
+          });
+        }
         break;
       }
 

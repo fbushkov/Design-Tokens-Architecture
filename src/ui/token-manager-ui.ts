@@ -587,11 +587,14 @@ function generatePathPreview(separator: string, caseStyle: string): { primitive:
 export function renderStats(): string {
   // Get stats from Figma (projectSyncData) if available, otherwise from Token Map
   const syncData = getProjectSyncData();
+  // Also check for recent sync stats from color generation
+  const lastSyncStats = (window as any).__lastSyncStats;
   
   let primitives = 0;
   let semantic = 0;
   let components = 0;
   let total = 0;
+  let source = '';
   
   if (syncData) {
     // Use real Figma data
@@ -603,6 +606,14 @@ export function renderStats(): string {
     semantic = tokensCollection?.variableCount || 0;
     components = componentsCollection?.variableCount || 0;
     total = primitives + semantic + components;
+    source = 'figma';
+  } else if (lastSyncStats) {
+    // Use stats from last color sync
+    primitives = lastSyncStats.primitives || 0;
+    semantic = lastSyncStats.tokens || 0;
+    components = lastSyncStats.components || 0;
+    total = lastSyncStats.total || (primitives + semantic + components);
+    source = 'sync';
   } else {
     // Fallback to Token Map data
     const tokens = getTokens();
@@ -610,7 +621,10 @@ export function renderStats(): string {
     semantic = tokens.filter(t => t.collection === 'Tokens').length;
     components = tokens.filter(t => t.collection === 'Components').length;
     total = tokens.length;
+    source = 'local';
   }
+
+  const sourceLabel = source === 'figma' ? '(из Figma)' : source === 'sync' ? '(последняя синхр.)' : '(локально)';
 
   return `
     <div class="tm-stats">
@@ -627,8 +641,8 @@ export function renderStats(): string {
         <span class="tm-stat-label">Компоненты</span>
       </div>
       <div class="tm-stat">
-        <span class="tm-stat-value">${total}/${total}</span>
-        <span class="tm-stat-label">Активных</span>
+        <span class="tm-stat-value">${total}</span>
+        <span class="tm-stat-label">Всего ${sourceLabel}</span>
       </div>
     </div>
   `;

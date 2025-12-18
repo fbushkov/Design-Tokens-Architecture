@@ -301,6 +301,23 @@ window.onmessage = (event: MessageEvent) => {
       postMessage('sync-from-project', {});
       break;
     
+    case 'themes-synced':
+      if (msg.payload?.success) {
+        const stats = msg.payload.stats;
+        if (stats) {
+          showNotification(`✅ Синхронизировано: ${stats.primitives} примитивов, ${stats.tokens} токенов, ${stats.components} компонентов`);
+          // Store stats for Token Manager display
+          (window as any).__lastSyncStats = stats;
+        } else {
+          showNotification('✅ Темы синхронизированы в Figma!');
+        }
+        // Refresh Token Manager to show new data
+        refreshTokenManager();
+      } else {
+        showNotification('❌ Ошибка синхронизации: ' + (msg.payload?.error || 'Неизвестная ошибка'), true);
+      }
+      break;
+    
     // Sync handlers
     case 'sync-collections-loaded':
     case 'sync-variables-loaded':

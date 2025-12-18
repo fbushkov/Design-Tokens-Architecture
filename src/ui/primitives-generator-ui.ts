@@ -598,19 +598,56 @@ export function addColorPalettesToTokenManager(palettes: ColorPaletteData[], sco
 // Add base colors (white, black, transparent) as single tokens
 export function addBaseColorsToTokenManager(baseColorsArr: Array<{name: string, hex: string, category: ColorCategory}>): void {
   for (const color of baseColorsArr) {
-    const isTransparent = color.name === 'transparent' || color.hex === 'transparent';
+    // Parse the color value - could be hex, rgba(), or 'transparent'
+    const rgba = parseColorValue(color.hex);
+    const isTransparent = color.name === 'transparent' || color.hex === 'transparent' || rgba.a === 0;
+    
+    // Construct hex representation
+    const hex = isTransparent && rgba.a === 0 
+      ? '#00000000' 
+      : rgbaToHex(rgba);
+    
+    console.log(`[addBaseColorsToTokenManager] ${color.name}: input="${color.hex}" -> rgba=${JSON.stringify(rgba)}, hex=${hex}`);
     
     createToken({
       name: color.name,
       path: ['colors', 'base'],
       type: 'COLOR' as TMTokenType,
-      value: isTransparent 
-        ? { hex: '#00000000', rgba: { r: 0, g: 0, b: 0, a: 0 } }
-        : { hex: color.hex, rgba: hexToRgba(color.hex) },
+      value: { hex, rgba },
       collection: 'Primitives' as TMCollectionType,
-      description: isTransparent ? 'Fully transparent' : `Base ${color.name}`,
+      description: isTransparent && rgba.a === 0 ? 'Fully transparent' : `Base ${color.name}`,
     });
   }
+}
+
+// Parse any color value: hex, rgba(), or 'transparent'
+function parseColorValue(value: string): { r: number, g: number, b: number, a: number } {
+  // Check for rgba format: rgba(r,g,b,a) or rgba(r, g, b, a)
+  const rgbaMatch = value.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/i);
+  if (rgbaMatch) {
+    return {
+      r: parseInt(rgbaMatch[1], 10) / 255,
+      g: parseInt(rgbaMatch[2], 10) / 255,
+      b: parseInt(rgbaMatch[3], 10) / 255,
+      a: rgbaMatch[4] !== undefined ? parseFloat(rgbaMatch[4]) : 1
+    };
+  }
+  
+  // Check for 'transparent'
+  if (value === 'transparent') {
+    return { r: 0, g: 0, b: 0, a: 0 };
+  }
+  
+  // Try hex format
+  return hexToRgba(value);
+}
+
+// Convert rgba to hex (ignores alpha for 6-char hex)
+function rgbaToHex(rgba: { r: number, g: number, b: number, a: number }): string {
+  const r = Math.round(rgba.r * 255).toString(16).padStart(2, '0');
+  const g = Math.round(rgba.g * 255).toString(16).padStart(2, '0');
+  const b = Math.round(rgba.b * 255).toString(16).padStart(2, '0');
+  return `#${r}${g}${b}`;
 }
 
 // Helper function to convert hex to rgba
@@ -1598,6 +1635,61 @@ export function renderCustomThemes(): void {
 function collectColorsForSync(): Array<{name: string, value: {r: number, g: number, b: number, a: number}, description: string}> {
   const colors: Array<{name: string, value: {r: number, g: number, b: number, a: number}, description: string}> = [];
   
+  // Collect base colors (white, black, transparent) from UI
+  document.querySelectorAll('#base-colors-grid .color-card').forEach(card => {
+    const name = card.getAttribute('data-color-name');
+    const hexInput = card.querySelector('.color-hex') as HTMLInputElement;
+    if (name && hexInput?.value) {
+      const value = hexInput.value.trim();
+      
+      console.log(`[collectColorsForSync] Processing ${name}: "${value}"`);
+      
+      // Handle transparent colors (rgba format) - more flexible regex to handle spaces
+      if (value.toLowerCase().startsWith('rgba')) {
+        const match = value.match(/rgba\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)/i);
+        console.log(`[collectColorsForSync] RGBA match for ${name}:`, match);
+        if (match) {
+          const alpha = parseFloat(match[4]);
+          colors.push({
+            name: `colors/base/${name}`,
+            value: {
+              r: parseInt(match[1]) / 255,
+              g: parseInt(match[2]) / 255,
+              b: parseInt(match[3]) / 255,
+              a: alpha
+            },
+            description: `Base ${name} (${Math.round(alpha * 100)}% opacity)`
+          });
+          console.log(`[collectColorsForSync] Added ${name} with alpha=${alpha}`);
+        } else {
+          console.warn(`[collectColorsForSync] Failed to parse rgba value: ${value}`);
+          // Fallback - try to extract numbers manually
+          const numbers = value.match(/[\d.]+/g);
+          if (numbers && numbers.length >= 4) {
+            colors.push({
+              name: `colors/base/${name}`,
+              value: {
+                r: parseFloat(numbers[0]) / 255,
+                g: parseFloat(numbers[1]) / 255,
+                b: parseFloat(numbers[2]) / 255,
+                a: parseFloat(numbers[3])
+              },
+              description: `Base ${name}`
+            });
+          }
+        }
+      } else {
+        // Handle hex colors
+        const rgba = hexToRgba(value);
+        colors.push({
+          name: `colors/base/${name}`,
+          value: rgba,
+          description: `Base ${name} ${value}`
+        });
+      }
+    }
+  });
+  
   // Collect from generated palettes
   for (const palette of generatedPalettes) {
     for (const [stepStr, shade] of Object.entries(palette.shades)) {
@@ -1641,6 +1733,10 @@ function syncThemesToFigma(): void {
   
   // Get all colors for sync
   const allColors = collectColorsForSync();
+  
+  // Debug: log base colors
+  const baseColors = allColors.filter(c => c.name.includes('/base/'));
+  console.log('Base colors for sync:', baseColors);
   
   if (allColors.length === 0) {
     showNotification('⚠️ Сначала сгенерируйте цвета.', true);
