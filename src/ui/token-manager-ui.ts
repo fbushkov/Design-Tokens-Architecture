@@ -1529,6 +1529,7 @@ function renderPendingChanges(): string {
     gap: pendingChanges.filter(c => c.module === 'gap'),
     radius: pendingChanges.filter(c => c.module === 'radius'),
     iconSize: pendingChanges.filter(c => c.module === 'iconSize'),
+    effects: pendingChanges.filter(c => c.module === 'effects'),
   };
   
   const totalChanges = pendingChanges.length;
@@ -1540,6 +1541,12 @@ function renderPendingChanges(): string {
     gap: { icon: '↔️', label: 'Gap' },
     radius: { icon: '◯', label: 'Radius' },
     iconSize: { icon: '📐', label: 'Icon Size' },
+    effects: { icon: '✨', label: 'Эффекты' },
+  };
+  
+  // Helper to safely get module label (防止 undefined 错误)
+  const getModuleInfo = (module: string) => {
+    return moduleLabels[module] || { icon: '❓', label: module };
   };
   
   const renderChangeType = (type: string) => {
@@ -1612,8 +1619,8 @@ function renderPendingChanges(): string {
                     <input type="checkbox" checked data-change-idx="${idx}">
                   </td>
                   <td class="change-module">
-                    <span class="module-icon">${moduleLabels[change.module].icon}</span>
-                    ${moduleLabels[change.module].label}
+                    <span class="module-icon">${getModuleInfo(change.module).icon}</span>
+                    ${getModuleInfo(change.module).label}
                   </td>
                   <td class="change-category">${change.category}</td>
                   <td class="change-name">${change.name}</td>
@@ -1631,8 +1638,8 @@ function renderPendingChanges(): string {
             .filter(([_, changes]) => changes.length > 0)
             .map(([module, changes]) => `
               <div class="module-summary-item">
-                <span class="module-icon">${moduleLabels[module].icon}</span>
-                <span class="module-label">${moduleLabels[module].label}</span>
+                <span class="module-icon">${getModuleInfo(module).icon}</span>
+                <span class="module-label">${getModuleInfo(module).label}</span>
                 <span class="module-count">${changes.length}</span>
               </div>
             `).join('')}

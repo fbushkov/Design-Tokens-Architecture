@@ -1333,6 +1333,10 @@ input/container/container-stroke-focus
 
 ## 📅 История изменений
 
+- **2025-12-18**: ✅ **Исправлена ошибка "Изменения"** — кнопка вкладки "Изменения" в Project Sync вызывала `Cannot read properties of undefined (reading 'icon')`
+  - Добавлен модуль `effects` в `moduleLabels` и `grouped`
+  - Добавлен безопасный геттер `getModuleInfo()` для защиты от неизвестных модулей
+  - Защита от краша при старых данных в localStorage с неизвестными модулями
 - **2025-12-18**: ✅ **Effects System** — добавлена полная система эффектов (тени, blur, opacity) с 2-уровневой архитектурой
   - Level 1 Primitives: Shadow Offset X/Y, Blur, Spread, Colors, Backdrop Blur, Opacity
   - Level 2 Semantic: 12 категорий (elevation, focus, button, card, input, modal, dropdown, directional, inset, glow, backdrop, opacity)
