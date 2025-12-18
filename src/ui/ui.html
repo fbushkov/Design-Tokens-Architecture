@@ -5380,6 +5380,7 @@
           <div class="color-card" data-color-name="brand" data-category="brand">
             <div class="color-card-header">
               <label class="form-label">Brand</label>
+              <button class="btn-icon btn-remove-color" data-color="brand" title="Удалить">✕</button>
             </div>
             <div class="color-input-group">
               <input type="color" class="color-picker" data-color="brand" value="#2781F3">
@@ -5390,6 +5391,7 @@
           <div class="color-card" data-color-name="accent" data-category="brand">
             <div class="color-card-header">
               <label class="form-label">Accent</label>
+              <button class="btn-icon btn-remove-color" data-color="accent" title="Удалить">✕</button>
             </div>
             <div class="color-input-group">
               <input type="color" class="color-picker" data-color="accent" value="#844DBB">
@@ -5397,6 +5399,8 @@
             </div>
           </div>
         </div>
+        
+        <button class="btn btn-secondary btn-sm" id="btn-add-brand-color">+ Добавить цвет</button>
       </div>
 
       <!-- Custom Themes - Color variations for brand -->  
@@ -5422,23 +5426,6 @@
             🔄 Синхронизировать темы
           </button>
         </div>
-      </div>
-
-      <!-- Additional Colors - PER PRODUCT -->
-      <div class="color-section" data-scope="product">
-        <div class="section-title">
-          Дополнительные цвета
-          <span class="badge">опциональные для продукта</span>
-        </div>
-        <div class="info-box info-box-sm">
-          Дополнительные цвета для специфических нужд выбранного продукта.
-        </div>
-        
-        <div class="color-grid" id="additional-colors-grid">
-          <!-- Dynamic content -->
-        </div>
-
-        <button class="btn btn-secondary btn-sm" id="btn-add-additional-color">+ Добавить цвет</button>
       </div>
 
       <!-- Generate button -->

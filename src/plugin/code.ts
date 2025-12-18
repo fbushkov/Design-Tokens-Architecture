@@ -278,7 +278,12 @@ const MANAGED_COLLECTIONS = [
 ];
 
 /** Style prefixes managed by the plugin */
-const MANAGED_PAINT_PREFIXES = ['color/'];
+// Paint Styles are created from Components collection, so they have component-style names
+const MANAGED_PAINT_PREFIXES = [
+  'button/', 'input/', 'card/', 'badge/', 'alert/', 'navigation/',  // Component prefixes
+  'bg/', 'text/', 'border/', 'action/', 'stroke/', 'fill/',         // Semantic prefixes  
+  'color/', 'colors/',                                               // Legacy/general
+];
 const MANAGED_TEXT_PREFIXES = ['typography/'];
 
 interface ProjectVariable {
@@ -1657,6 +1662,31 @@ async function createColorVariablesWithStructure(
     variable.description = varData.description;
     
     createdPrimitives.set(variableName, variable);
+  }
+  
+  // 1.0.1 Create Base Colors (white, black, transparent-light, transparent-dark)
+  // These are fundamental colors used across the system
+  const baseColorsData: Array<{ name: string; color: RGBA; description: string }> = [
+    { name: 'colors/base/white', color: { r: 1, g: 1, b: 1, a: 1 }, description: 'Pure white #FFFFFF' },
+    { name: 'colors/base/black', color: { r: 0, g: 0, b: 0, a: 1 }, description: 'Pure black #000000' },
+    { name: 'colors/base/transparent-light', color: { r: 0, g: 0, b: 0, a: 0.3 }, description: 'Semi-transparent dark overlay (30%)' },
+    { name: 'colors/base/transparent-dark', color: { r: 0, g: 0, b: 0, a: 0.7 }, description: 'Semi-transparent dark overlay (70%)' },
+  ];
+  
+  for (const baseColor of baseColorsData) {
+    let variable = existingVariables.find(v => 
+      v.name === baseColor.name && 
+      v.variableCollectionId === primitivesCollection!.id
+    );
+    
+    if (!variable) {
+      variable = await createVariable(baseColor.name, primitivesCollection, 'COLOR');
+    }
+    
+    variable.setValueForMode(primitivesCollection.defaultModeId, baseColor.color);
+    variable.description = baseColor.description;
+    
+    createdPrimitives.set(baseColor.name, variable);
   }
   
   // 1.1 Create Primitive Palettes for Custom Themes

@@ -97,7 +97,6 @@ function updateProductUI(): void {
   
   // Update brand colors grid
   updateBrandColorsGrid(product);
-  updateAdditionalColorsGrid(product);
 }
 
 function updateBrandColorsGrid(product: ProductConfig): void {
@@ -108,18 +107,6 @@ function updateBrandColorsGrid(product: ProductConfig): void {
   
   product.brandColors.forEach((hex, name) => {
     const card = createColorCardElement(name, hex, 'brand');
-    grid.appendChild(card);
-  });
-}
-
-function updateAdditionalColorsGrid(product: ProductConfig): void {
-  const grid = document.getElementById('additional-colors-grid');
-  if (!grid) return;
-  
-  grid.innerHTML = '';
-  
-  product.additionalColors.forEach((hex, name) => {
-    const card = createColorCardElement(name, hex, 'additional');
     grid.appendChild(card);
   });
 }
@@ -1016,7 +1003,7 @@ function generateColors(): void {
     }
   });
   
-  // Collect product colors
+  // Collect product colors (brand colors only)
   const productColors: Array<{name: string, hex: string, category: ColorCategory}> = [];
   
   // Brand colors
@@ -1026,16 +1013,6 @@ function generateColors(): void {
     if (name && hexInput?.value) {
       productColors.push({ name, hex: hexInput.value, category: 'brand' });
       product.brandColors.set(name, hexInput.value);
-    }
-  });
-  
-  // Additional colors
-  document.querySelectorAll('#additional-colors-grid .color-card').forEach(card => {
-    const name = card.getAttribute('data-color-name');
-    const hexInput = card.querySelector('.color-hex') as HTMLInputElement;
-    if (name && hexInput?.value) {
-      productColors.push({ name, hex: hexInput.value, category: 'additional' });
-      product.additionalColors.set(name, hexInput.value);
     }
   });
   
@@ -1250,14 +1227,6 @@ function setupColorButtons(): void {
   if (btnAddBrand) {
     btnAddBrand.addEventListener('click', () => {
       addColorCard('brand-colors-grid', 'brand', generateColorName('brand'));
-    });
-  }
-  
-  // Add additional color
-  const btnAddAdditional = document.getElementById('btn-add-additional-color');
-  if (btnAddAdditional) {
-    btnAddAdditional.addEventListener('click', () => {
-      addColorCard('additional-colors-grid', 'additional', generateColorName('custom'));
     });
   }
   

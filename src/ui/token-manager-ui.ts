@@ -385,6 +385,8 @@ export function renderToolbar(): string {
       </div>
       <div class="tm-actions">
         <button class="btn btn-sm btn-primary tm-sync-btn" title="Синхронизировать с Figma">🔄 Sync</button>
+        <button class="btn btn-sm btn-secondary tm-refresh-btn" title="Обновить данные из Figma">🔃</button>
+        <button class="btn btn-sm btn-secondary tm-clear-btn" title="Очистить Token Map">🗑</button>
         <button class="btn btn-sm btn-secondary tm-add-token" title="Добавить токен">+</button>
         <button class="btn btn-sm btn-secondary tm-expand-all" title="Развернуть все">⏷</button>
         <button class="btn btn-sm btn-secondary tm-collapse-all" title="Свернуть все">⏶</button>
@@ -794,6 +796,16 @@ export function initTokenManagerEvents(container: HTMLElement, refreshCallback: 
     // Open Sync Modal
     if (target.closest('.tm-sync-btn')) {
       openSyncModal(container, refreshCallback);
+    }
+
+    // Refresh Token Map from Figma
+    if (target.closest('.tm-refresh-btn')) {
+      refreshTokenMapFromFigma(container, refreshCallback);
+    }
+
+    // Clear Token Map
+    if (target.closest('.tm-clear-btn')) {
+      clearTokenMapWithConfirm(container, refreshCallback);
     }
 
     // Go to primitives tab
@@ -1818,6 +1830,66 @@ function importToTokenMap(): void {
     alert('Нет токенов для импорта.');
   }
 }
+
+/**
+ * Refresh Token Map - clears old data and re-imports from Figma
+ */
+function refreshTokenMapFromFigma(container: HTMLElement, refreshCallback: () => void): void {
+  if (!projectSyncData) {
+    // First sync from Figma
+    parent.postMessage({ pluginMessage: { type: 'sync-from-project' } }, '*');
+    alert('Сначала выполните синхронизацию с Figma (Project Sync → Обновить)');
+    return;
+  }
+  
+  const confirm = window.confirm(
+    '🔃 Обновить Token Map?\n\n' +
+    'Это удалит все текущие токены из Token Map и загрузит актуальные данные из Figma.\n\n' +
+    'Variables в Figma НЕ будут изменены.'
+  );
+  
+  if (!confirm) return;
+  
+  // Clear all tokens
+  clearAllTokens();
+  
+  // Re-import from sync data
+  const result = importFromProjectSync(projectSyncData);
+  
+  alert(
+    `✅ Token Map обновлён!\n\n` +
+    `Загружено: ${result.imported} токенов из Figma`
+  );
+  
+  refreshCallback();
+}
+
+/**
+ * Clear Token Map with confirmation
+ */
+function clearTokenMapWithConfirm(container: HTMLElement, refreshCallback: () => void): void {
+  const tokens = getTokens();
+  
+  if (tokens.length === 0) {
+    alert('Token Map уже пуст.');
+    return;
+  }
+  
+  const confirm = window.confirm(
+    `🗑 Очистить Token Map?\n\n` +
+    `Будет удалено: ${tokens.length} токенов\n\n` +
+    `⚠️ Variables в Figma НЕ будут удалены.`
+  );
+  
+  if (!confirm) return;
+  
+  clearAllTokens();
+  
+  alert('✅ Token Map очищен.');
+  
+  refreshCallback();
+}
+
 // ============================================
 // SYNC MODAL
 // ============================================
