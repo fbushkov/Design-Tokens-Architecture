@@ -54,6 +54,10 @@ import {
 } from './icon-size-generator-ui';
 
 import {
+  initStrokeUI,
+} from './stroke-generator-ui';
+
+import {
   renderEffectsGenerator,
   initEffectsEvents,
   loadEffectsState,
@@ -473,6 +477,9 @@ initRadiusUI();
 
 // Initialize Icon Size UI (2-tier for icon sizes)
 initIconSizeUI();
+
+// Initialize Stroke UI (2-tier for borders/strokes)
+initStrokeUI();
 
 // Initialize Effects UI (shadows, blur, opacity)
 initEffectsUI();

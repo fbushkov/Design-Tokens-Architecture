@@ -270,6 +270,9 @@ export const STORAGE_KEYS = {
   // Icon Size
   ICON_SIZE_STATE: 'icon-size-state',
   
+  // Stroke
+  STROKE_STATE: 'stroke-state',
+  
   // Token Manager
   TOKEN_MANAGER_STATE: 'token-manager-state',
   TOKEN_MANAGER_SETTINGS: 'token-manager-settings',

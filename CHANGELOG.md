@@ -1,5 +1,78 @@
 # 📝 Changelog - Design Tokens Plugin
 
+## [2025-12-18] - Stroke (Border) Token System 🔲
+
+### ✅ Добавлено
+
+#### Stroke модуль — полная система границ элементов
+2-уровневая архитектура (Primitives → Semantic) для управления границами:
+
+**Level 1 — Примитивы:**
+- `stroke.width.*` — толщина границ (0, 0.5, 1, 1.5, 2, 3, 4, 6, 8 px) — FLOAT
+- `stroke.style.*` — стили границ (solid, dashed, dotted, none) — STRING
+- `stroke.dashArray.*` — паттерны пунктира (2-2, 4-2, 4-4, 6-3, 8-4, 1-2) — STRING
+- Возможность добавлять кастомные примитивы через UI
+
+**Level 2 — Семантика (35+ категорий, ~300 токенов):**
+| Категория | Описание | Примеры токенов |
+|-----------|----------|-----------------|
+| base | Базовые границы | default, subtle, strong, inverse |
+| button | Кнопки | default, hover, active, focus, disabled |
+| input | Поля ввода | default, hover, focus, error, success, disabled |
+| checkbox/radio/switch | Контролы | default, checked, disabled |
+| card | Карточки | default, hover, selected, interactive |
+| modal | Модальные окна | container, header, footer |
+| dropdown | Выпадающие меню | container, item, separator |
+| table | Таблицы | row, cell, header |
+| divider | Разделители | default, strong, subtle, decorative, vertical, section |
+| alert | Уведомления | info, success, warning, error |
+| tabs | Вкладки | default, active, indicator |
+| navigation | Навигация | item, active, separator |
+| accent | Акцентные | brand, primary, secondary, success, warning, error |
+| interactive | Интерактивные | default, hover, active, focus |
+| ... | +20 категорий | badge, tag, chip, avatar, list, menu, и др. |
+
+**Свойства семантических токенов:**
+- `property: 'width' | 'style' | 'color'` — тип свойства
+- `widthRef` — ссылка на примитив толщины
+- `styleRef` — ссылка на примитив стиля
+- `colorRef` — ссылка на семантический цвет из коллекции Tokens
+
+#### UI для Stroke
+- Вкладка "🔲 Borders" в секции Примитивы
+- Вкладки: Примитивы | Семантика | Экспорт
+- 3 подвкладки примитивов: Width, Style, Dash Array
+- Категории семантических токенов с выпадающим списком фильтрации
+- Редактируемые таблицы с превью
+- CRUD операции с автоматическим сохранением в clientStorage
+- Трекинг изменений в Token Manager
+
+#### Экспорт в Figma
+- **Экспорт примитивов** → коллекция `Primitives`:
+  - `stroke.width.*` — FLOAT переменные
+  - `stroke.style.*` — STRING переменные  
+  - `stroke.dashArray.*` — STRING переменные
+- **Экспорт семантики** → коллекция `Stroke`:
+  - WIDTH токены — алиасы на stroke.width.* примитивы
+  - STYLE токены — алиасы на stroke.style.* примитивы
+  - COLOR токены — алиасы на colors/border/* из Tokens
+
+### 📁 Новые файлы
+- `src/types/stroke-tokens.ts` — типы: StrokeWidthPrimitive, StrokeStylePrimitive, StrokeDashArrayPrimitive, StrokeSemanticToken, StrokeState
+- `src/types/stroke-defaults.ts` — ~300 дефолтных семантических токенов (COMPLETE_STROKE_SEMANTIC_TOKENS)
+- `src/ui/stroke-generator-ui.ts` — UI модуль (~820 строк): initStrokeUI(), renderStrokePrimitives(), renderStrokeSemanticTokens(), exportStrokePrimitivesToFigma(), exportStrokeSemanticToFigma()
+
+### 📁 Изменённые файлы
+- `src/plugin/code.ts`:
+  - Обработчики: `create-stroke-primitives`, `create-stroke-semantic`
+  - Функции: `createStrokePrimitives()`, `createStrokeSemanticCollection()`
+- `src/ui/ui.html` — секция prim-borders с CSS стилями для stroke UI
+- `src/ui/ui.ts` — импорт и инициализация StrokeUI
+- `src/ui/storage-utils.ts` — ключ STROKE_STATE
+- `src/ui/token-manager-ui.ts` — добавлен 'stroke' в PendingChange module type
+
+---
+
 ## [2025-12-18] - Base Colors & Performance Optimization 🎨⚡
 
 ### ✅ Добавлено

@@ -3941,6 +3941,331 @@ async function createRadiusSemanticCollection(data: RadiusSemanticData): Promise
 }
 
 // ============================================
+// STROKE (BORDER) PRIMITIVES & SEMANTIC
+// ============================================
+
+interface StrokePrimitivesPayload {
+  widths: Array<{ name: string; value: number }>;   // stroke.width.0 = 0, stroke.width.1 = 1, etc.
+  styles: Array<{ name: string; value: string }>;   // stroke.style.none = "none", stroke.style.solid = "solid"
+  dashArrays: Array<{ name: string; value: string }>; // stroke.dashArray.default = "4, 4"
+}
+
+async function createStrokePrimitives(payload: StrokePrimitivesPayload): Promise<{ created: number; updated: number; errors: string[] }> {
+  const result = { created: 0, updated: 0, errors: [] as string[] };
+  
+  // Get or create Primitives collection
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  let primitivesCollection = collections.find(c => c.name === 'Primitives');
+  
+  if (!primitivesCollection) {
+    primitivesCollection = figma.variables.createVariableCollection('Primitives');
+  }
+  
+  // Get existing variables
+  const existingVariables = await figma.variables.getLocalVariablesAsync();
+  const existingFloats = existingVariables.filter(v => v.resolvedType === 'FLOAT');
+  const existingStrings = existingVariables.filter(v => v.resolvedType === 'STRING');
+  
+  // Create WIDTH primitives (NUMBER/FLOAT)
+  for (const prim of payload.widths || []) {
+    try {
+      const varName = `stroke/width/${prim.name}`;
+      
+      let existingVar = existingFloats.find(v => 
+        v.name === varName && v.variableCollectionId === primitivesCollection!.id
+      );
+      
+      if (existingVar) {
+        existingVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        result.updated++;
+      } else {
+        const newVar = figma.variables.createVariable(varName, primitivesCollection, 'FLOAT');
+        newVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        newVar.description = `Border width ${prim.value}px`;
+        result.created++;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания stroke/width/${prim.name}: ${errorMessage}`);
+    }
+  }
+  
+  // Create STYLE primitives (STRING)
+  for (const prim of payload.styles || []) {
+    try {
+      const varName = `stroke/style/${prim.name}`;
+      
+      let existingVar = existingStrings.find(v => 
+        v.name === varName && v.variableCollectionId === primitivesCollection!.id
+      );
+      
+      if (existingVar) {
+        existingVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        result.updated++;
+      } else {
+        const newVar = figma.variables.createVariable(varName, primitivesCollection, 'STRING');
+        newVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        newVar.description = `Border style: ${prim.value}`;
+        result.created++;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания stroke/style/${prim.name}: ${errorMessage}`);
+    }
+  }
+  
+  // Create DASH ARRAY primitives (STRING)
+  for (const prim of payload.dashArrays || []) {
+    try {
+      const varName = `stroke/dashArray/${prim.name}`;
+      
+      let existingVar = existingStrings.find(v => 
+        v.name === varName && v.variableCollectionId === primitivesCollection!.id
+      );
+      
+      if (existingVar) {
+        existingVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        result.updated++;
+      } else {
+        const newVar = figma.variables.createVariable(varName, primitivesCollection, 'STRING');
+        newVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        newVar.description = `Dash pattern: ${prim.value}`;
+        result.created++;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания stroke/dashArray/${prim.name}: ${errorMessage}`);
+    }
+  }
+  
+  // Create stroke COLOR primitives (aliases to existing colors)
+  // These are special: they reference color primitives from color/{palette}.{shade}
+  // For transparent, white, black - use useBaseColor approach
+  const colorAliases: Array<{ name: string; colorRef: string }> = [
+    { name: 'transparent', colorRef: 'transparent-light' },
+    { name: 'white', colorRef: 'white' },
+    { name: 'black', colorRef: 'black' },
+    // Neutral
+    { name: 'neutral.100', colorRef: 'neutral.100' },
+    { name: 'neutral.200', colorRef: 'neutral.200' },
+    { name: 'neutral.300', colorRef: 'neutral.300' },
+    { name: 'neutral.400', colorRef: 'neutral.400' },
+    { name: 'neutral.500', colorRef: 'neutral.500' },
+    { name: 'neutral.600', colorRef: 'neutral.600' },
+    { name: 'neutral.700', colorRef: 'neutral.700' },
+    { name: 'neutral.800', colorRef: 'neutral.800' },
+    { name: 'neutral.900', colorRef: 'neutral.900' },
+    // Brand
+    { name: 'brand.100', colorRef: 'brand.100' },
+    { name: 'brand.200', colorRef: 'brand.200' },
+    { name: 'brand.300', colorRef: 'brand.300' },
+    { name: 'brand.500', colorRef: 'brand.500' },
+    { name: 'brand.600', colorRef: 'brand.600' },
+    { name: 'brand.700', colorRef: 'brand.700' },
+    // Error
+    { name: 'error.200', colorRef: 'error.200' },
+    { name: 'error.300', colorRef: 'error.300' },
+    { name: 'error.500', colorRef: 'error.500' },
+    { name: 'error.600', colorRef: 'error.600' },
+    // Warning
+    { name: 'warning.200', colorRef: 'warning.200' },
+    { name: 'warning.300', colorRef: 'warning.300' },
+    { name: 'warning.500', colorRef: 'warning.500' },
+    // Success
+    { name: 'success.200', colorRef: 'success.200' },
+    { name: 'success.300', colorRef: 'success.300' },
+    { name: 'success.500', colorRef: 'success.500' },
+    // Info
+    { name: 'info.200', colorRef: 'info.200' },
+    { name: 'info.300', colorRef: 'info.300' },
+    { name: 'info.500', colorRef: 'info.500' },
+  ];
+  
+  const existingColors = existingVariables.filter(v => v.resolvedType === 'COLOR');
+  
+  for (const colorAlias of colorAliases) {
+    try {
+      const varName = `stroke/color/${colorAlias.name}`;
+      
+      // Find source color variable
+      // Color could be in format: color/neutral/100 or color/white
+      let sourceVarName = colorAlias.colorRef.includes('.') 
+        ? `color/${colorAlias.colorRef.replace('.', '/')}`
+        : `color/${colorAlias.colorRef}`;
+      
+      const sourceVar = existingColors.find(v => 
+        v.name === sourceVarName && v.variableCollectionId === primitivesCollection!.id
+      );
+      
+      if (!sourceVar) {
+        // Don't error, just skip - color primitives may not exist yet
+        console.log(`[Stroke] Color ${sourceVarName} not found, skipping stroke/color/${colorAlias.name}`);
+        continue;
+      }
+      
+      let existingVar = existingColors.find(v => 
+        v.name === varName && v.variableCollectionId === primitivesCollection!.id
+      );
+      
+      const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: sourceVar.id };
+      
+      if (existingVar) {
+        existingVar.setValueForMode(primitivesCollection.defaultModeId, alias);
+        result.updated++;
+      } else {
+        const newVar = figma.variables.createVariable(varName, primitivesCollection, 'COLOR');
+        newVar.setValueForMode(primitivesCollection.defaultModeId, alias);
+        newVar.description = `Stroke color: ${colorAlias.colorRef}`;
+        result.created++;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания stroke/color/${colorAlias.name}: ${errorMessage}`);
+    }
+  }
+  
+  return result;
+}
+
+// ============================================
+// STROKE SEMANTIC COLLECTION
+// ============================================
+
+interface StrokeSemanticData {
+  tokens: Array<{
+    id: string;                          // "st-1"
+    path: string;                        // "stroke.button.default.width"
+    category: string;                    // "button"
+    property: 'width' | 'style' | 'color';
+    widthRef?: string;                   // "1" (primitive name)
+    styleRef?: string;                   // "solid"
+    colorRef?: string;                   // "neutral.300"
+  }>;
+}
+
+async function createStrokeSemanticCollection(data: StrokeSemanticData): Promise<{ created: number; aliased: number; errors: string[] }> {
+  const result = { created: 0, aliased: 0, errors: [] as string[] };
+  
+  // Get all collections
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  
+  // Find Primitives collection
+  const primitivesCollection = collections.find(c => c.name === 'Primitives');
+  if (!primitivesCollection) {
+    result.errors.push('Коллекция Primitives не найдена. Сначала создайте примитивы.');
+    return result;
+  }
+  
+  // Find or create Stroke collection
+  let strokeCollection = collections.find(c => c.name === 'Stroke');
+  if (!strokeCollection) {
+    strokeCollection = figma.variables.createVariableCollection('Stroke');
+  }
+  
+  // Get all existing variables
+  const allVariables = await figma.variables.getLocalVariablesAsync();
+  
+  // Create maps of primitive variables
+  const widthPrimitiveMap = new Map<string, Variable>();
+  const stylePrimitiveMap = new Map<string, Variable>();
+  const colorPrimitiveMap = new Map<string, Variable>();
+  
+  allVariables.forEach(v => {
+    if (v.variableCollectionId === primitivesCollection.id) {
+      // Width: stroke/width/1 -> "1"
+      const widthMatch = v.name.match(/stroke\/width\/(.+)/);
+      if (widthMatch && v.resolvedType === 'FLOAT') {
+        widthPrimitiveMap.set(widthMatch[1], v);
+      }
+      
+      // Style: stroke/style/solid -> "solid"
+      const styleMatch = v.name.match(/stroke\/style\/(.+)/);
+      if (styleMatch && v.resolvedType === 'STRING') {
+        stylePrimitiveMap.set(styleMatch[1], v);
+      }
+      
+      // Color: stroke/color/neutral.300 -> "neutral.300"
+      const colorMatch = v.name.match(/stroke\/color\/(.+)/);
+      if (colorMatch && v.resolvedType === 'COLOR') {
+        colorPrimitiveMap.set(colorMatch[1], v);
+      }
+    }
+  });
+  
+  // Existing semantic variables in Stroke collection
+  const existingStrokeVars = allVariables.filter(v => v.variableCollectionId === strokeCollection!.id);
+  const existingVarMap = new Map<string, Variable>();
+  existingStrokeVars.forEach(v => existingVarMap.set(v.name, v));
+  
+  // Create/update semantic tokens
+  for (const token of data.tokens) {
+    try {
+      // Convert path: "stroke.button.default.width" -> "stroke/button/default/width"
+      const varName = token.path.replace(/\./g, '/');
+      
+      // Determine variable type based on property
+      let varType: VariableResolvedDataType;
+      let primitive: Variable | undefined;
+      
+      if (token.property === 'width') {
+        varType = 'FLOAT';
+        if (token.widthRef) {
+          primitive = widthPrimitiveMap.get(token.widthRef);
+        }
+      } else if (token.property === 'style') {
+        varType = 'STRING';
+        if (token.styleRef) {
+          primitive = stylePrimitiveMap.get(token.styleRef);
+        }
+      } else if (token.property === 'color') {
+        varType = 'COLOR';
+        if (token.colorRef) {
+          primitive = colorPrimitiveMap.get(token.colorRef);
+        }
+      } else {
+        result.errors.push(`Неизвестное свойство: ${token.property} для ${token.path}`);
+        continue;
+      }
+      
+      // Get or create variable
+      let variable = existingVarMap.get(varName);
+      if (!variable) {
+        variable = figma.variables.createVariable(varName, strokeCollection!, varType);
+        result.created++;
+      }
+      
+      // Set alias to primitive
+      if (primitive) {
+        const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: primitive.id };
+        variable.setValueForMode(strokeCollection.defaultModeId, alias);
+        result.aliased++;
+      } else {
+        // Set default value if primitive not found
+        if (token.property === 'width') {
+          const defaultValue = parseFloat(token.widthRef || '1');
+          variable.setValueForMode(strokeCollection.defaultModeId, isNaN(defaultValue) ? 1 : defaultValue);
+          console.warn(`[Stroke] Примитив stroke/width/${token.widthRef} не найден для ${token.path}, используется значение ${defaultValue}`);
+        } else if (token.property === 'style') {
+          variable.setValueForMode(strokeCollection.defaultModeId, token.styleRef || 'solid');
+          console.warn(`[Stroke] Примитив stroke/style/${token.styleRef} не найден для ${token.path}, используется значение "${token.styleRef || 'solid'}"`);
+        } else if (token.property === 'color') {
+          // Default gray color
+          variable.setValueForMode(strokeCollection.defaultModeId, { r: 0.8, g: 0.8, b: 0.8, a: 1 });
+          console.warn(`[Stroke] Примитив stroke/color/${token.colorRef} не найден для ${token.path}, используется серый цвет`);
+        }
+      }
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания ${token.path}: ${errorMessage}`);
+      console.error(`[Stroke] Error creating ${token.path}:`, error);
+    }
+  }
+  
+  return result;
+}
+
+// ============================================
 // ICON SIZE PRIMITIVES & SEMANTIC
 // ============================================
 
@@ -7843,6 +8168,79 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
       case 'notify': {
         const { message } = msg.payload as { message: string };
         figma.notify(message);
+        break;
+      }
+
+      // ========================================
+      // STROKE (BORDER) HANDLERS
+      // ========================================
+
+      case 'create-stroke-primitives': {
+        const { widths, styles, dashArrays } = msg as unknown as {
+          widths: Array<{ name: string; value: number }>;
+          styles: Array<{ name: string; value: string }>;
+          dashArrays: Array<{ name: string; value: string }>;
+        };
+        
+        const totalPrimitives = (widths?.length || 0) + (styles?.length || 0) + (dashArrays?.length || 0);
+        figma.notify(`⏳ Создание ${totalPrimitives} примитивов stroke...`);
+        
+        try {
+          const result = await createStrokePrimitives({ widths, styles, dashArrays });
+          
+          figma.ui.postMessage({
+            type: 'stroke-primitives-created',
+            count: result.created + result.updated
+          });
+          
+          if (result.errors.length > 0) {
+            figma.notify(`⚠️ Stroke примитивы: ${result.created} создано, ${result.updated} обновлено, ${result.errors.length} ошибок`);
+          } else {
+            figma.notify(`✅ Stroke примитивы: ${result.created} создано, ${result.updated} обновлено`);
+          }
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'stroke-error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      case 'create-stroke-semantic': {
+        const tokens = msg.tokens as unknown as Array<{
+          id: string;
+          path: string;
+          category: string;
+          property: 'width' | 'style' | 'color';
+          widthRef?: string;
+          styleRef?: string;
+          colorRef?: string;
+        }>;
+        
+        figma.notify(`⏳ Создание ${tokens.length} семантических токенов stroke...`);
+        
+        try {
+          const result = await createStrokeSemanticCollection({ tokens });
+          
+          figma.ui.postMessage({
+            type: 'stroke-semantic-created',
+            count: result.created
+          });
+          
+          if (result.errors.length > 0) {
+            figma.notify(`⚠️ Stroke: ${result.created} создано, ${result.aliased} алиасов, ${result.errors.length} ошибок`);
+          } else {
+            figma.notify(`✅ Stroke: ${result.created} создано, ${result.aliased} алиасов`);
+          }
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'stroke-error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
         break;
       }
 

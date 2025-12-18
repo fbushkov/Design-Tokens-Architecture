@@ -4358,6 +4358,131 @@
     }
 
     /* ============================================
+       STROKE/BORDER STYLES
+       ============================================ */
+    
+    .prim-subtabs {
+      display: flex;
+      gap: 8px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .prim-subtab {
+      padding: 6px 12px;
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    
+    .prim-subtab:hover {
+      border-color: var(--color-primary);
+    }
+    
+    .prim-subtab.active {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: white;
+    }
+    
+    .stroke-prim-content {
+      display: none;
+    }
+    
+    .stroke-prim-content.active {
+      display: block;
+    }
+    
+    /* Stroke semantic table - 5 columns */
+    .stroke-table .semantic-table-header,
+    .stroke-table .semantic-token-row {
+      grid-template-columns: 1fr 70px 70px 120px 36px;
+    }
+    
+    .stroke-table .col-width,
+    .stroke-table .col-style,
+    .stroke-table .col-color {
+      text-align: center;
+    }
+    
+    .stroke-select {
+      width: 100%;
+      padding: 4px 6px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      background: var(--color-bg);
+      color: var(--color-text);
+      cursor: pointer;
+    }
+    
+    .stroke-select:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+    
+    .stroke-row .token-path {
+      font-size: 11px;
+      font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+      color: var(--color-text);
+    }
+    
+    .stroke-row .no-value {
+      color: var(--color-text-tertiary);
+      font-size: 10px;
+    }
+    
+    /* Category dropdown for many categories */
+    .category-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .category-dropdown .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      z-index: 100;
+      min-width: 180px;
+      max-height: 300px;
+      overflow-y: auto;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      margin-top: 4px;
+    }
+    
+    .category-dropdown .dropdown-menu.show {
+      display: block;
+    }
+    
+    .category-dropdown .dropdown-item {
+      display: block;
+      width: 100%;
+      padding: 8px 12px;
+      text-align: left;
+      border: none;
+      background: none;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    
+    .category-dropdown .dropdown-item:hover {
+      background: var(--color-bg-secondary);
+    }
+    
+    .category-dropdown .dropdown-item.active {
+      background: var(--color-primary);
+      color: white;
+    }
+
+    /* ============================================
        BREAKPOINTS SETTINGS STYLES
        ============================================ */
     
@@ -5993,25 +6118,149 @@
 
     <!-- Borders -->
     <div id="prim-borders" class="sub-tab-content">
-      <div class="info-box">
-        <strong>🔲 Границы и обводки</strong><br>
-        Настройте толщину границ и стили обводки.
+      <!-- Stroke Sub-navigation -->
+      <div class="typography-nav">
+        <button class="typo-tab active" data-stroke-tab="stroke-primitives">Примитивы</button>
+        <button class="typo-tab" data-stroke-tab="stroke-semantic">Семантика</button>
+        <button class="typo-tab" data-stroke-tab="stroke-export">Экспорт</button>
       </div>
 
-      <div class="section">
-        <div class="section-title">Толщина границ</div>
-        <div id="border-preview" class="border-preview">
-          <div class="border-item"><span class="border-box" style="border-width: 0px;"></span><span>none: 0px</span></div>
-          <div class="border-item"><span class="border-box" style="border-width: 1px;"></span><span>thin: 1px</span></div>
-          <div class="border-item"><span class="border-box" style="border-width: 2px;"></span><span>medium: 2px</span></div>
-          <div class="border-item"><span class="border-box" style="border-width: 4px;"></span><span>thick: 4px</span></div>
+      <!-- Primitives Section -->
+      <div id="stroke-primitives" class="typo-tab-content active">
+        <div class="info-box info-box-sm">
+          <strong>🔲 Примитивы границ</strong> — базовые значения для stroke (width, style, dashArray)
+        </div>
+
+        <!-- Primitives Subtabs -->
+        <div class="prim-subtabs" style="margin-bottom: 16px;">
+          <button class="prim-subtab active" data-stroke-prim-tab="width">Width</button>
+          <button class="prim-subtab" data-stroke-prim-tab="style">Style</button>
+          <button class="prim-subtab" data-stroke-prim-tab="dashArray">Dash Array</button>
+        </div>
+
+        <!-- Width Primitives -->
+        <div id="stroke-prim-width" class="stroke-prim-content active">
+          <div class="section">
+            <div class="section-title">
+              Толщина (stroke.width.X)
+              <span class="badge" id="stroke-width-count">8/8</span>
+            </div>
+            <p class="section-desc" style="margin-bottom: 12px; color: var(--color-text-secondary); font-size: 11px;">
+              Кликните для включения/выключения.
+            </p>
+            <div id="stroke-width-grid" class="spacing-primitives-grid">
+              <!-- Dynamic -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Style Primitives -->
+        <div id="stroke-prim-style" class="stroke-prim-content">
+          <div class="section">
+            <div class="section-title">
+              Стиль (stroke.style.X)
+              <span class="badge" id="stroke-style-count">5/5</span>
+            </div>
+            <p class="section-desc" style="margin-bottom: 12px; color: var(--color-text-secondary); font-size: 11px;">
+              none, solid, dashed, dotted, double
+            </p>
+            <div id="stroke-style-grid" class="spacing-primitives-grid">
+              <!-- Dynamic -->
+            </div>
+          </div>
+        </div>
+
+        <!-- DashArray Primitives -->
+        <div id="stroke-prim-dashArray" class="stroke-prim-content">
+          <div class="section">
+            <div class="section-title">
+              Паттерн пунктира (stroke.dashArray.X)
+              <span class="badge" id="stroke-dash-count">6/6</span>
+            </div>
+            <p class="section-desc" style="margin-bottom: 12px; color: var(--color-text-secondary); font-size: 11px;">
+              Паттерны для dashed/dotted границ
+            </p>
+            <div id="stroke-dash-grid" class="spacing-primitives-grid">
+              <!-- Dynamic -->
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <button class="btn btn-primary" id="btn-generate-stroke-primitives">
+            ✨ Сгенерировать примитивы stroke
+          </button>
         </div>
       </div>
 
-      <div class="section">
-        <button class="btn btn-primary" id="btn-generate-borders">
-          ✨ Сгенерировать границы
-        </button>
+      <!-- Semantic Section -->
+      <div id="stroke-semantic" class="typo-tab-content">
+        <div class="info-box info-box-sm">
+          <strong>Семантические токены Stroke</strong> — границы для компонентов (button, input, card, alert и т.д.)
+        </div>
+
+        <div class="section">
+          <div class="section-title">Категории</div>
+          <div id="stroke-category-tabs" class="spacing-category-tabs" style="flex-wrap: wrap;">
+            <!-- Dynamic -->
+          </div>
+        </div>
+        
+        <div class="section">
+          <div class="section-title">
+            Семантические токены
+            <span class="badge" id="stroke-semantic-count">0</span>
+          </div>
+          <p class="section-desc" style="margin-bottom: 12px; color: var(--color-text-secondary); font-size: 11px;">
+            Каждый токен включает width, style и color. Color ссылается на цветовые примитивы.
+          </p>
+          <div id="stroke-semantic-list">
+            <!-- Dynamic -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Export Section -->
+      <div id="stroke-export" class="typo-tab-content">
+        <div class="section">
+          <div class="section-title">Архитектура</div>
+          <div class="architecture-preview">
+            <div class="arch-level">
+              <div class="arch-level-title">Primitives (коллекция)</div>
+              <div class="arch-level-example">
+                stroke.width.1 = 1px<br>
+                stroke.style.solid = "solid"<br>
+                stroke.color.neutral.300 → {color.neutral.300}
+              </div>
+            </div>
+            <div class="arch-arrow">↓ алиасы</div>
+            <div class="arch-level">
+              <div class="arch-level-title">Stroke (коллекция)</div>
+              <div class="arch-level-example">
+                stroke.button.default.width → {stroke.width.1}<br>
+                stroke.button.default.style → {stroke.style.solid}<br>
+                stroke.button.default.color → {stroke.color.neutral.300}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Экспорт в Figma</div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn btn-primary" id="export-stroke-primitives">
+              🔲 Примитивы → Primitives
+            </button>
+            <button class="btn btn-secondary" id="export-stroke-semantic">
+              🎯 Семантика → Stroke
+            </button>
+            <button class="btn btn-secondary" id="export-stroke-all">
+              ✨ Экспортировать всё
+            </button>
+          </div>
+          
+          <div id="stroke-export-status" class="export-status" style="display: none; margin-top: 12px;"></div>
+        </div>
       </div>
     </div>
 

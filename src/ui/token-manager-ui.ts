@@ -1492,7 +1492,7 @@ function renderSyncStyles(styles: ProjectSyncData['styles']): string {
 // ============================================
 
 export interface PendingChange {
-  module: 'colors' | 'typography' | 'spacing' | 'gap' | 'radius' | 'iconSize' | 'effects';
+  module: 'colors' | 'typography' | 'spacing' | 'gap' | 'radius' | 'iconSize' | 'effects' | 'stroke';
   type: 'add' | 'update' | 'delete';
   category: string;
   name: string;
