@@ -4644,6 +4644,82 @@ async function createEffectsSemanticCollection(payload: EffectsSemanticPayload):
 }
 
 // ============================================
+// EFFECT STYLES (Figma native styles)
+// ============================================
+
+interface EffectStyleData {
+  name: string;
+  type: 'shadow' | 'blur';
+  shadowType?: 'drop' | 'inset';
+  offsetX?: number;
+  offsetY?: number;
+  blur?: number;
+  spread?: number;
+  color?: string;
+  opacity?: number;
+}
+
+async function createEffectStyles(styles: EffectStyleData[]): Promise<{ created: number; updated: number; errors: string[] }> {
+  const result = { created: 0, updated: 0, errors: [] as string[] };
+  
+  // Get existing effect styles
+  const existingStyles = await figma.getLocalEffectStylesAsync();
+  const styleMap = new Map<string, EffectStyle>();
+  existingStyles.forEach(s => styleMap.set(s.name, s));
+  
+  // Color mapping
+  const colorMap: Record<string, RGB> = {
+    'black': { r: 0, g: 0, b: 0 },
+    'white': { r: 1, g: 1, b: 1 },
+    'brand': { r: 0.231, g: 0.51, b: 0.965 },
+    'error': { r: 0.937, g: 0.267, b: 0.267 },
+    'success': { r: 0.133, g: 0.773, b: 0.369 },
+    'warning': { r: 0.965, g: 0.69, b: 0.173 },
+  };
+  
+  for (const styleData of styles) {
+    try {
+      let style = styleMap.get(styleData.name);
+      
+      if (!style) {
+        style = figma.createEffectStyle();
+        style.name = styleData.name;
+        result.created++;
+      } else {
+        result.updated++;
+      }
+      
+      if (styleData.type === 'shadow') {
+        const rgb = colorMap[styleData.color || 'black'] || colorMap['black'];
+        const shadowEffect: DropShadowEffect | InnerShadowEffect = {
+          type: styleData.shadowType === 'inset' ? 'INNER_SHADOW' : 'DROP_SHADOW',
+          color: { ...rgb, a: (styleData.opacity || 10) / 100 },
+          offset: { x: styleData.offsetX || 0, y: styleData.offsetY || 0 },
+          radius: styleData.blur || 0,
+          spread: styleData.spread || 0,
+          visible: true,
+          blendMode: 'NORMAL',
+        };
+        style.effects = [shadowEffect];
+      } else if (styleData.type === 'blur') {
+        const blurEffect: Effect = {
+          type: 'BACKGROUND_BLUR',
+          radius: styleData.blur || 0,
+          visible: true,
+        } as Effect;
+        style.effects = [blurEffect];
+      }
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания стиля ${styleData.name}: ${errorMessage}`);
+    }
+  }
+  
+  return result;
+}
+
+// ============================================
 // SPACING PRIMITIVES & SEMANTIC
 // ============================================
 
@@ -7466,6 +7542,46 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
             figma.notify(`⚠️ Effects: ${result.created} создано, ${result.aliased} алиасов, ${result.errors.length} ошибок`);
           } else {
             figma.notify(`✅ Effects: ${result.created} создано, ${result.aliased} алиасов`);
+          }
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'effects-error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      case 'create-effects-styles': {
+        const payload = msg.payload as {
+          styles: Array<{
+            name: string;
+            type: 'shadow' | 'blur';
+            shadowType?: 'drop' | 'inset';
+            offsetX?: number;
+            offsetY?: number;
+            blur?: number;
+            spread?: number;
+            color?: string;
+            opacity?: number;
+          }>;
+        };
+        
+        figma.notify(`⏳ Создание ${payload.styles.length} стилей эффектов...`);
+        
+        try {
+          const result = await createEffectStyles(payload.styles);
+          
+          figma.ui.postMessage({
+            type: 'effects-styles-created',
+            payload: result
+          });
+          
+          if (result.errors.length > 0) {
+            figma.notify(`⚠️ Стили эффектов: ${result.created} создано, ${result.updated} обновлено, ${result.errors.length} ошибок`);
+          } else {
+            figma.notify(`✅ Стили эффектов: ${result.created} создано, ${result.updated} обновлено`);
           }
         } catch (error) {
           figma.ui.postMessage({

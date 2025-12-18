@@ -55,6 +55,22 @@ export async function loadEffectsState(): Promise<void> {
     const saved = await storageGet<EffectsState>(EFFECTS_STORAGE_KEY);
     if (saved) {
       effectsState = { ...INITIAL_EFFECTS_STATE, ...saved };
+      
+      // Fix legacy dot notation in color names (e.g., "black.10" -> "black-10")
+      if (effectsState.shadowColors) {
+        effectsState.shadowColors = effectsState.shadowColors.map(c => ({
+          ...c,
+          name: c.name.replace(/\./g, '-')
+        }));
+      }
+      
+      // Fix color references in semantic tokens
+      if (effectsState.semanticTokens) {
+        effectsState.semanticTokens = effectsState.semanticTokens.map(t => ({
+          ...t,
+          color: t.color?.replace(/\./g, '-')
+        }));
+      }
     }
   } catch (e) {
     console.error('Failed to load effects state:', e);
@@ -95,6 +111,9 @@ export function renderEffectsGenerator(): string {
         </button>
         <button class="btn btn-primary" id="btn-export-effects-semantic">
           📤 Экспорт семантики
+        </button>
+        <button class="btn btn-secondary" id="btn-export-effects-styles">
+          🎨 Создать стили эффектов
         </button>
       </div>
     </div>
@@ -448,6 +467,12 @@ function handleEffectsClick(e: Event): void {
     return;
   }
   
+  // Export effect styles
+  if (target.id === 'btn-export-effects-styles' || target.closest('#btn-export-effects-styles')) {
+    exportEffectStyles();
+    return;
+  }
+  
   // Delete token
   const deleteBtn = target.closest('.btn-delete-token') as HTMLElement;
   if (deleteBtn) {
@@ -524,7 +549,7 @@ function addEffectToken(): void {
     offsetY: '2',
     blur: '4',
     spread: '0',
-    color: 'black.10',
+    color: 'black-10',
     shadowType: 'drop',
   };
   
@@ -582,6 +607,54 @@ function exportEffectsSemantic(): void {
       type: 'create-effects-semantic',
       payload: {
         semanticTokens: effectsState.semanticTokens,
+      }
+    }
+  }, '*');
+}
+
+function exportEffectStyles(): void {
+  // Prepare styles data with resolved primitive values
+  const stylesData = effectsState.semanticTokens
+    .filter(token => token.offsetX !== undefined || token.backdropBlur !== undefined)
+    .map(token => {
+      if (token.offsetX !== undefined) {
+        // Shadow token
+        const offsetX = effectsState.shadowOffsetX.find(p => p.name === token.offsetX)?.value || 0;
+        const offsetY = effectsState.shadowOffsetY.find(p => p.name === token.offsetY)?.value || 0;
+        const blur = effectsState.shadowBlur.find(p => p.name === token.blur)?.value || 0;
+        const spread = effectsState.shadowSpread.find(p => p.name === token.spread)?.value || 0;
+        const colorPrim = effectsState.shadowColors.find(p => p.name === token.color);
+        
+        return {
+          name: token.path.replace(/\./g, '/'),
+          type: 'shadow' as const,
+          shadowType: token.shadowType || 'drop',
+          offsetX,
+          offsetY,
+          blur,
+          spread,
+          color: colorPrim?.baseColor || 'black',
+          opacity: colorPrim?.opacity || 10,
+        };
+      } else if (token.backdropBlur !== undefined) {
+        // Backdrop blur token
+        const blurValue = effectsState.blurs.find(p => p.name === token.backdropBlur)?.value || 0;
+        
+        return {
+          name: token.path.replace(/\./g, '/'),
+          type: 'blur' as const,
+          blur: blurValue,
+        };
+      }
+      return null;
+    })
+    .filter(Boolean);
+  
+  parent.postMessage({
+    pluginMessage: {
+      type: 'create-effects-styles',
+      payload: {
+        styles: stylesData,
       }
     }
   }, '*');

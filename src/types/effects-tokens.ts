@@ -157,36 +157,36 @@ export const DEFAULT_SHADOW_SPREAD: ShadowSpreadPrimitive[] = [
 
 export const DEFAULT_SHADOW_COLORS: ShadowColorPrimitive[] = [
   // Black
-  { name: 'black.3', baseColor: 'black', opacity: 3 },
-  { name: 'black.5', baseColor: 'black', opacity: 5 },
-  { name: 'black.7', baseColor: 'black', opacity: 7 },
-  { name: 'black.10', baseColor: 'black', opacity: 10 },
-  { name: 'black.12', baseColor: 'black', opacity: 12 },
-  { name: 'black.15', baseColor: 'black', opacity: 15 },
-  { name: 'black.20', baseColor: 'black', opacity: 20 },
-  { name: 'black.25', baseColor: 'black', opacity: 25 },
-  { name: 'black.30', baseColor: 'black', opacity: 30 },
-  { name: 'black.40', baseColor: 'black', opacity: 40 },
-  { name: 'black.50', baseColor: 'black', opacity: 50 },
+  { name: 'black-3', baseColor: 'black', opacity: 3 },
+  { name: 'black-5', baseColor: 'black', opacity: 5 },
+  { name: 'black-7', baseColor: 'black', opacity: 7 },
+  { name: 'black-10', baseColor: 'black', opacity: 10 },
+  { name: 'black-12', baseColor: 'black', opacity: 12 },
+  { name: 'black-15', baseColor: 'black', opacity: 15 },
+  { name: 'black-20', baseColor: 'black', opacity: 20 },
+  { name: 'black-25', baseColor: 'black', opacity: 25 },
+  { name: 'black-30', baseColor: 'black', opacity: 30 },
+  { name: 'black-40', baseColor: 'black', opacity: 40 },
+  { name: 'black-50', baseColor: 'black', opacity: 50 },
   // White
-  { name: 'white.5', baseColor: 'white', opacity: 5 },
-  { name: 'white.10', baseColor: 'white', opacity: 10 },
-  { name: 'white.15', baseColor: 'white', opacity: 15 },
-  { name: 'white.20', baseColor: 'white', opacity: 20 },
+  { name: 'white-5', baseColor: 'white', opacity: 5 },
+  { name: 'white-10', baseColor: 'white', opacity: 10 },
+  { name: 'white-15', baseColor: 'white', opacity: 15 },
+  { name: 'white-20', baseColor: 'white', opacity: 20 },
   // Brand
-  { name: 'brand.10', baseColor: 'brand', opacity: 10 },
-  { name: 'brand.20', baseColor: 'brand', opacity: 20 },
-  { name: 'brand.30', baseColor: 'brand', opacity: 30 },
+  { name: 'brand-10', baseColor: 'brand', opacity: 10 },
+  { name: 'brand-20', baseColor: 'brand', opacity: 20 },
+  { name: 'brand-30', baseColor: 'brand', opacity: 30 },
   // Error
-  { name: 'error.10', baseColor: 'error', opacity: 10 },
-  { name: 'error.20', baseColor: 'error', opacity: 20 },
-  { name: 'error.30', baseColor: 'error', opacity: 30 },
+  { name: 'error-10', baseColor: 'error', opacity: 10 },
+  { name: 'error-20', baseColor: 'error', opacity: 20 },
+  { name: 'error-30', baseColor: 'error', opacity: 30 },
   // Success
-  { name: 'success.10', baseColor: 'success', opacity: 10 },
-  { name: 'success.20', baseColor: 'success', opacity: 20 },
+  { name: 'success-10', baseColor: 'success', opacity: 10 },
+  { name: 'success-20', baseColor: 'success', opacity: 20 },
   // Warning
-  { name: 'warning.10', baseColor: 'warning', opacity: 10 },
-  { name: 'warning.20', baseColor: 'warning', opacity: 20 },
+  { name: 'warning-10', baseColor: 'warning', opacity: 10 },
+  { name: 'warning-20', baseColor: 'warning', opacity: 20 },
 ];
 
 export const DEFAULT_BLURS: BlurPrimitive[] = [
@@ -250,7 +250,7 @@ export const DEFAULT_SEMANTIC_EFFECTS: EffectSemanticToken[] = [
     category: 'elevation',
     name: 'raised',
     description: 'Minimal elevation - Level 1',
-    offsetX: '0', offsetY: '1', blur: '2', spread: '0', color: 'black.7', shadowType: 'drop'
+    offsetX: '0', offsetY: '1', blur: '2', spread: '0', color: 'black-7', shadowType: 'drop'
   },
   {
     id: 'effect-elevation-float',
@@ -258,7 +258,7 @@ export const DEFAULT_SEMANTIC_EFFECTS: EffectSemanticToken[] = [
     category: 'elevation',
     name: 'float',
     description: 'Cards, buttons - Level 2',
-    offsetX: '0', offsetY: '2', blur: '4', spread: '0', color: 'black.10', shadowType: 'drop'
+    offsetX: '0', offsetY: '2', blur: '4', spread: '0', color: 'black-10', shadowType: 'drop'
   },
   {
     id: 'effect-elevation-dropdown',
@@ -266,7 +266,7 @@ export const DEFAULT_SEMANTIC_EFFECTS: EffectSemanticToken[] = [
     category: 'elevation',
     name: 'dropdown',
     description: 'Dropdown menus - Level 3',
-    offsetX: '0', offsetY: '4', blur: '8', spread: '0', color: 'black.12', shadowType: 'drop'
+    offsetX: '0', offsetY: '4', blur: '8', spread: '0', color: 'black-12', shadowType: 'drop'
   },
   {
     id: 'effect-elevation-popover',
@@ -274,7 +274,7 @@ export const DEFAULT_SEMANTIC_EFFECTS: EffectSemanticToken[] = [
     category: 'elevation',
     name: 'popover',
     description: 'Popovers, tooltips - Level 4',
-    offsetX: '0', offsetY: '8', blur: '16', spread: '0', color: 'black.15', shadowType: 'drop'
+    offsetX: '0', offsetY: '8', blur: '16', spread: '0', color: 'black-15', shadowType: 'drop'
   },
   {
     id: 'effect-elevation-modal',
@@ -282,7 +282,7 @@ export const DEFAULT_SEMANTIC_EFFECTS: EffectSemanticToken[] = [
     category: 'elevation',
     name: 'modal',
     description: 'Modal windows - Level 5',
-    offsetX: '0', offsetY: '16', blur: '32', spread: '0', color: 'black.20', shadowType: 'drop'
+    offsetX: '0', offsetY: '16', blur: '32', spread: '0', color: 'black-20', shadowType: 'drop'
   },
   {
     id: 'effect-elevation-dragging',
@@ -290,7 +290,7 @@ export const DEFAULT_SEMANTIC_EFFECTS: EffectSemanticToken[] = [
     category: 'elevation',
     name: 'dragging',
     description: 'Drag and drop - Level 6',
-    offsetX: '0', offsetY: '24', blur: '48', spread: '0', color: 'black.25', shadowType: 'drop'
+    offsetX: '0', offsetY: '24', blur: '48', spread: '0', color: 'black-25', shadowType: 'drop'
   },
 
   // ===== FOCUS =====
@@ -300,7 +300,7 @@ export const DEFAULT_SEMANTIC_EFFECTS: EffectSemanticToken[] = [
     category: 'focus',
     name: 'default',
     description: 'Default focus ring',
-    offsetX: '0', offsetY: '0', blur: '0', spread: '4', color: 'brand.30', shadowType: 'drop'
+    offsetX: '0', offsetY: '0', blur: '0', spread: '4', color: 'brand-30', shadowType: 'drop'
   },
   {
     id: 'effect-focus-error',
@@ -308,7 +308,7 @@ export const DEFAULT_SEMANTIC_EFFECTS: EffectSemanticToken[] = [
     category: 'focus',
     name: 'error',
     description: 'Error focus ring',
-    offsetX: '0', offsetY: '0', blur: '0', spread: '4', color: 'error.30', shadowType: 'drop'
+    offsetX: '0', offsetY: '0', blur: '0', spread: '4', color: 'error-30', shadowType: 'drop'
   },
   {
     id: 'effect-focus-success',
@@ -316,7 +316,7 @@ export const DEFAULT_SEMANTIC_EFFECTS: EffectSemanticToken[] = [
     category: 'focus',
     name: 'success',
     description: 'Success focus ring',
-    offsetX: '0', offsetY: '0', blur: '0', spread: '4', color: 'success.30', shadowType: 'drop'
+    offsetX: '0', offsetY: '0', blur: '0', spread: '4', color: 'success-30', shadowType: 'drop'
   },
   {
     id: 'effect-focus-soft',
@@ -324,7 +324,7 @@ export const DEFAULT_SEMANTIC_EFFECTS: EffectSemanticToken[] = [
     category: 'focus',
     name: 'soft',
     description: 'Soft focus ring with blur',
-    offsetX: '0', offsetY: '0', blur: '8', spread: '2', color: 'brand.20', shadowType: 'drop'
+    offsetX: '0', offsetY: '0', blur: '8', spread: '2', color: 'brand-20', shadowType: 'drop'
   },
 
   // ===== BUTTON =====
@@ -333,28 +333,28 @@ export const DEFAULT_SEMANTIC_EFFECTS: EffectSemanticToken[] = [
     path: 'effect.button.default',
     category: 'button',
     name: 'default',
-    offsetX: '0', offsetY: '1', blur: '2', spread: '0', color: 'black.7', shadowType: 'drop'
+    offsetX: '0', offsetY: '1', blur: '2', spread: '0', color: 'black-7', shadowType: 'drop'
   },
   {
     id: 'effect-button-hover',
     path: 'effect.button.hover',
     category: 'button',
     name: 'hover',
-    offsetX: '0', offsetY: '2', blur: '4', spread: '0', color: 'black.10', shadowType: 'drop'
+    offsetX: '0', offsetY: '2', blur: '4', spread: '0', color: 'black-10', shadowType: 'drop'
   },
   {
     id: 'effect-button-active',
     path: 'effect.button.active',
     category: 'button',
     name: 'active',
-    offsetX: '0', offsetY: '0', blur: '1', spread: '0', color: 'black.5', shadowType: 'drop'
+    offsetX: '0', offsetY: '0', blur: '1', spread: '0', color: 'black-5', shadowType: 'drop'
   },
   {
     id: 'effect-button-primary',
     path: 'effect.button.primary',
     category: 'button',
     name: 'primary',
-    offsetX: '0', offsetY: '2', blur: '6', spread: '0', color: 'brand.30', shadowType: 'drop'
+    offsetX: '0', offsetY: '2', blur: '6', spread: '0', color: 'brand-30', shadowType: 'drop'
   },
 
   // ===== CARD =====
@@ -363,28 +363,28 @@ export const DEFAULT_SEMANTIC_EFFECTS: EffectSemanticToken[] = [
     path: 'effect.card.default',
     category: 'card',
     name: 'default',
-    offsetX: '0', offsetY: '1', blur: '3', spread: '0', color: 'black.7', shadowType: 'drop'
+    offsetX: '0', offsetY: '1', blur: '3', spread: '0', color: 'black-7', shadowType: 'drop'
   },
   {
     id: 'effect-card-hover',
     path: 'effect.card.hover',
     category: 'card',
     name: 'hover',
-    offsetX: '0', offsetY: '4', blur: '12', spread: '0', color: 'black.10', shadowType: 'drop'
+    offsetX: '0', offsetY: '4', blur: '12', spread: '0', color: 'black-10', shadowType: 'drop'
   },
   {
     id: 'effect-card-selected',
     path: 'effect.card.selected',
     category: 'card',
     name: 'selected',
-    offsetX: '0', offsetY: '0', blur: '0', spread: '2', color: 'brand.30', shadowType: 'drop'
+    offsetX: '0', offsetY: '0', blur: '0', spread: '2', color: 'brand-30', shadowType: 'drop'
   },
   {
     id: 'effect-card-interactive',
     path: 'effect.card.interactive',
     category: 'card',
     name: 'interactive',
-    offsetX: '0', offsetY: '2', blur: '6', spread: '0', color: 'black.10', shadowType: 'drop'
+    offsetX: '0', offsetY: '2', blur: '6', spread: '0', color: 'black-10', shadowType: 'drop'
   },
 
   // ===== INPUT =====
@@ -393,21 +393,21 @@ export const DEFAULT_SEMANTIC_EFFECTS: EffectSemanticToken[] = [
     path: 'effect.input.focus',
     category: 'input',
     name: 'focus',
-    offsetX: '0', offsetY: '0', blur: '0', spread: '4', color: 'brand.20', shadowType: 'drop'
+    offsetX: '0', offsetY: '0', blur: '0', spread: '4', color: 'brand-20', shadowType: 'drop'
   },
   {
     id: 'effect-input-error',
     path: 'effect.input.error',
     category: 'input',
     name: 'error',
-    offsetX: '0', offsetY: '0', blur: '0', spread: '4', color: 'error.20', shadowType: 'drop'
+    offsetX: '0', offsetY: '0', blur: '0', spread: '4', color: 'error-20', shadowType: 'drop'
   },
   {
     id: 'effect-input-success',
     path: 'effect.input.success',
     category: 'input',
     name: 'success',
-    offsetX: '0', offsetY: '0', blur: '0', spread: '4', color: 'success.20', shadowType: 'drop'
+    offsetX: '0', offsetY: '0', blur: '0', spread: '4', color: 'success-20', shadowType: 'drop'
   },
 
   // ===== MODAL =====
@@ -416,14 +416,14 @@ export const DEFAULT_SEMANTIC_EFFECTS: EffectSemanticToken[] = [
     path: 'effect.modal.backdrop',
     category: 'modal',
     name: 'backdrop',
-    offsetX: '0', offsetY: '0', blur: '0', spread: '0', color: 'black.50', shadowType: 'drop'
+    offsetX: '0', offsetY: '0', blur: '0', spread: '0', color: 'black-50', shadowType: 'drop'
   },
   {
     id: 'effect-modal-container',
     path: 'effect.modal.container',
     category: 'modal',
     name: 'container',
-    offsetX: '0', offsetY: '24', blur: '48', spread: 'n12', color: 'black.25', shadowType: 'drop'
+    offsetX: '0', offsetY: '24', blur: '48', spread: 'n12', color: 'black-25', shadowType: 'drop'
   },
 
   // ===== DROPDOWN =====
@@ -432,28 +432,28 @@ export const DEFAULT_SEMANTIC_EFFECTS: EffectSemanticToken[] = [
     path: 'effect.dropdown.container',
     category: 'dropdown',
     name: 'container',
-    offsetX: '0', offsetY: '4', blur: '12', spread: 'n2', color: 'black.15', shadowType: 'drop'
+    offsetX: '0', offsetY: '4', blur: '12', spread: 'n2', color: 'black-15', shadowType: 'drop'
   },
   {
     id: 'effect-popover-container',
     path: 'effect.popover.container',
     category: 'dropdown',
     name: 'popover',
-    offsetX: '0', offsetY: '8', blur: '24', spread: 'n4', color: 'black.15', shadowType: 'drop'
+    offsetX: '0', offsetY: '8', blur: '24', spread: 'n4', color: 'black-15', shadowType: 'drop'
   },
   {
     id: 'effect-tooltip-container',
     path: 'effect.tooltip.container',
     category: 'dropdown',
     name: 'tooltip',
-    offsetX: '0', offsetY: '4', blur: '8', spread: '0', color: 'black.20', shadowType: 'drop'
+    offsetX: '0', offsetY: '4', blur: '8', spread: '0', color: 'black-20', shadowType: 'drop'
   },
   {
     id: 'effect-toast-container',
     path: 'effect.toast.container',
     category: 'dropdown',
     name: 'toast',
-    offsetX: '0', offsetY: '8', blur: '16', spread: 'n2', color: 'black.15', shadowType: 'drop'
+    offsetX: '0', offsetY: '8', blur: '16', spread: 'n2', color: 'black-15', shadowType: 'drop'
   },
 
   // ===== DIRECTIONAL =====
@@ -462,28 +462,28 @@ export const DEFAULT_SEMANTIC_EFFECTS: EffectSemanticToken[] = [
     path: 'effect.directional.top',
     category: 'directional',
     name: 'top',
-    offsetX: '0', offsetY: 'n4', blur: '8', spread: 'n2', color: 'black.10', shadowType: 'drop'
+    offsetX: '0', offsetY: 'n4', blur: '8', spread: 'n2', color: 'black-10', shadowType: 'drop'
   },
   {
     id: 'effect-directional-bottom',
     path: 'effect.directional.bottom',
     category: 'directional',
     name: 'bottom',
-    offsetX: '0', offsetY: '4', blur: '8', spread: 'n2', color: 'black.10', shadowType: 'drop'
+    offsetX: '0', offsetY: '4', blur: '8', spread: 'n2', color: 'black-10', shadowType: 'drop'
   },
   {
     id: 'effect-directional-left',
     path: 'effect.directional.left',
     category: 'directional',
     name: 'left',
-    offsetX: 'n4', offsetY: '0', blur: '8', spread: 'n2', color: 'black.10', shadowType: 'drop'
+    offsetX: 'n4', offsetY: '0', blur: '8', spread: 'n2', color: 'black-10', shadowType: 'drop'
   },
   {
     id: 'effect-directional-right',
     path: 'effect.directional.right',
     category: 'directional',
     name: 'right',
-    offsetX: '4', offsetY: '0', blur: '8', spread: 'n2', color: 'black.10', shadowType: 'drop'
+    offsetX: '4', offsetY: '0', blur: '8', spread: 'n2', color: 'black-10', shadowType: 'drop'
   },
 
   // ===== INSET =====
@@ -492,35 +492,35 @@ export const DEFAULT_SEMANTIC_EFFECTS: EffectSemanticToken[] = [
     path: 'effect.inset.subtle',
     category: 'inset',
     name: 'subtle',
-    offsetX: '0', offsetY: '1', blur: '2', spread: '0', color: 'black.7', shadowType: 'inset'
+    offsetX: '0', offsetY: '1', blur: '2', spread: '0', color: 'black-7', shadowType: 'inset'
   },
   {
     id: 'effect-inset-default',
     path: 'effect.inset.default',
     category: 'inset',
     name: 'default',
-    offsetX: '0', offsetY: '2', blur: '4', spread: '0', color: 'black.10', shadowType: 'inset'
+    offsetX: '0', offsetY: '2', blur: '4', spread: '0', color: 'black-10', shadowType: 'inset'
   },
   {
     id: 'effect-inset-deep',
     path: 'effect.inset.deep',
     category: 'inset',
     name: 'deep',
-    offsetX: '0', offsetY: '4', blur: '8', spread: '0', color: 'black.15', shadowType: 'inset'
+    offsetX: '0', offsetY: '4', blur: '8', spread: '0', color: 'black-15', shadowType: 'inset'
   },
   {
     id: 'effect-inset-input',
     path: 'effect.inset.input',
     category: 'inset',
     name: 'input',
-    offsetX: '0', offsetY: '1', blur: '2', spread: '0', color: 'black.5', shadowType: 'inset'
+    offsetX: '0', offsetY: '1', blur: '2', spread: '0', color: 'black-5', shadowType: 'inset'
   },
   {
     id: 'effect-inset-well',
     path: 'effect.inset.well',
     category: 'inset',
     name: 'well',
-    offsetX: '0', offsetY: '2', blur: '6', spread: 'n1', color: 'black.10', shadowType: 'inset'
+    offsetX: '0', offsetY: '2', blur: '6', spread: 'n1', color: 'black-10', shadowType: 'inset'
   },
 
   // ===== GLOW =====
@@ -529,56 +529,56 @@ export const DEFAULT_SEMANTIC_EFFECTS: EffectSemanticToken[] = [
     path: 'effect.glow.brand.subtle',
     category: 'glow',
     name: 'brand-subtle',
-    offsetX: '0', offsetY: '0', blur: '8', spread: '0', color: 'brand.10', shadowType: 'drop'
+    offsetX: '0', offsetY: '0', blur: '8', spread: '0', color: 'brand-10', shadowType: 'drop'
   },
   {
     id: 'effect-glow-brand-default',
     path: 'effect.glow.brand.default',
     category: 'glow',
     name: 'brand-default',
-    offsetX: '0', offsetY: '0', blur: '16', spread: '0', color: 'brand.20', shadowType: 'drop'
+    offsetX: '0', offsetY: '0', blur: '16', spread: '0', color: 'brand-20', shadowType: 'drop'
   },
   {
     id: 'effect-glow-brand-intense',
     path: 'effect.glow.brand.intense',
     category: 'glow',
     name: 'brand-intense',
-    offsetX: '0', offsetY: '0', blur: '24', spread: '4', color: 'brand.30', shadowType: 'drop'
+    offsetX: '0', offsetY: '0', blur: '24', spread: '4', color: 'brand-30', shadowType: 'drop'
   },
   {
     id: 'effect-glow-error-subtle',
     path: 'effect.glow.error.subtle',
     category: 'glow',
     name: 'error-subtle',
-    offsetX: '0', offsetY: '0', blur: '8', spread: '0', color: 'error.10', shadowType: 'drop'
+    offsetX: '0', offsetY: '0', blur: '8', spread: '0', color: 'error-10', shadowType: 'drop'
   },
   {
     id: 'effect-glow-error-default',
     path: 'effect.glow.error.default',
     category: 'glow',
     name: 'error-default',
-    offsetX: '0', offsetY: '0', blur: '16', spread: '0', color: 'error.20', shadowType: 'drop'
+    offsetX: '0', offsetY: '0', blur: '16', spread: '0', color: 'error-20', shadowType: 'drop'
   },
   {
     id: 'effect-glow-success-subtle',
     path: 'effect.glow.success.subtle',
     category: 'glow',
     name: 'success-subtle',
-    offsetX: '0', offsetY: '0', blur: '8', spread: '0', color: 'success.10', shadowType: 'drop'
+    offsetX: '0', offsetY: '0', blur: '8', spread: '0', color: 'success-10', shadowType: 'drop'
   },
   {
     id: 'effect-glow-success-default',
     path: 'effect.glow.success.default',
     category: 'glow',
     name: 'success-default',
-    offsetX: '0', offsetY: '0', blur: '16', spread: '0', color: 'success.20', shadowType: 'drop'
+    offsetX: '0', offsetY: '0', blur: '16', spread: '0', color: 'success-20', shadowType: 'drop'
   },
   {
     id: 'effect-glow-warning-default',
     path: 'effect.glow.warning.default',
     category: 'glow',
     name: 'warning-default',
-    offsetX: '0', offsetY: '0', blur: '16', spread: '0', color: 'warning.20', shadowType: 'drop'
+    offsetX: '0', offsetY: '0', blur: '16', spread: '0', color: 'warning-20', shadowType: 'drop'
   },
 
   // ===== BACKDROP =====

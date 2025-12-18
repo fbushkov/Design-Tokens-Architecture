@@ -1,7 +1,7 @@
 # 🏗️ Архитектура плагина Design Tokens Manager
 
 > **Последнее обновление**: 18 декабря 2025
-> **Версия**: 3.2 (Effects System - Shadows, Blur, Opacity)
+> **Версия**: 3.3 (Effects System + Effect Styles)
 
 ## 📌 Основная идея
 
@@ -525,8 +525,8 @@ if (themeColorOverride && sourceColor === 'brand') {
 │       БЕЗ режимов — алиасы на примитивы                        │
 │                                                                 │
 │       effect/elevation/raised     → {shadow/offsetY/2, blur/4}  │
-│       effect/focus/ring           → {shadow/color/brand.50}     │
-│       effect/backdrop/modal       → {blur/32, opacity/80}       │
+│       effect/focus/default        → {shadow/color/brand-30}     │
+│       effect/backdrop/modal       → {blur/8, opacity/50}        │
 └─────────────────────────────────────────────────────────────────┘
                               ↓ алиасы
 ┌─────────────────────────────────────────────────────────────────┐
@@ -534,13 +534,24 @@ if (themeColorOverride && sourceColor === 'brand') {
 │       Примитивные значения для эффектов                         │
 │       БЕЗ режимов — только базовые значения                     │
 │                                                                 │
-│   Shadow Offset X/Y:   -32...+32 px                             │
-│   Shadow Blur:         0, 1, 2, 4, 6, 8, 12, 16, 24, 32, 48, 64 │
-│   Shadow Spread:       -16...+16 px                             │
-│   Shadow Colors:       black.5...black.50, white.10...white.50  │
-│                        brand.10...brand.50, error, success...   │
-│   Backdrop Blur:       0, 4, 8, 12, 16, 24, 32, 64              │
-│   Opacity:             0, 5, 10, 20, 30...90, 95, 100           │
+│   Shadow Offset X:     -4, -2, -1, 0, 1, 2, 4                   │
+│   Shadow Offset Y:     -8..+32 px                               │
+│   Shadow Blur:         0, 1, 2, 3, 4, 6, 8, 10, 12, 16...64    │
+│   Shadow Spread:       -12..+8 px                               │
+│   Shadow Colors:       black-3...black-50, white-5...white-20   │
+│                        brand-10...-30, error, success, warning  │
+│   Backdrop Blur:       0, 2, 4, 8, 12, 16, 20, 24, 32, 40, 64  │
+│   Opacity:             0, 5, 10, 15...100                       │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    🎨 EFFECT STYLES                             │
+│       Нативные Figma стили эффектов                             │
+│       Применяются к объектам через панель Local Styles          │
+│                                                                 │
+│   DROP_SHADOW:         effect/elevation/*, effect/button/*      │
+│   INNER_SHADOW:        effect/inset/*                           │
+│   BACKGROUND_BLUR:     effect/backdrop/*                        │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -548,43 +559,44 @@ if (themeColorOverride && sourceColor === 'brand') {
 
 | Тип | Путь | Значения | Использование |
 |-----|------|----------|---------------|
-| **Shadow Offset X** | `shadow/offsetX/{value}` | -32, -16, -8, -4, -2, -1, 0, 1, 2, 4, 8, 16, 32 | Горизонтальное смещение тени |
-| **Shadow Offset Y** | `shadow/offsetY/{value}` | -32, -16, -8, -4, -2, -1, 0, 1, 2, 4, 8, 16, 32 | Вертикальное смещение тени |
-| **Shadow Blur** | `shadow/blur/{value}` | 0, 1, 2, 4, 6, 8, 12, 16, 24, 32, 48, 64 | Размытие тени |
-| **Shadow Spread** | `shadow/spread/{value}` | -16, -8, -4, -2, -1, 0, 1, 2, 4, 8, 16 | Расширение/сжатие тени |
-| **Shadow Color** | `shadow/color/{color}.{alpha}` | black.5-50, white.10-50, brand.10-50, error, success, warning | Цвет тени с прозрачностью |
-| **Backdrop Blur** | `blur/{value}` | 0, 4, 8, 12, 16, 24, 32, 64 | Размытие фона |
-| **Opacity** | `opacity/{value}` | 0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100 | Прозрачность |
+| **Shadow Offset X** | `shadow/offsetX/{value}` | 0, 1, 2, 4, n1, n2, n4 | Горизонтальное смещение тени |
+| **Shadow Offset Y** | `shadow/offsetY/{value}` | 0, 1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 32, n1, n2, n4, n8 | Вертикальное смещение тени |
+| **Shadow Blur** | `shadow/blur/{value}` | 0, 1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 32, 40, 48, 64 | Размытие тени |
+| **Shadow Spread** | `shadow/spread/{value}` | 0, 1, 2, 4, 6, 8, n1, n2, n4, n6, n8, n12 | Расширение/сжатие тени |
+| **Shadow Color** | `shadow/color/{color}-{alpha}` | black-3...-50, white-5...-20, brand-10...-30, error, success, warning | Цвет тени с прозрачностью |
+| **Backdrop Blur** | `blur/{value}` | 0, 2, 4, 8, 12, 16, 20, 24, 32, 40, 64 | Размытие фона |
+| **Opacity** | `opacity/{value}` | 0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 75, 80, 85, 90, 95, 100 | Прозрачность |
+
+> **Важно**: В именах цветов используется дефис вместо точки (`black-10`, не `black.10`), т.к. Figma интерпретирует точку как разделитель групп.
 
 ### Level 2 — Семантические токены (12 категорий):
 
 | # | Категория | Описание | Примеры токенов |
 |---|-----------|----------|-----------------|
-| 1 | **elevation** | Уровни высоты | raised, float, dropdown, popover, modal |
-| 2 | **focus** | Состояния фокуса | ring, ringOffset, ringError, glow, glowError |
-| 3 | **button** | Тени кнопок | default, hover, active, floating |
-| 4 | **card** | Тени карточек | default, hover, raised, floating |
-| 5 | **input** | Тени инпутов | focus, error, active |
-| 6 | **modal** | Тени модальных окон | overlay, panel, content |
-| 7 | **dropdown** | Тени выпадающих меню | menu, item, separator |
-| 8 | **directional** | Направленные тени | top, right, bottom, left |
-| 9 | **inset** | Внутренние тени | soft, medium, strong, pressed, textField |
-| 10 | **glow** | Эффекты свечения | brand, success, error, warning, white |
-| 11 | **backdrop** | Backdrop blur | light, medium, heavy, ultraHeavy, modal, overlay, header |
-| 12 | **opacity** | Прозрачность состояний | disabled, placeholder, hover, subtle, muted, soft, overlay, dimmed, faded, ghost, skeleton, divider, watermark |
+| 1 | **elevation** | Уровни высоты | raised, float, dropdown, popover, modal, dragging |
+| 2 | **focus** | Состояния фокуса | default, error, success, soft |
+| 3 | **button** | Тени кнопок | default, hover, active, primary |
+| 4 | **card** | Тени карточек | default, hover, selected, interactive |
+| 5 | **input** | Тени инпутов | focus, error, success |
+| 6 | **modal** | Тени модальных окон | backdrop, container |
+| 7 | **dropdown** | Тени выпадающих меню | container, popover, tooltip, toast |
+| 8 | **directional** | Направленные тени | top, bottom, left, right |
+| 9 | **inset** | Внутренние тени | subtle, default, deep, input, well |
+| 10 | **glow** | Эффекты свечения | brand-subtle/default/intense, error, success, warning |
+| 11 | **backdrop** | Backdrop blur | subtle, default, medium, strong, intense, modal, header |
+| 12 | **opacity** | Прозрачность состояний | disabled, muted, subtle и др. |
 
 ### Примеры семантических токенов:
 
 | Токен | Свойства | Использование |
 |-------|----------|---------------|
-| effect.elevation.raised | offsetY: 2, blur: 4, color: black.10 | Приподнятые элементы |
-| effect.elevation.modal | offsetY: 24, blur: 48, color: black.25 | Модальные окна |
-| effect.focus.ring | blur: 0, spread: 3, color: brand.50 | Focus ring кнопок/инпутов |
-| effect.button.floating | offsetY: 8, blur: 24, color: black.20 | FAB, floating buttons |
-| effect.inset.pressed | inset, offsetY: 2, blur: 4, color: black.10 | Нажатое состояние |
-| effect.glow.brand | blur: 16, spread: 0, color: brand.30 | Свечение бренда |
-| effect.backdrop.modal | blur: 32, opacity: 80 | Backdrop модального окна |
-| effect.opacity.disabled | value: 50% | Отключённые элементы |
+| effect/elevation/raised | offsetY: 1, blur: 2, color: black-7 | Минимальный подъём |
+| effect/elevation/modal | offsetY: 16, blur: 32, color: black-20 | Модальные окна |
+| effect/focus/default | blur: 0, spread: 4, color: brand-30 | Focus ring кнопок/инпутов |
+| effect/button/primary | offsetY: 2, blur: 6, color: brand-30 | Кнопки primary |
+| effect/inset/default | inset, offsetY: 2, blur: 4, color: black-10 | Вдавленные элементы |
+| effect/glow/brand-intense | blur: 24, spread: 4, color: brand-30 | Яркое свечение бренда |
+| effect/backdrop/modal | blur: 8, opacity: 50 | Backdrop модального окна |
 
 ### Структура семантического токена тени:
 
@@ -594,29 +606,40 @@ if (themeColorOverride && sourceColor === 'brand') {
   path: string;         // "effect.elevation.raised"
   category: string;     // "elevation"
   name: string;         // "raised"
-  // Shadow properties
-  offsetX?: string;     // Ссылка на примитив "0"
-  offsetY?: string;     // Ссылка на примитив "2"
-  blur?: string;        // Ссылка на примитив "4"
-  spread?: string;      // Ссылка на примитив "0"
-  color?: string;       // Ссылка на примитив "black.10"
+  // Shadow properties (ссылки на примитивы)
+  offsetX?: string;     // "0"
+  offsetY?: string;     // "1"
+  blur?: string;        // "2"
+  spread?: string;      // "0"
+  color?: string;       // "black-7"
   shadowType?: 'drop' | 'inset';
   // OR backdrop
-  backdropBlur?: string;    // Ссылка на примитив "32"
-  backdropOpacity?: string; // Ссылка на примитив "80"
+  backdropBlur?: string;    // "8"
+  backdropOpacity?: string; // "50"
   // OR opacity
-  opacity?: string;     // Ссылка на примитив "50"
+  opacity?: string;     // "50"
 }
 ```
 
 ### Использование в Figma:
 
-1. **Создать примитивы** → кнопка "Экспорт примитивов" → коллекция `Primitives`:
+1. **Создать примитивы** → кнопка "📤 Экспорт примитивов" → коллекция `Primitives`:
    - `shadow/offsetX/*`, `shadow/offsetY/*`, `shadow/blur/*`, `shadow/spread/*`
    - `shadow/color/*` (COLOR переменные)
    - `blur/*`, `opacity/*`
-2. **Создать семантику** → кнопка "Экспорт семантики" → коллекция `Effects` с алиасами
-3. **Применить к компонентам** → использовать семантические переменные в Effect Styles
+
+2. **Создать семантику** → кнопка "📤 Экспорт семантики" → коллекция `Effects` с алиасами на примитивы
+
+3. **Создать стили** → кнопка "🎨 Создать стили эффектов" → нативные Effect Styles:
+   - **DROP_SHADOW** — для elevation, button, card, dropdown, directional, glow
+   - **INNER_SHADOW** — для inset теней
+   - **BACKGROUND_BLUR** — для backdrop эффектов
+
+4. **Применить к дизайну**:
+   - Variables (из Effects collection) — для привязки к компонентам через переменные
+   - Effect Styles — для быстрого применения через панель Local Styles
+
+> **Примечание**: Переменные в коллекции Effects нельзя удалить, пока на них есть ссылки. Сначала удалите Effect Styles или коллекцию Effects целиком.
 
 ---
 
