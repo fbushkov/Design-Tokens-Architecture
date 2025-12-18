@@ -302,6 +302,7 @@ window.onmessage = (event: MessageEvent) => {
     case 'sync-variable-deleted':
     case 'export-selected-complete':
     case 'export-selected-error':
+      console.log('[ui.ts] Received sync message:', msg.type);
       handleSyncMessageFromFigma(msg);
       break;
   }

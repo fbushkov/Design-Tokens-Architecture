@@ -1911,13 +1911,20 @@ function getPluginVariablesForCollection(collectionName: string): PluginVariable
  */
 export function handleSyncMessageFromFigma(msg: any): void {
   const container = document.querySelector('.token-manager') as HTMLElement;
-  if (!container) return;
+  if (!container) {
+    console.log('[handleSyncMessageFromFigma] container not found');
+    return;
+  }
   
   // Handle export-selected-complete - clear exported changes
   if (msg.type === 'export-selected-complete') {
+    console.log('[export-selected-complete] Starting cleanup, pendingChanges before:', pendingChanges.length);
+    
     // Get checked checkboxes and remove those changes
     const checkboxes = document.querySelectorAll('.changes-table input[type="checkbox"]:checked') as NodeListOf<HTMLInputElement>;
     const indicesToRemove = new Set<number>();
+    
+    console.log('[export-selected-complete] Found checked checkboxes:', checkboxes.length);
     
     checkboxes.forEach(checkbox => {
       const idx = parseInt(checkbox.dataset.changeIdx || '-1', 10);
@@ -1926,14 +1933,36 @@ export function handleSyncMessageFromFigma(msg: any): void {
       }
     });
     
+    console.log('[export-selected-complete] Indices to remove:', Array.from(indicesToRemove));
+    
     // Remove exported changes (from end to start to preserve indices)
     const sortedIndices = Array.from(indicesToRemove).sort((a, b) => b - a);
     for (const idx of sortedIndices) {
       pendingChanges.splice(idx, 1);
     }
     
+    console.log('[export-selected-complete] pendingChanges after cleanup:', pendingChanges.length);
+    
+    // Save and refresh UI
     savePendingChanges();
-    refreshProjectSync(container);
+    
+    // Force re-render the entire project sync section
+    const syncWrapper = container.querySelector('.project-sync-wrapper');
+    console.log('[export-selected-complete] syncWrapper found:', !!syncWrapper);
+    
+    if (syncWrapper) {
+      const newHtml = renderProjectSync();
+      syncWrapper.innerHTML = newHtml;
+      console.log('[export-selected-complete] UI refreshed');
+    }
+    
+    // Reset export button state
+    const btn = document.getElementById('btn-export-all-changes') as HTMLButtonElement;
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '📤 Экспортировать выбранные изменения';
+    }
+    
     return;
   }
   
