@@ -264,6 +264,9 @@ export const STORAGE_KEYS = {
   // Gap
   GAP_STATE: 'gap-state',
   
+  // Grid
+  GRID_STATE: 'grid-state',
+  
   // Radius
   RADIUS_STATE: 'radius-state',
   

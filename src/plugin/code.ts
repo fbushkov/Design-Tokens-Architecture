@@ -4223,6 +4223,554 @@ async function createStrokeSemanticCollection(data: StrokeSemanticData): Promise
 }
 
 // ============================================
+// GRID (LAYOUT GRID) PRIMITIVES & SEMANTIC
+// ============================================
+
+interface GridPrimitivesPayload {
+  gutters: Array<{ name: string; value: number }>;    // grid/gutter/16 = 16
+  margins: Array<{ name: string; value: number }>;    // grid/margin/24 = 24
+  containers: Array<{ name: string; value: number }>; // grid/container/1280 = 1280
+}
+
+async function createGridPrimitives(payload: GridPrimitivesPayload): Promise<{ created: number; updated: number; errors: string[] }> {
+  const result = { created: 0, updated: 0, errors: [] as string[] };
+  
+  // Get or create Primitives collection
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  let primitivesCollection = collections.find(c => c.name === 'Primitives');
+  
+  if (!primitivesCollection) {
+    primitivesCollection = figma.variables.createVariableCollection('Primitives');
+  }
+  
+  // Get existing variables
+  const existingVariables = await figma.variables.getLocalVariablesAsync();
+  const existingFloats = existingVariables.filter(v => v.resolvedType === 'FLOAT');
+  
+  // Create GUTTER primitives (for Layout Grid gutter property)
+  for (const prim of payload.gutters || []) {
+    try {
+      const varName = `grid/gutter/${prim.name}`;
+      
+      let existingVar = existingFloats.find(v => 
+        v.name === varName && v.variableCollectionId === primitivesCollection!.id
+      );
+      
+      if (existingVar) {
+        existingVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        result.updated++;
+      } else {
+        const newVar = figma.variables.createVariable(varName, primitivesCollection, 'FLOAT');
+        newVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        newVar.description = `Grid gutter ${prim.value}px`;
+        result.created++;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания grid/gutter/${prim.name}: ${errorMessage}`);
+    }
+  }
+  
+  // Create MARGIN primitives (for Layout Grid offset/margin property)
+  for (const prim of payload.margins || []) {
+    try {
+      const varName = `grid/margin/${prim.name}`;
+      
+      let existingVar = existingFloats.find(v => 
+        v.name === varName && v.variableCollectionId === primitivesCollection!.id
+      );
+      
+      if (existingVar) {
+        existingVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        result.updated++;
+      } else {
+        const newVar = figma.variables.createVariable(varName, primitivesCollection, 'FLOAT');
+        newVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        newVar.description = `Grid margin ${prim.value}px`;
+        result.created++;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания grid/margin/${prim.name}: ${errorMessage}`);
+    }
+  }
+  
+  // Create CONTAINER primitives (max width values)
+  for (const prim of payload.containers || []) {
+    try {
+      const varName = `grid/container/${prim.name}`;
+      
+      let existingVar = existingFloats.find(v => 
+        v.name === varName && v.variableCollectionId === primitivesCollection!.id
+      );
+      
+      if (existingVar) {
+        existingVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        result.updated++;
+      } else {
+        const newVar = figma.variables.createVariable(varName, primitivesCollection, 'FLOAT');
+        newVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+        newVar.description = `Container max-width ${prim.value}px`;
+        result.created++;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      result.errors.push(`Ошибка создания grid/container/${prim.name}: ${errorMessage}`);
+    }
+  }
+  
+  return result;
+}
+
+// ============================================
+// GRID SEMANTIC COLLECTION
+// ============================================
+
+interface GridSemanticData {
+  tokens: Array<{
+    id: string;                          // "gr-1"
+    path: string;                        // "grid/page/main"
+    category?: string;                   // "page"
+    desktop: { columns: number; gutter: string; margin: string; alignment: string; maxWidth?: string };
+    tablet: { columns: number; gutter: string; margin: string; alignment: string; maxWidth?: string };
+    mobile: { columns: number; gutter: string; margin: string; alignment: string; maxWidth?: string };
+  }>;
+}
+
+async function createGridSemanticCollection(data: GridSemanticData): Promise<{ created: number; aliased: number; errors: string[] }> {
+  const result = { created: 0, aliased: 0, errors: [] as string[] };
+  
+  try {
+    // Get all collections
+    const collections = await figma.variables.getLocalVariableCollectionsAsync();
+    
+    // Find Primitives collection
+    const primitivesCollection = collections.find(c => c.name === 'Primitives');
+    if (!primitivesCollection) {
+      result.errors.push('Коллекция Primitives не найдена. Сначала создайте примитивы.');
+      return result;
+    }
+    
+    // Find or create Grid collection with device modes
+    let gridCollection = collections.find(c => c.name === 'Grid');
+    if (!gridCollection) {
+      gridCollection = figma.variables.createVariableCollection('Grid');
+      console.log('[Grid] Created new Grid collection');
+    }
+    
+    // Setup modes: Desktop, Tablet, Mobile
+    const modeNames = ['Desktop', 'Tablet', 'Mobile'];
+    const modeIds: { [key: string]: string } = {};
+    
+    // Get existing modes
+    const existingModes = gridCollection.modes;
+    console.log('[Grid] Existing modes:', existingModes.map(m => m.name));
+    
+    // Rename first mode to Desktop if it's not already
+    if (existingModes.length > 0 && existingModes[0].name !== 'Desktop') {
+      gridCollection.renameMode(existingModes[0].modeId, 'Desktop');
+    }
+    modeIds['Desktop'] = existingModes[0].modeId;
+    
+    // Add Tablet and Mobile modes if they don't exist
+    for (let i = 1; i < modeNames.length; i++) {
+      const modeName = modeNames[i];
+      const existingMode = gridCollection.modes.find(m => m.name === modeName);
+      
+      if (existingMode) {
+        modeIds[modeName] = existingMode.modeId;
+      } else {
+        try {
+          const newModeId = gridCollection.addMode(modeName);
+          modeIds[modeName] = newModeId;
+          console.log(`[Grid] Added mode: ${modeName}`);
+        } catch (modeError) {
+          console.error(`[Grid] Error adding mode ${modeName}:`, modeError);
+          result.errors.push(`Не удалось добавить режим ${modeName}: ${modeError instanceof Error ? modeError.message : String(modeError)}`);
+        }
+      }
+    }
+    
+    console.log('[Grid] Mode IDs:', modeIds);
+    
+    // Get all existing FLOAT variables
+    const allVariables = await figma.variables.getLocalVariablesAsync('FLOAT');
+    
+    // Create maps of primitive variables
+    const gutterMap = new Map<string, Variable>();
+    const marginMap = new Map<string, Variable>();
+    const containerMap = new Map<string, Variable>();
+    
+    allVariables.forEach(v => {
+      if (v.variableCollectionId === primitivesCollection.id) {
+        // Gutter: grid/gutter/16 -> "16"
+        const gutterMatch = v.name.match(/grid\/gutter\/(.+)/);
+        if (gutterMatch) {
+          gutterMap.set(gutterMatch[1], v);
+        }
+        
+        // Margin: grid/margin/24 -> "24"
+        const marginMatch = v.name.match(/grid\/margin\/(.+)/);
+        if (marginMatch) {
+          marginMap.set(marginMatch[1], v);
+        }
+        
+        // Container: grid/container/1280 -> "1280"
+        const containerMatch = v.name.match(/grid\/container\/(.+)/);
+        if (containerMatch) {
+          containerMap.set(containerMatch[1], v);
+        }
+      }
+    });
+    
+    console.log('[Grid] Primitives found:', {
+      gutters: Array.from(gutterMap.keys()),
+      margins: Array.from(marginMap.keys()),
+      containers: Array.from(containerMap.keys())
+    });
+    
+    // Existing semantic variables in Grid collection
+    const existingGridVars = allVariables.filter(v => v.variableCollectionId === gridCollection!.id);
+    const existingVarMap = new Map<string, Variable>();
+    existingGridVars.forEach(v => existingVarMap.set(v.name, v));
+    
+    console.log('[Grid] Existing Grid variables:', existingGridVars.length);
+    console.log('[Grid] Starting token creation for', data.tokens.length, 'tokens');
+    
+    // For each semantic token, create 4 variables with 3 modes each:
+    // - {path}/columns (Desktop: 12, Tablet: 8, Mobile: 4)
+    // - {path}/gutter (alias to primitives per mode)
+    // - {path}/margin (alias to primitives per mode)
+    // - {path}/maxWidth (alias to primitives per mode, optional)
+    
+    for (const token of data.tokens) {
+      // Convert dots to slashes for valid Figma variable names
+      // layout.grid.page.default -> layout/grid/page/default
+      const basePath = token.path.replace(/\./g, '/');
+      
+      console.log(`[Grid] Processing token: ${token.path} -> ${basePath}`, {
+        desktop: token.desktop,
+        tablet: token.tablet,
+        mobile: token.mobile
+      });
+      
+      try {
+        // 1. Create columns variable
+        const columnsVarName = `${basePath}/columns`;
+        console.log(`[Grid] Creating columns var: ${columnsVarName}`);
+        let columnsVar = existingVarMap.get(columnsVarName);
+        if (!columnsVar) {
+          columnsVar = figma.variables.createVariable(columnsVarName, gridCollection!, 'FLOAT');
+          result.created++;
+          console.log(`[Grid] Created: ${columnsVarName}`);
+        }
+        
+        // Set columns for each mode
+        console.log(`[Grid] Setting columns for modes:`, modeIds);
+        if (modeIds['Desktop']) columnsVar.setValueForMode(modeIds['Desktop'], token.desktop.columns);
+        if (modeIds['Tablet']) columnsVar.setValueForMode(modeIds['Tablet'], token.tablet.columns);
+        if (modeIds['Mobile']) columnsVar.setValueForMode(modeIds['Mobile'], token.mobile.columns);
+        
+        // 2. Create gutter variable with aliases to Primitives
+        const gutterVarName = `${basePath}/gutter`;
+        console.log(`[Grid] Creating gutter var: ${gutterVarName}`);
+        let gutterVar = existingVarMap.get(gutterVarName);
+        if (!gutterVar) {
+          gutterVar = figma.variables.createVariable(gutterVarName, gridCollection!, 'FLOAT');
+          result.created++;
+        }
+        
+        // Set gutter for each mode
+        const setGutterForMode = (modeName: string, gutterValue: string) => {
+          const modeId = modeIds[modeName];
+          if (!modeId) return;
+          
+          const gutterPrimitive = gutterMap.get(gutterValue);
+          if (gutterPrimitive) {
+            const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: gutterPrimitive.id };
+            gutterVar!.setValueForMode(modeId, alias);
+            result.aliased++;
+          } else {
+            gutterVar!.setValueForMode(modeId, parseFloat(gutterValue) || 16);
+          }
+        };
+        
+        setGutterForMode('Desktop', token.desktop.gutter);
+        setGutterForMode('Tablet', token.tablet.gutter);
+        setGutterForMode('Mobile', token.mobile.gutter);
+        
+        // 3. Create margin variable with aliases to Primitives
+        const marginVarName = `${basePath}/margin`;
+        let marginVar = existingVarMap.get(marginVarName);
+        if (!marginVar) {
+          marginVar = figma.variables.createVariable(marginVarName, gridCollection!, 'FLOAT');
+          result.created++;
+        }
+        
+        // Set margin for each mode
+        const setMarginForMode = (modeName: string, marginValue: string) => {
+          const modeId = modeIds[modeName];
+          if (!modeId) return;
+          
+          const marginPrimitive = marginMap.get(marginValue);
+          if (marginPrimitive) {
+            const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: marginPrimitive.id };
+            marginVar!.setValueForMode(modeId, alias);
+            result.aliased++;
+          } else {
+            marginVar!.setValueForMode(modeId, parseFloat(marginValue) || 24);
+          }
+        };
+        
+        setMarginForMode('Desktop', token.desktop.margin);
+        setMarginForMode('Tablet', token.tablet.margin);
+        setMarginForMode('Mobile', token.mobile.margin);
+        
+        // 4. Create maxWidth variable if specified in any mode
+        if (token.desktop.maxWidth || token.tablet.maxWidth || token.mobile.maxWidth) {
+          const maxWidthVarName = `${basePath}/maxWidth`;
+          let maxWidthVar = existingVarMap.get(maxWidthVarName);
+          if (!maxWidthVar) {
+            maxWidthVar = figma.variables.createVariable(maxWidthVarName, gridCollection!, 'FLOAT');
+            result.created++;
+          }
+          
+          // Set maxWidth for each mode
+          const setMaxWidthForMode = (modeName: string, maxWidthValue?: string) => {
+            const modeId = modeIds[modeName];
+            if (!modeId || !maxWidthValue) return;
+            
+            const containerPrimitive = containerMap.get(maxWidthValue);
+            if (containerPrimitive) {
+              const alias: VariableAlias = { type: 'VARIABLE_ALIAS', id: containerPrimitive.id };
+              maxWidthVar!.setValueForMode(modeId, alias);
+              result.aliased++;
+            } else {
+              maxWidthVar!.setValueForMode(modeId, parseFloat(maxWidthValue) || 1280);
+            }
+          };
+          
+          setMaxWidthForMode('Desktop', token.desktop.maxWidth);
+          setMaxWidthForMode('Tablet', token.tablet.maxWidth);
+          setMaxWidthForMode('Mobile', token.mobile.maxWidth);
+        }
+        
+      } catch (tokenError) {
+        const errorMessage = tokenError instanceof Error 
+          ? `${tokenError.message} | Stack: ${tokenError.stack}` 
+          : JSON.stringify(tokenError);
+        result.errors.push(`${basePath}: ${errorMessage}`);
+        console.log(`[Grid] Error creating ${basePath}:`, errorMessage);
+      }
+    }
+    
+  } catch (globalError) {
+    const errorMessage = globalError instanceof Error 
+      ? `${globalError.message} | Stack: ${globalError.stack}` 
+      : JSON.stringify(globalError);
+    result.errors.push(`Глобальная ошибка: ${errorMessage}`);
+    console.log('[Grid] Global error:', errorMessage);
+  }
+  
+  return result;
+}
+
+// ============================================
+// APPLY GRID TO FRAME
+// ============================================
+
+async function applyGridToFrame(
+  frame: FrameNode, 
+  tokenName: string, 
+  breakpoint: 'desktop' | 'tablet' | 'mobile'
+): Promise<{ success: boolean }> {
+  // Get Grid collection (where Grid semantic tokens are stored with device modes)
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  const gridCollection = collections.find(c => c.name === 'Grid');
+  
+  if (!gridCollection) {
+    throw new Error('Коллекция Grid не найдена. Сначала создайте Grid токены.');
+  }
+  
+  // Get mode ID for breakpoint
+  const breakpointToMode: { [key: string]: string } = {
+    'desktop': 'Desktop',
+    'tablet': 'Tablet', 
+    'mobile': 'Mobile'
+  };
+  
+  const modeName = breakpointToMode[breakpoint];
+  const mode = gridCollection.modes.find(m => m.name === modeName);
+  
+  if (!mode) {
+    throw new Error(`Режим "${modeName}" не найден в коллекции Grid.`);
+  }
+  
+  const modeId = mode.modeId;
+  
+  // Find variables for this token
+  const allVariables = await figma.variables.getLocalVariablesAsync('FLOAT');
+  const gridVars = allVariables.filter(v => 
+    v.variableCollectionId === gridCollection.id && v.name.startsWith(tokenName)
+  );
+  
+  // Get columns, gutter, margin values
+  const columnsVar = gridVars.find(v => v.name === `${tokenName}/columns`);
+  const gutterVar = gridVars.find(v => v.name === `${tokenName}/gutter`);
+  const marginVar = gridVars.find(v => v.name === `${tokenName}/margin`);
+  
+  if (!columnsVar || !gutterVar || !marginVar) {
+    throw new Error(`Не все переменные найдены для токена "${tokenName}". Необходимы: columns, gutter, margin.`);
+  }
+  
+  // Get resolved values for the breakpoint mode
+  const columnsValue = columnsVar.valuesByMode[modeId];
+  const gutterValue = gutterVar.valuesByMode[modeId];
+  const marginValue = marginVar.valuesByMode[modeId];
+  
+  // Resolve aliases to get actual numbers
+  const resolveValue = async (value: any): Promise<number> => {
+    if (typeof value === 'number') {
+      return value;
+    }
+    if (value && value.type === 'VARIABLE_ALIAS') {
+      const aliasedVar = await figma.variables.getVariableByIdAsync(value.id);
+      if (aliasedVar) {
+        // Get value from default mode of primitives collection
+        const primitivesCollection = collections.find(c => c.name === 'Primitives');
+        if (primitivesCollection) {
+          const primValue = aliasedVar.valuesByMode[primitivesCollection.defaultModeId];
+          if (typeof primValue === 'number') {
+            return primValue;
+          }
+        }
+      }
+    }
+    return 0;
+  };
+  
+  const columns = await resolveValue(columnsValue);
+  const gutter = await resolveValue(gutterValue);
+  const margin = await resolveValue(marginValue);
+  
+  // Create Layout Grid configuration
+  const layoutGrid: LayoutGrid = {
+    pattern: 'COLUMNS',
+    alignment: 'CENTER',
+    count: columns,
+    gutterSize: gutter,
+    offset: margin,
+    sectionSize: 1,
+    visible: true,
+    color: { r: 1, g: 0, b: 0, a: 0.1 }
+  };
+  
+  // Apply to frame
+  frame.layoutGrids = [layoutGrid];
+  
+  // Bind gutter and margin to variables (if Figma API supports it)
+  // Note: As of 2024, Layout Grid doesn't fully support variable binding
+  // But we're setting up the structure for future compatibility
+  
+  return { success: true };
+}
+
+// ============================================
+// CREATE GRID STYLES (Layout Guide Styles)
+// ============================================
+
+interface GridStyleData {
+  id: string;
+  name: string;
+  path: string;
+  description: string;
+  desktop: { columns: number; gutter: number; margin: number; alignment: string };
+  tablet: { columns: number; gutter: number; margin: number; alignment: string };
+  mobile: { columns: number; gutter: number; margin: number; alignment: string };
+}
+
+async function createGridStyles(grids: GridStyleData[]): Promise<{ created: number; updated: number; pageName: string }> {
+  const result = { created: 0, updated: 0, pageName: 'Grid Styles' };
+  
+  console.log('[Grid] createGridStyles called with', grids.length, 'grids');
+  console.log('[Grid] First grid data:', grids[0]);
+  
+  // Get existing grid styles
+  const existingStyles = await figma.getLocalGridStylesAsync();
+  console.log('[Grid] Existing grid styles:', existingStyles.length);
+  
+  // Alignment mapping
+  const alignmentMap: { [key: string]: 'MIN' | 'CENTER' | 'MAX' | 'STRETCH' } = {
+    'MIN': 'MIN', 'START': 'MIN',
+    'CENTER': 'CENTER',
+    'MAX': 'MAX', 'END': 'MAX',
+    'STRETCH': 'STRETCH',
+  };
+  
+  for (const grid of grids) {
+    // Create 3 styles for each grid token: Desktop, Tablet, Mobile
+    const breakpoints = [
+      { suffix: 'desktop', config: grid.desktop, emoji: '🖥️' },
+      { suffix: 'tablet', config: grid.tablet, emoji: '📱' },
+      { suffix: 'mobile', config: grid.mobile, emoji: '📱' },
+    ];
+    
+    for (const bp of breakpoints) {
+      try {
+        // Style name: grid/page/main/desktop (use slashes, not dots)
+        const styleName = grid.path.replace(/\./g, '/') + '/' + bp.suffix;
+        
+        console.log(`[Grid] Creating style: ${styleName}`, bp.config);
+        
+        // Check if style already exists
+        let gridStyle = existingStyles.find(s => s.name === styleName);
+        
+        // Create Layout Grid configuration
+        // Note: Figma LayoutGrid for COLUMNS pattern requires offset for all alignments
+        const alignment = alignmentMap[bp.config.alignment.toUpperCase()] || 'STRETCH';
+        
+        const layoutGrid: LayoutGrid = {
+          pattern: 'COLUMNS',
+          alignment: alignment,
+          count: bp.config.columns,
+          gutterSize: bp.config.gutter,
+          offset: bp.config.margin, // Required for all COLUMNS alignments
+          visible: true,
+          color: { r: 1, g: 0, b: 0, a: 0.1 },
+        };
+        
+        console.log(`[Grid] Layout grid config:`, layoutGrid);
+        
+        if (gridStyle) {
+          // Update existing style
+          gridStyle.layoutGrids = [layoutGrid];
+          if (grid.description) {
+            gridStyle.description = `${grid.description} (${bp.suffix})`;
+          }
+          result.updated++;
+          console.log(`[Grid] Updated style: ${styleName}`);
+        } else {
+          // Create new grid style
+          gridStyle = figma.createGridStyle();
+          gridStyle.name = styleName;
+          gridStyle.layoutGrids = [layoutGrid];
+          gridStyle.description = grid.description 
+            ? `${grid.description} (${bp.suffix})`
+            : `${bp.config.columns} columns, ${bp.config.gutter}px gutter, ${bp.config.margin}px margin`;
+          result.created++;
+          console.log(`[Grid] Created style: ${styleName}`);
+        }
+      } catch (error) {
+        const errorMsg = error instanceof Error ? `${error.message} | Stack: ${error.stack}` : String(error);
+        console.log(`[Grid] Error creating style for ${grid.path}/${bp.suffix}:`, errorMsg);
+      }
+    }
+  }
+  
+  return result;
+}
+
+// ============================================
 // ICON SIZE PRIMITIVES & SEMANTIC
 // ============================================
 
@@ -8195,6 +8743,143 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
         } catch (error) {
           figma.ui.postMessage({
             type: 'stroke-error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      // ========================================
+      // GRID (LAYOUT GRID) HANDLERS
+      // ========================================
+
+      case 'create-grid-primitives': {
+        const { gutter, margin, container } = msg as unknown as {
+          gutter: Array<{ name: string; value: number }>;
+          margin: Array<{ name: string; value: number }>;
+          container: Array<{ name: string; value: number }>;
+        };
+        
+        const totalPrimitives = (gutter?.length || 0) + (margin?.length || 0) + (container?.length || 0);
+        figma.notify(`⏳ Создание ${totalPrimitives} примитивов grid...`);
+        
+        try {
+          const result = await createGridPrimitives({ 
+            gutters: gutter || [], 
+            margins: margin || [], 
+            containers: container || [] 
+          });
+          
+          figma.ui.postMessage({
+            type: 'grid-primitives-created',
+            count: result.created + result.updated
+          });
+          
+          if (result.errors.length > 0) {
+            console.error('[Grid] Errors:', result.errors);
+            figma.notify(`⚠️ Grid примитивы: ${result.created} создано, ${result.updated} обновлено, ${result.errors.length} ошибок`);
+          } else {
+            figma.notify(`✅ Grid примитивы: ${result.created} создано, ${result.updated} обновлено`);
+          }
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'grid-error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      case 'create-grid-semantic': {
+        const tokens = msg.tokens as unknown as Array<{
+          id: string;
+          path: string;
+          category: string;
+          desktop: { columns: number; gutter: string; margin: string; alignment: string; maxWidth?: string };
+          tablet: { columns: number; gutter: string; margin: string; alignment: string; maxWidth?: string };
+          mobile: { columns: number; gutter: string; margin: string; alignment: string; maxWidth?: string };
+        }>;
+        
+        figma.notify(`⏳ Создание ${tokens.length} семантических токенов grid...`);
+        
+        try {
+          const result = await createGridSemanticCollection({ tokens });
+          
+          figma.ui.postMessage({
+            type: 'grid-semantic-created',
+            count: result.created
+          });
+          
+          if (result.errors.length > 0) {
+            figma.notify(`⚠️ Grid: ${result.created} создано, ${result.aliased} алиасов, ${result.errors.length} ошибок`);
+          } else {
+            figma.notify(`✅ Grid: ${result.created} создано, ${result.aliased} алиасов`);
+          }
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'grid-error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      case 'apply-grid-to-frame': {
+        const { tokenName, breakpoint } = msg as unknown as { tokenName: string; breakpoint: 'desktop' | 'tablet' | 'mobile' };
+        
+        const selection = figma.currentPage.selection;
+        if (selection.length === 0) {
+          figma.notify('⚠️ Выберите фрейм для применения сетки');
+          break;
+        }
+        
+        const frame = selection[0];
+        if (frame.type !== 'FRAME') {
+          figma.notify('⚠️ Выберите фрейм (не другой тип элемента)');
+          break;
+        }
+        
+        try {
+          const result = await applyGridToFrame(frame, tokenName, breakpoint);
+          figma.notify(`✅ Сетка "${tokenName}" (${breakpoint}) применена к фрейму`);
+          figma.ui.postMessage({ type: 'grid-applied', success: true });
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'grid-error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      case 'create-grid-components': {
+        const grids = (msg as unknown as { components: Array<{
+          id: string;
+          name: string;
+          path: string;
+          description: string;
+          desktop: { columns: number; gutter: number; margin: number; alignment: string };
+          tablet: { columns: number; gutter: number; margin: number; alignment: string };
+          mobile: { columns: number; gutter: number; margin: number; alignment: string };
+        }> }).components;
+        
+        figma.notify(`⏳ Создание ${grids.length * 3} Grid Styles...`);
+        
+        try {
+          const result = await createGridStyles(grids);
+          figma.ui.postMessage({
+            type: 'grid-components-created',
+            count: result.created + result.updated,
+            pageName: result.pageName,
+          });
+          figma.notify(`✅ Grid Styles: ${result.created} создано, ${result.updated} обновлено`);
+        } catch (error) {
+          figma.ui.postMessage({
+            type: 'grid-error',
             error: error instanceof Error ? error.message : 'Unknown error',
           });
           figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);

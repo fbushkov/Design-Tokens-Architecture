@@ -58,6 +58,10 @@ import {
 } from './stroke-generator-ui';
 
 import {
+  initGridUI,
+} from './grid-generator-ui';
+
+import {
   renderEffectsGenerator,
   initEffectsEvents,
   loadEffectsState,
@@ -480,6 +484,9 @@ initIconSizeUI();
 
 // Initialize Stroke UI (2-tier for borders/strokes)
 initStrokeUI();
+
+// Initialize Grid UI (2-tier for layout grids)
+initGridUI();
 
 // Initialize Effects UI (shadows, blur, opacity)
 initEffectsUI();

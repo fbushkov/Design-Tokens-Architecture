@@ -1,5 +1,86 @@
 # 📝 Changelog - Design Tokens Plugin
 
+## [2025-12-19] - Grid/Layout Token System ⊞
+
+### ✅ Добавлено
+
+#### Grid модуль — полная система Layout Grid токенов
+2-уровневая архитектура (Primitives → Semantic) для управления сетками макетов:
+
+**Архитектурное решение: Компонентный подход**
+- Grid Styles организованы по **компонентам** (page, cards, form, dashboard), а не по устройствам
+- Внутри каждого компонента — варианты Desktop/Tablet/Mobile
+- Обоснование: одна сетка Desktop не подходит для всех случаев (форма ≠ галерея ≠ дашборд)
+- Стандартная практика design systems (Material Design, Carbon, Ant Design)
+
+**Level 1 — Примитивы (Primitives коллекция):**
+- `grid/gutter/*` — расстояние между колонками (0, 4, 8, 12, 16, 20, 24, 32, 40, 48 px)
+- `grid/margin/*` — отступ от края (0, 16, 20, 24, 32, 48, 64, 80, 96, 120, 160 px)
+- `grid/container/*` — max-width контейнеров (480, 560, 640...1920 px)
+- ⚠️ **НЕЗАВИСИМЫ от Gap и Spacing** — своя шкала значений
+
+**Level 2 — Семантика (Grid коллекция с режимами):**
+| Категория | Описание | Примеры токенов |
+|-----------|----------|----------------|
+| page | Основные сетки страниц | default, wide, fluid |
+| content | Контентные области | narrow, prose |
+| container | Контейнеры с max-width | default, narrow, medium, wide, modal.* |
+| cards | Сетки карточек | default, compact, spacious |
+| gallery | Галереи, медиа | default, compact, thumbnails, masonry |
+| dashboard | Дашборды, виджеты | main, compact, metrics |
+| form | Формы | single, double, triple, inline |
+| list | Списки | single, double, triple |
+| navigation | Навигация | header, megaMenu, sidebar |
+| data | Таблицы данных | table |
+| footer | Футеры | default, simple |
+| custom | Пользовательские | кастомные категории |
+
+**Режимы (Modes) в коллекции Grid:**
+- Desktop — полная сетка (12 col, gutter 24, margin 64)
+- Tablet — средняя (8 col, gutter 20, margin 32)
+- Mobile — компактная (4 col, gutter 16, margin 16)
+
+#### Grid Styles (Layout Guide Styles)
+- Создаются реальные Grid Styles в Figma (как Color/Text/Effect Styles)
+- Для каждого токена создаются 3 стиля: desktop, tablet, mobile
+- Путь: `layout/grid/{category}/{name}/{device}`
+- Пример: `layout/grid/page/default/desktop`
+
+#### UI для Grid
+- Вкладка "⊞ Grid" в секции Примитивы
+- Подвкладки: Примитивы | Семантика | Экспорт
+- 3 типа примитивов: Gutter, Margin, Container
+- 12 категорий семантических токенов + кастомные
+- Табличный редактор с inline-редактированием
+- Применение сетки к выбранному фрейму
+- CRUD операции с автоматическим сохранением
+
+### 🔧 Исправлено
+
+#### Figma LayoutGrid API валидация
+- **Проблема**: "invalid variable name" — Figma Variables API не принимает точки в именах
+- **Решение**: `token.path.replace(/\./g, '/')` — точки → слеши
+
+- **Проблема**: "Unrecognized key(s) in object: 'offset', 'sectionSize'"
+- **Причина**: Figma LayoutGrid для `pattern: 'COLUMNS'` требует `offset` для всех alignment
+- **Решение**: `offset` теперь передаётся всегда (не только для MIN/MAX)
+
+### 📁 Новые файлы
+- `src/types/grid-tokens.ts` — типы: GridPrimitive, GridSemanticToken, GridState, GridLayoutConfig
+- `src/ui/grid-generator-ui.ts` — UI модуль (~600 строк): initGridUI(), renderGridPrimitives(), renderGridSemanticTokens()
+
+### 📁 Изменённые файлы
+- `src/plugin/code.ts`:
+  - Функции: `createGridPrimitives()`, `createGridSemanticCollection()`, `createGridStyles()`, `applyGridToFrame()`
+  - Обработчики: `create-grid-primitives`, `create-grid-semantic`, `create-grid-components`, `apply-grid-to-frame`
+- `src/ui/ui.html` — секция prim-grid с CSS стилями для grid UI
+- `src/ui/ui.ts` — импорт и инициализация GridUI
+- `src/ui/storage-utils.ts` — ключ GRID_STATE
+- `src/ui/token-manager-ui.ts` — добавлен 'grid' в PendingChange module type
+- `src/types/index.ts` — экспорт grid-tokens
+
+---
+
 ## [2025-12-18] - Stroke Color Reference Fix 🔧
 
 ### 🐛 Исправлено
