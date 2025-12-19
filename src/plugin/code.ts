@@ -967,6 +967,125 @@ function frontendTokensToScss(tokens: FrontendExportResult): string {
 }
 
 // ============================================
+// EXPORT TOKENS BY THEME (Flat structure for frontend)
+// Exports Tokens collection with all modes (themes)
+// ============================================
+
+interface TokensByThemeResult {
+  $schema: string;
+  $version: string;
+  $description: string;
+  $timestamp: string;
+  $modes: string[];
+  [themeName: string]: Record<string, string | number> | string | string[];
+}
+
+async function exportTokensByTheme(): Promise<TokensByThemeResult> {
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  const allVariables = await figma.variables.getLocalVariablesAsync();
+  
+  // Find the Tokens collection (semantic level with modes)
+  const tokensCollection = collections.find(c => c.name === 'Tokens');
+  
+  if (!tokensCollection) {
+    throw new Error('Коллекция "Tokens" не найдена. Сначала создайте семантические токены.');
+  }
+  
+  const tokensVars = allVariables.filter(v => v.variableCollectionId === tokensCollection.id);
+  
+  if (tokensVars.length === 0) {
+    throw new Error('В коллекции "Tokens" нет переменных.');
+  }
+  
+  // Get all modes (themes)
+  const modes = tokensCollection.modes;
+  const modeNames = modes.map(m => m.name);
+  
+  const result: TokensByThemeResult = {
+    $schema: 'tokens-by-theme',
+    $version: '1.0.0',
+    $description: 'Semantic tokens by theme - flat structure for frontend',
+    $timestamp: new Date().toISOString(),
+    $modes: modeNames,
+  };
+  
+  // Initialize theme objects
+  for (const mode of modes) {
+    result[mode.name] = {};
+  }
+  
+  // Process each variable for each mode
+  for (const variable of tokensVars) {
+    // Convert variable name to flat kebab-case key
+    // e.g., "action/primary/primary" -> "action-primary"
+    // e.g., "bg/surface/surface" -> "bg-surface"
+    // e.g., "text/primary/primary" -> "text-primary"
+    const tokenKey = variableNameToFlatKey(variable.name);
+    
+    for (const mode of modes) {
+      const resolved = await resolveVariableToFinalValue(variable, mode.modeId);
+      
+      if (!resolved) continue;
+      
+      let value: string | number;
+      
+      if (resolved.type === 'COLOR') {
+        const rgba = resolved.value as RGBA;
+        value = rgbaToHex(rgba.r, rgba.g, rgba.b, rgba.a);
+      } else if (resolved.type === 'FLOAT') {
+        value = resolved.value;
+      } else if (resolved.type === 'STRING') {
+        value = resolved.value;
+      } else {
+        continue;
+      }
+      
+      (result[mode.name] as Record<string, string | number>)[tokenKey] = value;
+    }
+  }
+  
+  return result;
+}
+
+// Helper: Convert variable path to flat kebab-case key
+// "action/primary/primary" -> "action-primary"
+// "action/primary/primary-hover" -> "action-primary-hover"
+// "bg/surface/surface" -> "bg-surface"
+// "text/primary/primary" -> "text-primary"
+// "stroke/default/default" -> "stroke-default"
+function variableNameToFlatKey(name: string): string {
+  const parts = name.split('/');
+  
+  // Remove duplicate parts (e.g., primary/primary -> primary)
+  const uniqueParts: string[] = [];
+  let prevPart = '';
+  
+  for (const part of parts) {
+    // Normalize: remove hyphens and lowercase for comparison
+    const normalizedPart = part.toLowerCase().replace(/-/g, '');
+    const normalizedPrev = prevPart.toLowerCase().replace(/-/g, '');
+    
+    // Skip if same as previous (e.g., "primary" after "primary")
+    if (normalizedPart === normalizedPrev) {
+      continue;
+    }
+    
+    // For state suffixes like "primary-hover", keep them
+    if (part.includes('-') && normalizedPart.startsWith(normalizedPrev)) {
+      // Replace previous with this more specific one
+      uniqueParts[uniqueParts.length - 1] = part;
+      prevPart = part;
+      continue;
+    }
+    
+    uniqueParts.push(part);
+    prevPart = part;
+  }
+  
+  return uniqueParts.join('-').toLowerCase();
+}
+
+// ============================================
 // IMPORT TOKENS TO FIGMA
 // ============================================
 
@@ -8778,6 +8897,31 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           const errorMessage = error instanceof Error ? error.message : String(error);
           figma.ui.postMessage({
             type: 'frontend-export-error',
+            payload: { error: errorMessage }
+          });
+          figma.notify(`❌ Ошибка экспорта: ${errorMessage}`);
+        }
+        break;
+      }
+
+      // ========================================
+      // EXPORT TOKENS BY THEME (Flat structure for frontend)
+      // ========================================
+      case 'export-tokens-by-theme': {
+        try {
+          const tokensByTheme = await exportTokensByTheme();
+          const output = JSON.stringify(tokensByTheme, null, 2);
+          
+          figma.ui.postMessage({
+            type: 'tokens-by-theme-exported',
+            payload: { output }
+          });
+          
+          figma.notify('✅ Токены по темам экспортированы!');
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          figma.ui.postMessage({
+            type: 'tokens-by-theme-error',
             payload: { error: errorMessage }
           });
           figma.notify(`❌ Ошибка экспорта: ${errorMessage}`);

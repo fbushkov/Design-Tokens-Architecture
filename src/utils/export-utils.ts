@@ -686,7 +686,7 @@ export function exportToFrontend(): string {
 // MAIN EXPORT FUNCTION
 // ============================================
 
-export type ExportFormat = 'json' | 'storybook' | 'css' | 'scss' | 'tailwind' | 'figma' | 'frontend';
+export type ExportFormat = 'json' | 'storybook' | 'css' | 'scss' | 'tailwind' | 'figma' | 'frontend' | 'tokens-by-theme';
 
 export function exportTokens(format: ExportFormat): string | FigmaVariableExport[] {
   switch (format) {

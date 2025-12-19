@@ -140,7 +140,7 @@ export interface SubcategoryDefinition {
 export interface TokenManagerSettings {
   separator: TMSeparator;
   caseStyle: TMCaseStyle;
-  exportFormat: 'figma' | 'json' | 'css' | 'scss' | 'tailwind' | 'frontend';
+  exportFormat: 'figma' | 'json' | 'css' | 'scss' | 'tailwind' | 'frontend' | 'tokens-by-theme';
   autoSync: boolean;
   darkModeEnabled: boolean;
 }

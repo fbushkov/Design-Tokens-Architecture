@@ -1,5 +1,62 @@
 # 📝 Changelog - Design Tokens Plugin
 
+## [2025-12-19] - Tokens by Theme Export 🎨
+
+### ✅ Добавлено
+
+#### Новый формат экспорта "Tokens by Theme"
+Flat структура семантических токенов, сгруппированных по темам — именно то, что нужно frontend-разработчикам:
+
+**Особенности:**
+- **Flat структура** — все токены на одном уровне (без вложенности)
+- **Theme-first группировка** — `{ "light": {...}, "dark": {...} }`
+- **Шаблонизация** — одинаковые ключи во всех темах
+- **Только семантика** — экспорт коллекции Tokens (не Components)
+- **kebab-case** — имена в формате `action-primary`, `bg-page-primary`
+
+**Пример выходного JSON:**
+```json
+{
+  "$schema": "tokens-by-theme",
+  "$modes": ["light", "dark"],
+  "light": {
+    "action-primary": "#2781f3",
+    "text-primary": "#19191a",
+    "bg-page-primary": "#fcfcfc"
+  },
+  "dark": {
+    "action-primary": "#2781f3",
+    "text-primary": "#fcfcfc",
+    "bg-page-primary": "#19191a"
+  }
+}
+```
+
+**Преобразование имён:**
+- `action/primary/primary` → `action-primary`
+- `action/primary/primary-hover` → `action-primary-hover`
+- `bg/page/page-primary` → `bg-page-primary`
+
+### 🔧 Технические детали
+
+**Новые функции в code.ts:**
+- `exportTokensByTheme()` — основная функция экспорта из коллекции Tokens
+- `variableNameToFlatKey()` — преобразование пути переменной в flat kebab-case ключ
+
+**Новый message handler:**
+- `export-tokens-by-theme` — обработчик в code.ts
+- `tokens-by-theme-exported` — обработчик результата в ui.ts
+
+### 📁 Изменённые файлы
+- `src/plugin/code.ts` — функции экспорта
+- `src/ui/ui.ts` — обработчик нового формата
+- `src/ui/ui.html` — опция в dropdown экспорта
+- `src/ui/token-manager-ui.ts` — опция в настройках Token Manager
+- `src/types/token-manager.ts` — обновлён тип exportFormat
+- `src/utils/export-utils.ts` — обновлён тип ExportFormat
+
+---
+
 ## [2025-12-19] - Frontend Export from Figma Variables 📤
 
 ### ✅ Добавлено

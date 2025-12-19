@@ -1,7 +1,7 @@
 # 🏗️ Архитектура плагина Design Tokens Manager
 
 > **Последнее обновление**: 19 декабря 2025
-> **Версия**: 3.7 (Frontend Export from Figma Variables)
+> **Версия**: 3.8 (Tokens by Theme Export)
 
 ## 📌 Основная идея
 
@@ -1119,9 +1119,62 @@ button/primary/primaryBg
 
 ### Использование
 
-1. Token Manager → Export → выбрать "JSON (Frontend) — только семантика"
+1. Token Manager → Export → выбрать "JSON (Frontend) — компоненты"
 2. Нажать "Export"
 3. Скачивается файл `frontend-tokens.json`
+
+---
+
+## 🎨 Tokens by Theme Export (Flat структура для frontend)
+
+### Назначение
+
+Экспорт семантических токенов из коллекции **Tokens** в плоском формате, сгруппированном по темам. Это именно тот формат, который нужен frontend-разработчикам:
+- Одинаковые ключи во всех темах (шаблонизация)
+- Flat структура (без вложенности)
+- Theme-first группировка
+
+### Структура выходного JSON
+
+```json
+{
+  "$schema": "tokens-by-theme",
+  "$version": "1.0.0",
+  "$description": "Semantic tokens by theme - flat structure for frontend",
+  "$timestamp": "2025-12-19T...",
+  "$modes": ["light", "dark", "green-light", "green-dark"],
+  "light": {
+    "action-primary": "#2781f3",
+    "action-primary-hover": "#2374db",
+    "text-primary": "#19191a",
+    "bg-page-primary": "#fcfcfc",
+    "stroke-default": "#d6d6d6"
+  },
+  "dark": {
+    "action-primary": "#2781f3",
+    "action-primary-hover": "#3d8ef4",
+    "text-primary": "#fcfcfc",
+    "bg-page-primary": "#19191a",
+    "stroke-default": "#5c5c5c"
+  }
+}
+```
+
+### Преобразование имён токенов
+
+| Figma Variable | JSON Key |
+|----------------|----------|
+| `action/primary/primary` | `action-primary` |
+| `action/primary/primary-hover` | `action-primary-hover` |
+| `bg/page/page-primary` | `bg-page-primary` |
+| `text/primary/primary` | `text-primary` |
+| `stroke/default/default` | `stroke-default` |
+
+### Использование
+
+1. Token Manager → Export → выбрать "JSON (Tokens by Theme) — семантика по темам (flat)"
+2. Нажать "Export"
+3. Скачивается файл `tokens-by-theme-YYYY-MM-DD.json`
 
 ### Технические детали
 

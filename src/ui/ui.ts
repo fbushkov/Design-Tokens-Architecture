@@ -180,10 +180,17 @@ if (elements.btnExport) {
   elements.btnExport.addEventListener('click', () => {
     const format = elements.exportFormat.value as ExportFormat;
     
-    // Frontend format - request from Figma Variables directly
+    // Frontend format - request from Figma Variables directly (nested structure)
     if (format === 'frontend') {
       postMessage('export-frontend-from-figma', { format: 'json' });
-      elements.exportOutput.textContent = '⏳ Экспортируем из Figma Variables...';
+      elements.exportOutput.textContent = '⏳ Экспортируем из Figma Variables (вложенная структура)...';
+      return;
+    }
+    
+    // Tokens by Theme format - flat structure for frontend developers
+    if (format === 'tokens-by-theme') {
+      postMessage('export-tokens-by-theme', {});
+      elements.exportOutput.textContent = '⏳ Экспортируем токены по темам (flat структура)...';
       return;
     }
     
@@ -242,11 +249,17 @@ if (elements.btnDownload) {
       figma: 'json', 
       storybook: 'json', 
       tailwind: 'js',
-      frontend: 'json'  // Frontend format is JSON
+      frontend: 'json',
+      'tokens-by-theme': 'json'
     };
     
     const timestamp = new Date().toISOString().split('T')[0];
-    const prefix = format === 'frontend' ? 'frontend-tokens' : 'design-tokens';
+    let prefix = 'design-tokens';
+    if (format === 'frontend') {
+      prefix = 'frontend-tokens';
+    } else if (format === 'tokens-by-theme') {
+      prefix = 'tokens-by-theme';
+    }
     const filename = `${prefix}-${timestamp}.${ext[format] || 'json'}`;
     
     const blob = new Blob([exportOutput], { type: 'text/plain' });
@@ -324,6 +337,17 @@ window.onmessage = (event: MessageEvent) => {
     case 'frontend-export-error':
       showNotification('❌ Ошибка экспорта: ' + msg.payload.error, true);
       elements.exportOutput.textContent = '// Ошибка экспорта';
+      break;
+    
+    // Tokens by Theme export response
+    case 'tokens-by-theme-exported':
+      exportOutput = msg.payload.output;
+      elements.exportOutput.textContent = exportOutput;
+      showNotification('📦 Токены по темам экспортированы!');
+      break;
+    case 'tokens-by-theme-error':
+      showNotification('❌ Ошибка экспорта: ' + msg.payload.error, true);
+      elements.exportOutput.textContent = '// Ошибка экспорта: ' + msg.payload.error;
       break;
     
     case 'project-synced':

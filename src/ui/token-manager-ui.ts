@@ -508,14 +508,15 @@ export function renderSettingsPanel(): string {
             <div class="ts-field">
               <select class="te-select ts-export-format" id="export-format-select">
                 <option value="json" ${settings.exportFormat === 'json' ? 'selected' : ''}>JSON (Design Tokens)</option>
-                <option value="frontend" ${settings.exportFormat === 'frontend' ? 'selected' : ''}>📦 Frontend (семантика)</option>
+                <option value="frontend" ${settings.exportFormat === 'frontend' ? 'selected' : ''}>📦 Frontend (компоненты)</option>
+                <option value="tokens-by-theme" ${settings.exportFormat === 'tokens-by-theme' ? 'selected' : ''}>🎨 Tokens by Theme (flat)</option>
                 <option value="css" ${settings.exportFormat === 'css' ? 'selected' : ''}>CSS Variables</option>
                 <option value="scss" ${settings.exportFormat === 'scss' ? 'selected' : ''}>SCSS Variables</option>
                 <option value="figma" ${settings.exportFormat === 'figma' ? 'selected' : ''}>Figma Variables</option>
                 <option value="tailwind" ${settings.exportFormat === 'tailwind' ? 'selected' : ''}>Tailwind Config</option>
               </select>
             </div>
-            <div class="ts-info">Frontend: только финальный уровень (Components + семантика)</div>
+            <div class="ts-info">Tokens by Theme: flat структура для фронтенда (token: value по темам)</div>
           </div>
           
           <div class="ts-divider"></div>
@@ -983,7 +984,7 @@ function saveSettingsFromPanel(container: HTMLElement): void {
   // Export format
   const exportFormatSelect = container.querySelector('#export-format-select') as HTMLSelectElement;
   if (exportFormatSelect) {
-    state.settings.exportFormat = exportFormatSelect.value as 'figma' | 'json' | 'css' | 'scss' | 'tailwind' | 'frontend';
+    state.settings.exportFormat = exportFormatSelect.value as 'figma' | 'json' | 'css' | 'scss' | 'tailwind' | 'frontend' | 'tokens-by-theme';
   }
 
   state.hasUnsavedChanges = true;
