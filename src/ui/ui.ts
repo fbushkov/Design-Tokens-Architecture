@@ -178,13 +178,21 @@ elements.tabs.forEach(tab => {
 // Export
 if (elements.btnExport) {
   elements.btnExport.addEventListener('click', () => {
+    const format = elements.exportFormat.value as ExportFormat;
+    
+    // Frontend format - request from Figma Variables directly
+    if (format === 'frontend') {
+      postMessage('export-frontend-from-figma', { format: 'json' });
+      elements.exportOutput.textContent = '⏳ Экспортируем из Figma Variables...';
+      return;
+    }
+    
+    // Other formats - use Token Manager state
     const tokens = getTokens();
     if (tokens.length === 0) {
       showNotification('Сначала сгенерируйте токены', true);
       return;
     }
-    
-    const format = elements.exportFormat.value as ExportFormat;
     
     if (format === 'figma') {
       const figmaVars = exportToFigmaVariables();
@@ -227,8 +235,19 @@ if (elements.btnDownload) {
     }
     
     const format = elements.exportFormat.value;
-    const ext: Record<string, string> = { json: 'json', css: 'css', scss: 'scss', figma: 'json', storybook: 'json', tailwind: 'js' };
-    const filename = `design-tokens.${ext[format] || 'json'}`;
+    const ext: Record<string, string> = { 
+      json: 'json', 
+      css: 'css', 
+      scss: 'scss', 
+      figma: 'json', 
+      storybook: 'json', 
+      tailwind: 'js',
+      frontend: 'json'  // Frontend format is JSON
+    };
+    
+    const timestamp = new Date().toISOString().split('T')[0];
+    const prefix = format === 'frontend' ? 'frontend-tokens' : 'design-tokens';
+    const filename = `${prefix}-${timestamp}.${ext[format] || 'json'}`;
     
     const blob = new Blob([exportOutput], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -295,6 +314,18 @@ window.onmessage = (event: MessageEvent) => {
     case 'spacing-error':
       handleSpacingMessage(msg);
       break;
+    
+    // Frontend tokens export response
+    case 'frontend-tokens-exported':
+      exportOutput = msg.payload.output;
+      elements.exportOutput.textContent = exportOutput;
+      showNotification('📦 Frontend токены экспортированы!');
+      break;
+    case 'frontend-export-error':
+      showNotification('❌ Ошибка экспорта: ' + msg.payload.error, true);
+      elements.exportOutput.textContent = '// Ошибка экспорта';
+      break;
+    
     case 'project-synced':
       setProjectSyncData(msg.payload);
       refreshTokenManager();

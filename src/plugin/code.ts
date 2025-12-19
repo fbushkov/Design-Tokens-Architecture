@@ -640,6 +640,333 @@ async function extractTokensFromFigma(): Promise<DesignTokens> {
 }
 
 // ============================================
+// EXPORT FRONTEND TOKENS FROM FIGMA VARIABLES
+// Exports only semantic level (Components + semantic collections)
+// ============================================
+
+interface FrontendExportResult {
+  $schema: string;
+  $version: string;
+  $description: string;
+  $timestamp: string;
+  colors?: Record<string, any>;
+  typography?: Record<string, any>;
+  spacing?: Record<string, any>;
+  gap?: Record<string, any>;
+  radius?: Record<string, any>;
+  iconSize?: Record<string, any>;
+  effects?: Record<string, any>;
+  grid?: Record<string, any>;
+}
+
+// Helper: Deep resolve variable alias to final value
+async function resolveVariableToFinalValue(
+  variable: Variable,
+  modeId: string,
+  maxDepth: number = 10
+): Promise<{ type: 'COLOR' | 'FLOAT' | 'STRING'; value: any } | null> {
+  let currentValue = variable.valuesByMode[modeId];
+  let currentType = variable.resolvedType;
+  let depth = 0;
+  
+  while (depth < maxDepth) {
+    // Check if it's a direct value
+    if (currentType === 'COLOR') {
+      if (typeof currentValue === 'object' && 'r' in currentValue) {
+        return { type: 'COLOR', value: currentValue as RGBA };
+      }
+    } else if (currentType === 'FLOAT') {
+      if (typeof currentValue === 'number') {
+        return { type: 'FLOAT', value: currentValue };
+      }
+    } else if (currentType === 'STRING') {
+      if (typeof currentValue === 'string') {
+        return { type: 'STRING', value: currentValue };
+      }
+    }
+    
+    // Check if it's an alias
+    if (typeof currentValue === 'object' && currentValue !== null && 'id' in currentValue) {
+      const aliasVar = await figma.variables.getVariableByIdAsync((currentValue as VariableAlias).id);
+      if (!aliasVar) return null;
+      
+      const aliasCollection = await figma.variables.getVariableCollectionByIdAsync(aliasVar.variableCollectionId);
+      if (!aliasCollection) return null;
+      
+      // Use the same mode name if exists, otherwise default mode
+      let targetModeId = aliasCollection.defaultModeId;
+      
+      // Try to find matching mode by name (e.g., "light" -> "light")
+      const currentCollection = await figma.variables.getVariableCollectionByIdAsync(variable.variableCollectionId);
+      if (currentCollection) {
+        const currentMode = currentCollection.modes.find(m => m.modeId === modeId);
+        if (currentMode) {
+          const matchingMode = aliasCollection.modes.find(m => m.name === currentMode.name);
+          if (matchingMode) {
+            targetModeId = matchingMode.modeId;
+          }
+        }
+      }
+      
+      currentValue = aliasVar.valuesByMode[targetModeId];
+      currentType = aliasVar.resolvedType;
+      depth++;
+    } else {
+      // Unknown value type
+      return null;
+    }
+  }
+  
+  return null; // Max depth reached
+}
+
+async function exportFrontendTokensFromFigma(): Promise<FrontendExportResult> {
+  const collections = await figma.variables.getLocalVariableCollectionsAsync();
+  const allVariables = await figma.variables.getLocalVariablesAsync();
+  
+  // Collections that represent the "final" semantic level
+  const semanticCollections = [
+    'Components',    // Colors - most specific level
+    'Typography',    // Typography semantics
+    'Spacing',       // Spacing semantics
+    'Gap',           // Gap semantics
+    'Icon Size',     // Icon size semantics
+    'Radius',        // Radius semantics
+    'Effects',       // Effects semantics
+    'Grid',          // Grid semantics
+  ];
+  
+  const result: FrontendExportResult = {
+    $schema: 'frontend-tokens',
+    $version: '1.0.0',
+    $description: 'Frontend tokens - final semantic level from Figma Variables',
+    $timestamp: new Date().toISOString(),
+  };
+  
+  for (const collection of collections) {
+    if (!semanticCollections.includes(collection.name)) {
+      continue;
+    }
+    
+    const collectionVars = allVariables.filter(v => v.variableCollectionId === collection.id);
+    
+    if (collectionVars.length === 0) continue;
+    
+    // Get default mode for values
+    const defaultModeId = collection.defaultModeId;
+    
+    // Build nested structure for this collection
+    const categoryData: Record<string, any> = {};
+    
+    for (const variable of collectionVars) {
+      // Use deep resolve to get final value through alias chains
+      const resolved = await resolveVariableToFinalValue(variable, defaultModeId);
+      
+      if (!resolved) continue;
+      
+      let resolvedValue: any;
+      
+      if (resolved.type === 'COLOR') {
+        const rgba = resolved.value as RGBA;
+        resolvedValue = rgbaToHex(rgba.r, rgba.g, rgba.b, rgba.a);
+      } else if (resolved.type === 'FLOAT') {
+        resolvedValue = resolved.value;
+      } else if (resolved.type === 'STRING') {
+        resolvedValue = resolved.value;
+      }
+      
+      if (resolvedValue === undefined) continue;
+      
+      // Parse variable name into nested path
+      // e.g., "button/primary/primary-bg" -> { button: { primary: { primaryBg: "#..." } } }
+      let parts = variable.name.split('/');
+      
+      // Remove redundant first segment if it matches collection category
+      // e.g., "typography/page/hero" in Typography collection -> "page/hero"
+      // e.g., "spacing/button/default" in Spacing collection -> "button/default"
+      const categoryPrefixes: Record<string, string[]> = {
+        'Typography': ['typography'],
+        'Spacing': ['spacing'],
+        'Gap': ['gap'],
+        'Radius': ['radius'],
+        'Icon Size': ['iconSize', 'icon-size', 'iconsize'],
+        'Effects': ['effect', 'effects'],
+        'Grid': ['grid', 'layout'],
+      };
+      
+      const prefixesToRemove = categoryPrefixes[collection.name];
+      if (prefixesToRemove && parts.length > 1) {
+        const firstPart = parts[0].toLowerCase().replace(/-/g, '');
+        if (prefixesToRemove.some(p => p.toLowerCase().replace(/-/g, '') === firstPart)) {
+          parts = parts.slice(1);
+        }
+      }
+      
+      let current = categoryData;
+      
+      for (let i = 0; i < parts.length - 1; i++) {
+        const part = toCamelCase(parts[i]);
+        if (!current[part]) {
+          current[part] = {};
+        }
+        current = current[part];
+      }
+      
+      const lastPart = toCamelCase(parts[parts.length - 1]);
+      current[lastPart] = resolvedValue;
+    }
+    
+    // Map collection to result key
+    if (Object.keys(categoryData).length > 0) {
+      switch (collection.name) {
+        case 'Components':
+          result.colors = categoryData;
+          break;
+        case 'Typography':
+          result.typography = categoryData;
+          break;
+        case 'Spacing':
+          result.spacing = categoryData;
+          break;
+        case 'Gap':
+          result.gap = categoryData;
+          break;
+        case 'Icon Size':
+          result.iconSize = categoryData;
+          break;
+        case 'Radius':
+          result.radius = categoryData;
+          break;
+        case 'Effects':
+          result.effects = categoryData;
+          break;
+        case 'Grid':
+          result.grid = categoryData;
+          break;
+      }
+    }
+  }
+  
+  return result;
+}
+
+// Helper: convert kebab-case or slash-separated to camelCase
+function toCamelCase(str: string): string {
+  return str.replace(/[-_]([a-z])/g, (_, c) => c.toUpperCase());
+}
+
+// Helper: camelCase to kebab-case
+function toKebabCase(str: string): string {
+  return str.replace(/([A-Z])/g, '-$1').toLowerCase().replace(/^-/, '');
+}
+
+// Helper: Frontend tokens to CSS variables
+function frontendTokensToCss(tokens: FrontendExportResult): string {
+  const lines: string[] = [
+    '/**',
+    ' * Frontend Tokens - CSS Variables',
+    ` * Generated: ${tokens.$timestamp}`,
+    ' * Only semantic level tokens (Components + semantic collections)',
+    ' */',
+    '',
+    ':root {'
+  ];
+  
+  function flattenObject(obj: Record<string, any>, prefix: string = ''): void {
+    for (const [key, value] of Object.entries(obj)) {
+      const cssKey = prefix ? `${prefix}-${toKebabCase(key)}` : toKebabCase(key);
+      
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        flattenObject(value, cssKey);
+      } else {
+        const cssValue = typeof value === 'number' ? `${value}px` : value;
+        lines.push(`  --${cssKey}: ${cssValue};`);
+      }
+    }
+  }
+  
+  // Process each category
+  if (tokens.colors) flattenObject(tokens.colors, 'color');
+  if (tokens.typography) flattenObject(tokens.typography, 'typography');
+  if (tokens.spacing) flattenObject(tokens.spacing, 'spacing');
+  if (tokens.gap) flattenObject(tokens.gap, 'gap');
+  if (tokens.radius) flattenObject(tokens.radius, 'radius');
+  if (tokens.iconSize) flattenObject(tokens.iconSize, 'icon-size');
+  if (tokens.effects) flattenObject(tokens.effects, 'effect');
+  if (tokens.grid) flattenObject(tokens.grid, 'grid');
+  
+  lines.push('}');
+  return lines.join('\n');
+}
+
+// Helper: Frontend tokens to SCSS variables
+function frontendTokensToScss(tokens: FrontendExportResult): string {
+  const lines: string[] = [
+    '// Frontend Tokens - SCSS Variables',
+    `// Generated: ${tokens.$timestamp}`,
+    '// Only semantic level tokens (Components + semantic collections)',
+    ''
+  ];
+  
+  function flattenObject(obj: Record<string, any>, prefix: string = ''): void {
+    for (const [key, value] of Object.entries(obj)) {
+      const scssKey = prefix ? `${prefix}-${toKebabCase(key)}` : toKebabCase(key);
+      
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        flattenObject(value, scssKey);
+      } else {
+        const scssValue = typeof value === 'number' ? `${value}px` : value;
+        lines.push(`$${scssKey}: ${scssValue};`);
+      }
+    }
+  }
+  
+  // Process each category
+  if (tokens.colors) {
+    lines.push('// Colors');
+    flattenObject(tokens.colors, 'color');
+    lines.push('');
+  }
+  if (tokens.typography) {
+    lines.push('// Typography');
+    flattenObject(tokens.typography, 'typography');
+    lines.push('');
+  }
+  if (tokens.spacing) {
+    lines.push('// Spacing');
+    flattenObject(tokens.spacing, 'spacing');
+    lines.push('');
+  }
+  if (tokens.gap) {
+    lines.push('// Gap');
+    flattenObject(tokens.gap, 'gap');
+    lines.push('');
+  }
+  if (tokens.radius) {
+    lines.push('// Radius');
+    flattenObject(tokens.radius, 'radius');
+    lines.push('');
+  }
+  if (tokens.iconSize) {
+    lines.push('// Icon Size');
+    flattenObject(tokens.iconSize, 'icon-size');
+    lines.push('');
+  }
+  if (tokens.effects) {
+    lines.push('// Effects');
+    flattenObject(tokens.effects, 'effect');
+    lines.push('');
+  }
+  if (tokens.grid) {
+    lines.push('// Grid');
+    flattenObject(tokens.grid, 'grid');
+    lines.push('');
+  }
+  
+  return lines.join('\n');
+}
+
+// ============================================
 // IMPORT TOKENS TO FIGMA
 // ============================================
 
@@ -8416,6 +8743,45 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           type: 'tokens-exported',
           payload: { tokens: output, format }
         });
+        break;
+      }
+
+      // ========================================
+      // EXPORT FRONTEND TOKENS FROM FIGMA VARIABLES
+      // ========================================
+      case 'export-frontend-from-figma': {
+        try {
+          const payload = msg.payload as { format?: string } | undefined;
+          const format = payload?.format || 'json';
+          
+          const frontendTokens = await exportFrontendTokensFromFigma();
+          
+          let output: string;
+          if (format === 'css') {
+            // Convert to CSS variables
+            output = frontendTokensToCss(frontendTokens);
+          } else if (format === 'scss') {
+            // Convert to SCSS variables
+            output = frontendTokensToScss(frontendTokens);
+          } else {
+            // JSON format
+            output = JSON.stringify(frontendTokens, null, 2);
+          }
+          
+          figma.ui.postMessage({
+            type: 'frontend-tokens-exported',
+            payload: { output, format }
+          });
+          
+          figma.notify('✅ Frontend токены экспортированы!');
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          figma.ui.postMessage({
+            type: 'frontend-export-error',
+            payload: { error: errorMessage }
+          });
+          figma.notify(`❌ Ошибка экспорта: ${errorMessage}`);
+        }
         break;
       }
 

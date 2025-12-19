@@ -1,5 +1,73 @@
 # 📝 Changelog - Design Tokens Plugin
 
+## [2025-12-19] - Frontend Export from Figma Variables 📤
+
+### ✅ Добавлено
+
+#### JSON Frontend Export — экспорт для разработчиков
+Новый формат экспорта семантических токенов напрямую из Figma Variables:
+
+**Особенности:**
+- **Не требует генерации токенов** — читает данные прямо из Figma Variables
+- **Deep Alias Resolution** — полное разрешение цепочек алиасов (Components → Tokens → Primitives)
+- **Финальные значения** — HEX цвета, числа (не алиасы)
+- **8 категорий**: colors, typography, spacing, gap, radius, iconSize, effects, grid
+
+**Поддерживаемые коллекции Figma:**
+| Коллекция | JSON категория |
+|-----------|----------------|
+| Components | colors |
+| Typography | typography |
+| Spacing | spacing |
+| Gap | gap |
+| Radius | radius |
+| Icon Size | iconSize |
+| Effects | effects |
+| Grid | grid |
+
+**Структура JSON:**
+```json
+{
+  "$schema": "frontend-tokens",
+  "$version": "1.0.0",
+  "$timestamp": "2025-12-19T...",
+  "colors": { "button": { "primary": { "primaryBg": "#2781f3" } } },
+  "typography": { "page": { "hero": { "fontSize": 56, "lineHeight": 110 } } },
+  "spacing": { ... },
+  "gap": { ... },
+  "radius": { ... },
+  "iconSize": { ... },
+  "effects": { ... },
+  "grid": { ... }
+}
+```
+
+**Использование:**
+Token Manager → Export → "JSON (Frontend) — только семантика" → Export
+
+### 🔧 Технические детали
+
+**Новые функции в code.ts:**
+- `resolveVariableToFinalValue()` — рекурсивное разрешение алиасов (до 10 уровней)
+- `exportFrontendTokensFromFigma()` — основная функция экспорта из Figma Variables
+- `toCamelCase()`, `toKebabCase()` — утилиты форматирования
+- `frontendTokensToCss()`, `frontendTokensToScss()` — конвертеры (заготовка)
+
+**Новый message handler:**
+- `export-frontend-from-figma` — обработчик экспорта в code.ts
+- `frontend-tokens-exported` — обработчик результата в ui.ts
+
+**Оптимизации:**
+- Удаление дублирования путей (categoryPrefixes) — `typography/typography/page` → `typography/page`
+- Async API — использование `getVariableByIdAsync`, `getVariableCollectionByIdAsync`
+
+### 📁 Изменённые файлы
+- `src/plugin/code.ts` — функции экспорта, обработчики сообщений
+- `src/ui/ui.ts` — обработчик frontend формата, download logic
+- `src/ui/ui.html` — опция "JSON (Frontend)" в dropdown экспорта
+
+---
+
 ## [2025-12-19] - Grid/Layout Token System ⊞
 
 ### ✅ Добавлено
