@@ -7000,6 +7000,471 @@ async function generateTypographyDocumentation(): Promise<DocGeneratorResult> {
   return { pageName, framesCreated };
 }
 
+// ============================================
+// GRID DOCUMENTATION GENERATOR
+// ============================================
+
+async function generateGridDocumentation(): Promise<DocGeneratorResult> {
+  await loadDocFonts();
+  
+  const pageName = '📖 Grid Documentation';
+  const page = figma.createPage();
+  page.name = pageName;
+  
+  let xOffset = 0;
+  let framesCreated = 0;
+  
+  // ===== FRAME 1: АРХИТЕКТУРА GRID =====
+  const archFrame = figma.createFrame();
+  archFrame.name = 'Архитектура Grid';
+  archFrame.x = xOffset;
+  archFrame.y = 0;
+  archFrame.layoutMode = 'VERTICAL';
+  archFrame.itemSpacing = 24;
+  archFrame.paddingTop = 40;
+  archFrame.paddingBottom = 40;
+  archFrame.paddingLeft = 40;
+  archFrame.paddingRight = 40;
+  archFrame.primaryAxisSizingMode = 'AUTO';
+  archFrame.counterAxisSizingMode = 'AUTO';
+  archFrame.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.97, b: 1 } }];
+  archFrame.cornerRadius = 16;
+  archFrame.minWidth = 600;
+  
+  const archTitle = createStyledText('⊞ Архитектура системы Grid', 0, 0, 28, 'Bold');
+  archFrame.appendChild(archTitle);
+  
+  const archIntro = createStyledText(
+    `Grid — система Layout Grid для организации контента в колонки.\n` +
+    `2-уровневая архитектура: Primitives → Semantic + 3 режима адаптивности.\n` +
+    `Компонентный подход: сетки по назначению, а не по устройствам.`,
+    0, 0, 13, 'Regular', { r: 0.4, g: 0.4, b: 0.4 }
+  );
+  archFrame.appendChild(archIntro);
+  
+  // Primitives section
+  const primSection = figma.createFrame();
+  primSection.name = 'Primitives';
+  primSection.layoutMode = 'VERTICAL';
+  primSection.itemSpacing = 8;
+  primSection.fills = [];
+  primSection.primaryAxisSizingMode = 'AUTO';
+  primSection.counterAxisSizingMode = 'AUTO';
+  
+  const primTitle = createStyledText('📦 ПРИМИТИВЫ (Primitives коллекция)', 0, 0, 16, 'Bold');
+  primSection.appendChild(primTitle);
+  
+  const primDesc = createStyledText(
+    `⚠️ НЕЗАВИСИМЫ от Gap и Spacing — своя шкала значений!\n\n` +
+    `grid/gutter/* — расстояние между колонками:\n` +
+    `   0, 4, 8, 12, 16, 20, 24, 32, 40, 48 px\n\n` +
+    `grid/margin/* — отступ от края фрейма до сетки:\n` +
+    `   0, 16, 20, 24, 32, 48, 64, 80, 96, 120, 160 px\n\n` +
+    `grid/container/* — max-width контейнеров:\n` +
+    `   480, 560, 640, 720, 800, 960, 1024, 1200, 1280, 1440, 1600, 1920 px`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  primSection.appendChild(primDesc);
+  archFrame.appendChild(primSection);
+  
+  // Semantic section
+  const semSection = figma.createFrame();
+  semSection.name = 'Semantic';
+  semSection.layoutMode = 'VERTICAL';
+  semSection.itemSpacing = 8;
+  semSection.fills = [];
+  semSection.primaryAxisSizingMode = 'AUTO';
+  semSection.counterAxisSizingMode = 'AUTO';
+  
+  const semTitle = createStyledText('🎯 СЕМАНТИЧЕСКИЕ ТОКЕНЫ (Grid коллекция)', 0, 0, 16, 'Bold');
+  semSection.appendChild(semTitle);
+  
+  const semDesc = createStyledText(
+    `Режимы: Desktop / Tablet / Mobile\n\n` +
+    `12 категорий:\n` +
+    `• page — основные сетки страниц (default, wide, fluid)\n` +
+    `• content — контентные области (narrow, prose)\n` +
+    `• container — контейнеры с max-width\n` +
+    `• cards — сетки карточек\n` +
+    `• gallery — галереи, медиа\n` +
+    `• dashboard — дашборды, виджеты\n` +
+    `• form — формы (single, double, triple)\n` +
+    `• list — списки\n` +
+    `• navigation — меню, хедер, сайдбар\n` +
+    `• data — таблицы данных\n` +
+    `• footer — футеры\n` +
+    `• custom — пользовательские категории`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  semSection.appendChild(semDesc);
+  archFrame.appendChild(semSection);
+  
+  page.appendChild(archFrame);
+  xOffset += archFrame.width + 48;
+  framesCreated++;
+  
+  // ===== FRAME 2: GRID vs CONTAINER =====
+  const vsFrame = figma.createFrame();
+  vsFrame.name = 'Grid vs Container';
+  vsFrame.x = xOffset;
+  vsFrame.y = 0;
+  vsFrame.layoutMode = 'VERTICAL';
+  vsFrame.itemSpacing = 24;
+  vsFrame.paddingTop = 40;
+  vsFrame.paddingBottom = 40;
+  vsFrame.paddingLeft = 40;
+  vsFrame.paddingRight = 40;
+  vsFrame.primaryAxisSizingMode = 'AUTO';
+  vsFrame.counterAxisSizingMode = 'AUTO';
+  vsFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 0.98, b: 0.95 } }];
+  vsFrame.cornerRadius = 16;
+  vsFrame.minWidth = 600;
+  
+  const vsTitle = createStyledText('⚖️ Grid vs Container — когда что использовать', 0, 0, 22, 'Bold');
+  vsFrame.appendChild(vsTitle);
+  
+  // Grid section
+  const gridSection = figma.createFrame();
+  gridSection.name = 'Grid explanation';
+  gridSection.layoutMode = 'VERTICAL';
+  gridSection.itemSpacing = 8;
+  gridSection.fills = [];
+  gridSection.primaryAxisSizingMode = 'AUTO';
+  gridSection.counterAxisSizingMode = 'AUTO';
+  
+  const gridTitle = createStyledText('📊 layout/grid/* — МНОГОКОЛОНОЧНЫЕ СЕТКИ', 0, 0, 16, 'Bold', { r: 0.2, g: 0.4, b: 0.8 });
+  gridSection.appendChild(gridTitle);
+  
+  const gridDesc = createStyledText(
+    `Организация контента внутри контейнера в колонки.\n\n` +
+    `Применение:\n` +
+    `• layout/grid/page/default — основная 12-колоночная сетка\n` +
+    `• layout/grid/cards/default — раскладка карточек (3-4 в ряд)\n` +
+    `• layout/grid/form/double — двухколоночная форма\n` +
+    `• layout/grid/dashboard/main — сетка виджетов\n` +
+    `• layout/grid/gallery/masonry — галерея изображений\n\n` +
+    `Накладывается на КОНТЕНТ-ОБЛАСТЬ внутри контейнера.`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  gridSection.appendChild(gridDesc);
+  vsFrame.appendChild(gridSection);
+  
+  // Container section
+  const contSection = figma.createFrame();
+  contSection.name = 'Container explanation';
+  contSection.layoutMode = 'VERTICAL';
+  contSection.itemSpacing = 8;
+  contSection.fills = [];
+  contSection.primaryAxisSizingMode = 'AUTO';
+  contSection.counterAxisSizingMode = 'AUTO';
+  
+  const contTitle = createStyledText('📦 layout/container/* — ОГРАНИЧИТЕЛИ ШИРИНЫ', 0, 0, 16, 'Bold', { r: 0.6, g: 0.4, b: 0.2 });
+  contSection.appendChild(contTitle);
+  
+  const contDesc = createStyledText(
+    `Max-width контейнеры с отступами от края.\n\n` +
+    `Применение:\n` +
+    `• layout/container/default — 1280px, стандартный\n` +
+    `• layout/container/narrow — 720px, для статей и форм\n` +
+    `• layout/container/medium — 960px, промежуточный\n` +
+    `• layout/container/wide — 1440px, для дашбордов\n` +
+    `• layout/container/modal/* — 480-960px, модальные окна\n\n` +
+    `Накладывается на ФРЕЙМ-ОБЁРТКУ которая центрируется на странице.`,
+    0, 0, 11, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  contSection.appendChild(contDesc);
+  vsFrame.appendChild(contSection);
+  
+  page.appendChild(vsFrame);
+  xOffset += vsFrame.width + 48;
+  framesCreated++;
+  
+  // ===== FRAME 3: ИЕРАРХИЯ ПРИМЕНЕНИЯ =====
+  const hierFrame = figma.createFrame();
+  hierFrame.name = 'Иерархия применения';
+  hierFrame.x = xOffset;
+  hierFrame.y = 0;
+  hierFrame.layoutMode = 'VERTICAL';
+  hierFrame.itemSpacing = 24;
+  hierFrame.paddingTop = 40;
+  hierFrame.paddingBottom = 40;
+  hierFrame.paddingLeft = 40;
+  hierFrame.paddingRight = 40;
+  hierFrame.primaryAxisSizingMode = 'AUTO';
+  hierFrame.counterAxisSizingMode = 'AUTO';
+  hierFrame.fills = [{ type: 'SOLID', color: { r: 0.95, g: 1, b: 0.95 } }];
+  hierFrame.cornerRadius = 16;
+  hierFrame.minWidth = 650;
+  
+  const hierTitle = createStyledText('🏗️ Иерархия применения сеток', 0, 0, 22, 'Bold');
+  hierFrame.appendChild(hierTitle);
+  
+  const hierDiagram = createStyledText(
+    `┌─────────────────────────────────────────────────────────┐\n` +
+    `│ Page Frame (width: 1920px)                             │\n` +
+    `│                                                        │\n` +
+    `│  ┌─────────────────────────────────────────────────┐   │\n` +
+    `│  │ Container: layout/container/default             │   │\n` +
+    `│  │ (max-width: 1280px, alignment: CENTER)          │   │\n` +
+    `│  │                                                 │   │\n` +
+    `│  │  ┌───────────────────────────────────────────┐  │   │\n` +
+    `│  │  │ Grid: layout/grid/cards/default           │  │   │\n` +
+    `│  │  │ (12 columns, gutter: 24px)                │  │   │\n` +
+    `│  │  │                                           │  │   │\n` +
+    `│  │  │  ┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐         │  │   │\n` +
+    `│  │  │  │Card │ │Card │ │Card │ │Card │         │  │   │\n` +
+    `│  │  │  │ 3col│ │ 3col│ │ 3col│ │ 3col│         │  │   │\n` +
+    `│  │  │  └─────┘ └─────┘ └─────┘ └─────┘         │  │   │\n` +
+    `│  │  └───────────────────────────────────────────┘  │   │\n` +
+    `│  └─────────────────────────────────────────────────┘   │\n` +
+    `└─────────────────────────────────────────────────────────┘`,
+    0, 0, 10, 'Regular', { r: 0.2, g: 0.2, b: 0.2 }
+  );
+  hierFrame.appendChild(hierDiagram);
+  
+  const hierExplanation = createStyledText(
+    `ПОРЯДОК ПРИМЕНЕНИЯ:\n\n` +
+    `1️⃣ Page Frame — полная ширина экрана (1920px, 1440px и т.д.)\n` +
+    `2️⃣ Container — ограничивает max-width и центрирует контент\n` +
+    `3️⃣ Grid — разбивает контент на колонки внутри контейнера\n` +
+    `4️⃣ Elements — элементы занимают N колонок сетки\n\n` +
+    `💡 Container отвечает за "где", Grid — за "как разложить".`,
+    0, 0, 12, 'Regular', { r: 0.3, g: 0.3, b: 0.3 }
+  );
+  hierFrame.appendChild(hierExplanation);
+  
+  page.appendChild(hierFrame);
+  xOffset += hierFrame.width + 48;
+  framesCreated++;
+  
+  // ===== FRAME 4: ПРАВИЛА ДЛЯ ЗНАЧЕНИЙ =====
+  const rulesFrame = figma.createFrame();
+  rulesFrame.name = 'Правила для значений';
+  rulesFrame.x = xOffset;
+  rulesFrame.y = 0;
+  rulesFrame.layoutMode = 'VERTICAL';
+  rulesFrame.itemSpacing = 20;
+  rulesFrame.paddingTop = 40;
+  rulesFrame.paddingBottom = 40;
+  rulesFrame.paddingLeft = 40;
+  rulesFrame.paddingRight = 40;
+  rulesFrame.primaryAxisSizingMode = 'AUTO';
+  rulesFrame.counterAxisSizingMode = 'AUTO';
+  rulesFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }];
+  rulesFrame.cornerRadius = 16;
+  rulesFrame.minWidth = 700;
+  
+  const rulesTitle = createStyledText('📐 Правила для значений', 0, 0, 22, 'Bold');
+  rulesFrame.appendChild(rulesTitle);
+  
+  // Columns rules
+  const colRules = createStyledText(
+    `📊 COLUMNS (количество колонок)\n\n` +
+    `Desktop:  12, 8, 6, 4, 3, 2, 1\n` +
+    `          └─ 12 делится на 2,3,4,6 — гибкая раскладка\n` +
+    `Tablet:   8, 6, 4, 3, 2, 1\n` +
+    `          └─ Меньше места — меньше колонок\n` +
+    `Mobile:   4, 2, 1\n` +
+    `          └─ Обычно 1-2 колонки максимум\n\n` +
+    `Формула: tablet ≈ desktop × 0.66, mobile ≈ desktop × 0.33`,
+    0, 0, 11, 'Regular', { r: 0.2, g: 0.2, b: 0.2 }
+  );
+  rulesFrame.appendChild(colRules);
+  
+  // Gutter rules
+  const gutterRules = createStyledText(
+    `↔️ GUTTER (расстояние между колонками)\n\n` +
+    `Desktop:  24-32px   — просторно, комфортно читать\n` +
+    `Tablet:   16-24px   — немного плотнее\n` +
+    `Mobile:   12-16px   — компактно, экономия места\n\n` +
+    `Формула: gutter = base × multiplier (base = 8px)\n` +
+    `• Desktop: 8 × 3 = 24px или 8 × 4 = 32px\n` +
+    `• Mobile: 8 × 2 = 16px`,
+    0, 0, 11, 'Regular', { r: 0.2, g: 0.2, b: 0.2 }
+  );
+  rulesFrame.appendChild(gutterRules);
+  
+  // Margin rules
+  const marginRules = createStyledText(
+    `📏 MARGIN (отступ от края)\n\n` +
+    `Контекст            Desktop    Tablet     Mobile\n` +
+    `──────────────────────────────────────────────────\n` +
+    `Страница            64px       32px       16px\n` +
+    `Контейнер           24-32px    20-24px    16px\n` +
+    `Карточки/контент    0px        0px        0px\n\n` +
+    `Правило: margin уменьшается в 2 раза на каждом брейкпоинте.`,
+    0, 0, 11, 'Regular', { r: 0.2, g: 0.2, b: 0.2 }
+  );
+  rulesFrame.appendChild(marginRules);
+  
+  // Alignment rules
+  const alignRules = createStyledText(
+    `🎯 ALIGNMENT (выравнивание)\n\n` +
+    `CENTER   — Контейнеры с max-width (центрируются на странице)\n` +
+    `STRETCH  — Полноширинные секции, карточки внутри контейнера\n` +
+    `MIN      — Сетки привязанные к левому краю (Start)\n` +
+    `MAX      — Редко, привязка к правому краю (End)`,
+    0, 0, 11, 'Regular', { r: 0.2, g: 0.2, b: 0.2 }
+  );
+  rulesFrame.appendChild(alignRules);
+  
+  page.appendChild(rulesFrame);
+  xOffset += rulesFrame.width + 48;
+  framesCreated++;
+  
+  // ===== FRAME 5: КАК ДОБАВЛЯТЬ НОВЫЕ СЕТКИ =====
+  const addFrame = figma.createFrame();
+  addFrame.name = 'Как добавлять новые сетки';
+  addFrame.x = xOffset;
+  addFrame.y = 0;
+  addFrame.layoutMode = 'VERTICAL';
+  addFrame.itemSpacing = 20;
+  addFrame.paddingTop = 40;
+  addFrame.paddingBottom = 40;
+  addFrame.paddingLeft = 40;
+  addFrame.paddingRight = 40;
+  addFrame.primaryAxisSizingMode = 'AUTO';
+  addFrame.counterAxisSizingMode = 'AUTO';
+  addFrame.fills = [{ type: 'SOLID', color: { r: 0.98, g: 0.95, b: 1 } }];
+  addFrame.cornerRadius = 16;
+  addFrame.minWidth = 650;
+  
+  const addTitle = createStyledText('➕ Как добавлять новые сетки', 0, 0, 22, 'Bold');
+  addFrame.appendChild(addTitle);
+  
+  const step1 = createStyledText(
+    `ШАГ 1: ОПРЕДЕЛИТЬ ТИП\n\n` +
+    `❓ Это контейнер (ограничитель ширины)?  → container\n` +
+    `❓ Это раскладка элементов в колонки?   → grid/{category}`,
+    0, 0, 12, 'Regular', { r: 0.2, g: 0.2, b: 0.2 }
+  );
+  addFrame.appendChild(step1);
+  
+  const step2 = createStyledText(
+    `ШАГ 2: ВЫБРАТЬ КАТЕГОРИЮ\n\n` +
+    `Существующие категории:\n` +
+    `• page — основные сетки страниц\n` +
+    `• content — текстовый контент (статьи, prose)\n` +
+    `• cards — карточки товаров, постов\n` +
+    `• gallery — изображения, медиа\n` +
+    `• dashboard — виджеты, метрики\n` +
+    `• form — формы\n` +
+    `• list — списки\n` +
+    `• navigation — меню, табы\n` +
+    `• data — таблицы\n` +
+    `• footer — футеры\n\n` +
+    `Или создайте новую категорию через UI.`,
+    0, 0, 11, 'Regular', { r: 0.2, g: 0.2, b: 0.2 }
+  );
+  addFrame.appendChild(step2);
+  
+  const step3 = createStyledText(
+    `ШАГ 3: ЗАПОЛНИТЬ КОНФИГУРАЦИЮ\n\n` +
+    `Путь:    layout.grid.{category}.{name}\n\n` +
+    `Desktop: columns — делитель 12 или кастом\n` +
+    `         gutter — 16/20/24/32 из примитивов\n` +
+    `         margin — 0 если внутри контейнера\n` +
+    `         alignment — обычно STRETCH для контента\n` +
+    `         maxWidth — опционально для контейнеров\n\n` +
+    `Tablet:  columns ≈ desktop × 0.66\n` +
+    `         gutter — desktop - 4px\n\n` +
+    `Mobile:  columns — обычно 4 или меньше\n` +
+    `         gutter — минимум комфортный (16px)`,
+    0, 0, 11, 'Regular', { r: 0.2, g: 0.2, b: 0.2 }
+  );
+  addFrame.appendChild(step3);
+  
+  page.appendChild(addFrame);
+  xOffset += addFrame.width + 48;
+  framesCreated++;
+  
+  // ===== FRAME 6: ШПАРГАЛКА =====
+  const cheatFrame = figma.createFrame();
+  cheatFrame.name = 'Шпаргалка';
+  cheatFrame.x = xOffset;
+  cheatFrame.y = 0;
+  cheatFrame.layoutMode = 'VERTICAL';
+  cheatFrame.itemSpacing = 16;
+  cheatFrame.paddingTop = 40;
+  cheatFrame.paddingBottom = 40;
+  cheatFrame.paddingLeft = 40;
+  cheatFrame.paddingRight = 40;
+  cheatFrame.primaryAxisSizingMode = 'AUTO';
+  cheatFrame.counterAxisSizingMode = 'AUTO';
+  cheatFrame.fills = [{ type: 'SOLID', color: { r: 1, g: 0.97, b: 0.88 } }];
+  cheatFrame.cornerRadius = 16;
+  cheatFrame.minWidth = 750;
+  
+  const cheatTitle = createStyledText('📋 Шпаргалка по Grid системе', 0, 0, 22, 'Bold');
+  cheatFrame.appendChild(cheatTitle);
+  
+  const cheatQuestions = createStyledText(
+    `❓ ВОПРОС — ОТВЕТ\n\n` +
+    `Нужен max-width для секции?              → Container\n` +
+    `Нужны колонки внутри секции?             → Grid\n` +
+    `Отступ от края страницы?                 → Container с margin\n` +
+    `Отступ между карточками?                 → Grid с gutter\n` +
+    `Центрировать блок на странице?           → alignment: CENTER\n` +
+    `Растянуть на всю ширину контейнера?      → alignment: STRETCH\n` +
+    `Привязать к левому краю?                 → alignment: MIN\n` +
+    `Сетка для статьи/поста?                  → content/narrow или prose\n` +
+    `Сетка для карточек товаров?              → cards/default\n` +
+    `Сетка для формы регистрации?             → form/single (одна колонка)\n` +
+    `Сетка для формы с полями рядом?          → form/double или triple\n` +
+    `Сетка для дашборда виджетов?             → dashboard/main\n` +
+    `Сетка для модального окна?               → container/modal/*`,
+    0, 0, 12, 'Regular', { r: 0.2, g: 0.2, b: 0.2 }
+  );
+  cheatFrame.appendChild(cheatQuestions);
+  
+  const cheatDevices = createStyledText(
+    `📱 ТИПИЧНЫЕ КОНФИГУРАЦИИ ПО УСТРОЙСТВАМ\n\n` +
+    `                  Desktop        Tablet         Mobile\n` +
+    `──────────────────────────────────────────────────────────\n` +
+    `Колонки           12             8              4\n` +
+    `Gutter            24px           20px           16px\n` +
+    `Page margin       64px           32px           16px\n` +
+    `Container margin  24px           20px           16px\n` +
+    `Content margin    0px            0px            0px`,
+    0, 0, 11, 'Regular', { r: 0.2, g: 0.2, b: 0.2 }
+  );
+  cheatFrame.appendChild(cheatDevices);
+  
+  const cheatMath = createStyledText(
+    `🔢 МАТЕМАТИКА СЕТОК\n\n` +
+    `• Columns: 12 делится на 2,3,4,6 — универсально\n` +
+    `• Gutter: кратно 4px (8px base × множитель)\n` +
+    `• Margin: уменьшается в 2× на каждом брейкпоинте\n` +
+    `• Container: 1280px — золотой стандарт (1920 - 2×320)\n\n` +
+    `Карточка 3-колоночная: span 4 из 12 (12/3=4)\n` +
+    `Карточка 4-колоночная: span 3 из 12 (12/4=3)\n` +
+    `Сайдбар + контент: 3 + 9 = 12 (25% + 75%)`,
+    0, 0, 11, 'Regular', { r: 0.2, g: 0.2, b: 0.2 }
+  );
+  cheatFrame.appendChild(cheatMath);
+  
+  const cheatUsage = createStyledText(
+    `🎨 ИСПОЛЬЗОВАНИЕ В FIGMA\n\n` +
+    `1. Создайте фрейм нужной ширины (например, 1920px)\n` +
+    `2. В панели Layout Grid нажмите на иконку стилей (4 квадрата)\n` +
+    `3. Выберите нужный стиль из layout/grid/... или layout/container/...\n` +
+    `4. Для адаптивности — используйте стили с суффиксом:\n` +
+    `   /desktop — для десктопных макетов\n` +
+    `   /tablet — для планшетных макетов\n` +
+    `   /mobile — для мобильных макетов\n\n` +
+    `💡 Один токен = 3 стиля (desktop/tablet/mobile)`,
+    0, 0, 11, 'Regular', { r: 0.2, g: 0.2, b: 0.2 }
+  );
+  cheatFrame.appendChild(cheatUsage);
+  
+  page.appendChild(cheatFrame);
+  framesCreated++;
+  
+  await figma.setCurrentPageAsync(page);
+  
+  return { pageName, framesCreated };
+}
+
 // Generate Spacing Documentation
 async function generateSpacingDocumentation(): Promise<DocGeneratorResult> {
   await loadDocFonts();
@@ -8945,6 +9410,18 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           const result = await generateRadiusDocumentation();
           figma.notify(`✅ Документация создана: страница "${result.pageName}"`);
           figma.ui.postMessage({ type: 'docs-radius-created', pageName: result.pageName });
+        } catch (error) {
+          figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+        break;
+      }
+
+      case 'generate-grid-documentation': {
+        figma.notify('📖 Создание документации по Grid...');
+        try {
+          const result = await generateGridDocumentation();
+          figma.notify(`✅ Документация создана: страница "${result.pageName}"`);
+          figma.ui.postMessage({ type: 'docs-grid-created', pageName: result.pageName });
         } catch (error) {
           figma.notify(`❌ Ошибка: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }

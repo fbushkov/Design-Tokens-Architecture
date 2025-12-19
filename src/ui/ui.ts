@@ -569,4 +569,12 @@ if (btnDocsRadius) {
   });
 }
 
+// Grid Documentation
+const btnDocsGrid = document.getElementById('btn-docs-grid');
+if (btnDocsGrid) {
+  btnDocsGrid.addEventListener('click', () => {
+    postMessage('generate-grid-documentation');
+  });
+}
+
 console.log('🎨 Design Tokens Manager initialized');
