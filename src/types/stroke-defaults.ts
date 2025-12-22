@@ -144,11 +144,11 @@ export const COMPLETE_STROKE_SEMANTIC_TOKENS: StrokeSemanticTokenLocal[] = [
   // ============================================
   // CHECKBOX
   // ============================================
-  token('stroke.checkbox.default.width', 'checkbox', 'width', '1.5'),
+  token('stroke.checkbox.default.width', 'checkbox', 'width', '1-5'),
   token('stroke.checkbox.default.style', 'checkbox', 'style', 'solid'),
   token('stroke.checkbox.default.color', 'checkbox', 'color', 'stroke/default/default'),
   
-  token('stroke.checkbox.hover.width', 'checkbox', 'width', '1.5'),
+  token('stroke.checkbox.hover.width', 'checkbox', 'width', '1-5'),
   token('stroke.checkbox.hover.style', 'checkbox', 'style', 'solid'),
   token('stroke.checkbox.hover.color', 'checkbox', 'color', 'stroke/focus/focus'),
   
@@ -160,18 +160,18 @@ export const COMPLETE_STROKE_SEMANTIC_TOKENS: StrokeSemanticTokenLocal[] = [
   token('stroke.checkbox.focus.style', 'checkbox', 'style', 'solid'),
   token('stroke.checkbox.focus.color', 'checkbox', 'color', 'stroke/focus/focus'),
   
-  token('stroke.checkbox.error.width', 'checkbox', 'width', '1.5'),
+  token('stroke.checkbox.error.width', 'checkbox', 'width', '1-5'),
   token('stroke.checkbox.error.style', 'checkbox', 'style', 'solid'),
   token('stroke.checkbox.error.color', 'checkbox', 'color', 'stroke/error/error'),
 
   // ============================================
   // RADIO
   // ============================================
-  token('stroke.radio.default.width', 'radio', 'width', '1.5'),
+  token('stroke.radio.default.width', 'radio', 'width', '1-5'),
   token('stroke.radio.default.style', 'radio', 'style', 'solid'),
   token('stroke.radio.default.color', 'radio', 'color', 'stroke/default/default'),
   
-  token('stroke.radio.hover.width', 'radio', 'width', '1.5'),
+  token('stroke.radio.hover.width', 'radio', 'width', '1-5'),
   token('stroke.radio.hover.style', 'radio', 'style', 'solid'),
   token('stroke.radio.hover.color', 'radio', 'color', 'stroke/focus/focus'),
   

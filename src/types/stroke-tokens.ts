@@ -16,7 +16,7 @@ import { COMPLETE_STROKE_SEMANTIC_TOKENS } from './stroke-defaults';
 // ============================================
 
 export interface StrokeWidthPrimitive {
-  name: string;      // "0", "1", "1.5", "2", etc.
+  name: string;      // "0", "1", "1-5", "2", etc. (no dots - Figma restriction)
   value: number;     // 0, 1, 1.5, 2, etc.
   enabled: boolean;
 }
@@ -37,7 +37,7 @@ export interface StrokeDashArrayPrimitive {
 export const DEFAULT_STROKE_WIDTH_PRIMITIVES: StrokeWidthPrimitive[] = [
   { name: '0', value: 0, enabled: true },
   { name: '1', value: 1, enabled: true },
-  { name: '1.5', value: 1.5, enabled: true },
+  { name: '1-5', value: 1.5, enabled: true },  // Note: Figma doesn't allow dots in variable names
   { name: '2', value: 2, enabled: true },
   { name: '3', value: 3, enabled: true },
   { name: '4', value: 4, enabled: true },

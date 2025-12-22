@@ -4417,6 +4417,7 @@ async function createStrokePrimitives(payload: StrokePrimitivesPayload): Promise
     try {
       const varName = `stroke/width/${prim.name}`;
       
+      // First check in Primitives collection
       let existingVar = existingFloats.find(v => 
         v.name === varName && v.variableCollectionId === primitivesCollection!.id
       );
@@ -4425,6 +4426,20 @@ async function createStrokePrimitives(payload: StrokePrimitivesPayload): Promise
         existingVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
         result.updated++;
       } else {
+        // Check if exists in ANY collection (to avoid duplicate name error)
+        const conflictVar = existingVariables.find(v => v.name === varName);
+        if (conflictVar) {
+          // If it's FLOAT type, we can update it
+          if (conflictVar.resolvedType === 'FLOAT') {
+            conflictVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+            result.updated++;
+            continue;
+          } else {
+            result.errors.push(`stroke/width/${prim.name}: конфликт типа (${conflictVar.resolvedType})`);
+            continue;
+          }
+        }
+        
         const newVar = figma.variables.createVariable(varName, primitivesCollection, 'FLOAT');
         newVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
         newVar.description = `Border width ${prim.value}px`;
@@ -4449,6 +4464,19 @@ async function createStrokePrimitives(payload: StrokePrimitivesPayload): Promise
         existingVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
         result.updated++;
       } else {
+        // Check if exists in ANY collection
+        const conflictVar = existingVariables.find(v => v.name === varName);
+        if (conflictVar) {
+          if (conflictVar.resolvedType === 'STRING') {
+            conflictVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+            result.updated++;
+            continue;
+          } else {
+            result.errors.push(`stroke/style/${prim.name}: конфликт типа (${conflictVar.resolvedType})`);
+            continue;
+          }
+        }
+        
         const newVar = figma.variables.createVariable(varName, primitivesCollection, 'STRING');
         newVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
         newVar.description = `Border style: ${prim.value}`;
@@ -4473,6 +4501,19 @@ async function createStrokePrimitives(payload: StrokePrimitivesPayload): Promise
         existingVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
         result.updated++;
       } else {
+        // Check if exists in ANY collection
+        const conflictVar = existingVariables.find(v => v.name === varName);
+        if (conflictVar) {
+          if (conflictVar.resolvedType === 'STRING') {
+            conflictVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
+            result.updated++;
+            continue;
+          } else {
+            result.errors.push(`stroke/dashArray/${prim.name}: конфликт типа (${conflictVar.resolvedType})`);
+            continue;
+          }
+        }
+        
         const newVar = figma.variables.createVariable(varName, primitivesCollection, 'STRING');
         newVar.setValueForMode(primitivesCollection.defaultModeId, prim.value);
         newVar.description = `Dash pattern: ${prim.value}`;
@@ -4546,6 +4587,7 @@ async function createStrokeSemanticCollection(data: StrokeSemanticData): Promise
       const widthMatch = v.name.match(/stroke\/width\/(.+)/);
       if (widthMatch && v.resolvedType === 'FLOAT') {
         widthPrimitiveMap.set(widthMatch[1], v);
+        console.log(`[Stroke] Found width primitive: ${widthMatch[1]}`);
       }
       
       // Style: stroke/style/solid -> "solid"
@@ -4555,6 +4597,8 @@ async function createStrokeSemanticCollection(data: StrokeSemanticData): Promise
       }
     }
   });
+  
+  console.log(`[Stroke] Width primitives found: ${Array.from(widthPrimitiveMap.keys()).join(', ')}`);
   
   // Create map of color tokens from Tokens collection
   // These have format: border/default/default, stroke/focus, etc.
@@ -6294,8 +6338,11 @@ async function createSpacingSemanticCollection(data: SpacingSemanticData): Promi
     }
   }
   
-  // Get all existing variables
+  // Get all existing FLOAT variables
   const allVariables = await figma.variables.getLocalVariablesAsync('FLOAT');
+  
+  // Get ALL variables (any type) for conflict check - Figma doesn't allow same name even with different types
+  const allVariablesAnyType = await figma.variables.getLocalVariablesAsync();
   
   // Create map of primitive variables
   const primitiveVarMap = new Map<string, Variable>();
@@ -6314,8 +6361,19 @@ async function createSpacingSemanticCollection(data: SpacingSemanticData): Promi
   const existingVarMap = new Map<string, Variable>();
   existingSemanticVars.forEach(v => existingVarMap.set(v.name, v));
   
+  // Deduplicate tokens by path (keep first occurrence)
+  const seenPaths = new Set<string>();
+  const uniqueTokens = data.tokens.filter(token => {
+    if (seenPaths.has(token.path)) {
+      console.warn(`[Spacing] Дубликат токена ${token.path}, пропускаем`);
+      return false;
+    }
+    seenPaths.add(token.path);
+    return true;
+  });
+  
   // Create/update semantic tokens
-  for (const token of data.tokens) {
+  for (const token of uniqueTokens) {
     try {
       // Convert path: "spacing.button.default.paddingX" -> "spacing/button/default/paddingX"
       const varName = token.path.replace(/\./g, '/');
@@ -6329,9 +6387,34 @@ async function createSpacingSemanticCollection(data: SpacingSemanticData): Promi
       // Get or create variable
       let variable = existingVarMap.get(varName);
       if (!variable) {
-        console.log(`[Spacing] Создаём переменную: ${varName}`);
-        variable = figma.variables.createVariable(varName, spacingCollection!, 'FLOAT');
-        result.created++;
+        // Check if variable exists in ANY collection with ANY type
+        const conflictVar = allVariablesAnyType.find(v => v.name === varName);
+        if (conflictVar) {
+          // If it's a FLOAT variable, we can reuse it
+          if (conflictVar.resolvedType === 'FLOAT') {
+            console.log(`[Spacing] Переменная ${varName} уже существует, обновляем значения`);
+            variable = conflictVar;
+          } else {
+            // Different type - can't reuse, skip with warning
+            const conflictCollection = collections.find(c => c.id === conflictVar.variableCollectionId);
+            console.warn(`[Spacing] Переменная ${varName} существует с типом ${conflictVar.resolvedType}, пропускаем`);
+            result.errors.push(`${token.path}: Конфликт типа (${conflictVar.resolvedType})`);
+            continue;
+          }
+        } else {
+          console.log(`[Spacing] Создаём переменную: ${varName}`);
+          try {
+            variable = figma.variables.createVariable(varName, spacingCollection!, 'FLOAT');
+            result.created++;
+          } catch (createError) {
+            const errMsg = createError instanceof Error 
+              ? `${createError.name}: ${createError.message}` 
+              : String(createError);
+            console.error(`[Spacing] Ошибка при createVariable: ${errMsg}`);
+            result.errors.push(`${token.path}: ${errMsg}`);
+            continue;
+          }
+        }
       }
       
       // Set alias for Desktop mode
@@ -9685,6 +9768,7 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           
           if (result.errors.length > 0) {
             console.error('[Stroke] Errors:', result.errors);
+            result.errors.forEach((err, i) => console.error(`[Stroke] Error ${i + 1}:`, err));
             figma.notify(`⚠️ Stroke примитивы: ${result.created} создано, ${result.updated} обновлено, ${result.errors.length} ошибок`);
           } else {
             figma.notify(`✅ Stroke примитивы: ${result.created} создано, ${result.updated} обновлено`);
