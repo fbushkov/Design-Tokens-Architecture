@@ -195,6 +195,322 @@ async function createVariableCollection(name: string): Promise<VariableCollectio
   return figma.variables.createVariableCollection(name);
 }
 
+// ============================================
+// VARIABLE SCOPES CONFIGURATION
+// ============================================
+
+/** Scope definitions for different token categories */
+type VariableScopeCategory = 
+  | 'color'           // All colors
+  | 'spacing'         // Padding, margin, width/height
+  | 'gap'             // Auto layout gaps only
+  | 'radius'          // Corner radius only
+  | 'strokeWidth'     // Border/stroke width only
+  | 'iconSize'        // Icon dimensions
+  | 'fontSize'        // Text font size only
+  | 'lineHeight'      // Text line height only
+  | 'letterSpacing'   // Text letter spacing only
+  | 'fontWeight'      // Text font weight only
+  | 'effectFloat'     // Shadow offset, blur, spread
+  | 'strokeColor'     // Stroke colors only (STROKE_COLOR)
+  | 'effectColor'     // Effect colors only (EFFECT_COLOR)
+  | 'all';            // All scopes (default)
+
+/** Map category to Figma VariableScope values */
+const SCOPE_MAPPINGS: Record<VariableScopeCategory, VariableScope[]> = {
+  color: ['ALL_FILLS', 'STROKE_COLOR', 'EFFECT_COLOR'],
+  strokeColor: ['STROKE_COLOR'],
+  effectColor: ['EFFECT_COLOR'],
+  // Spacing: WIDTH_HEIGHT + GAP - shows in padding AND gap fields (Figma has no separate padding scope)
+  spacing: ['WIDTH_HEIGHT', 'GAP'],
+  // Gap: only GAP - shows ONLY in Auto Layout gap field
+  gap: ['GAP'],
+  radius: ['CORNER_RADIUS'],
+  strokeWidth: ['STROKE_FLOAT'],
+  iconSize: ['WIDTH_HEIGHT'],
+  fontSize: ['FONT_SIZE'],
+  lineHeight: ['LINE_HEIGHT'],
+  letterSpacing: ['LETTER_SPACING'],
+  fontWeight: ['FONT_WEIGHT'],
+  effectFloat: ['EFFECT_FLOAT'],
+  all: ['ALL_SCOPES'],
+};
+
+/** Determine scope category based on collection name and variable */
+function getScopeCategoryByCollection(variable: Variable, collectionName: string): VariableScopeCategory {
+  const name = variable.name.toLowerCase();
+  const type = variable.resolvedType;
+  const collection = collectionName.toLowerCase().trim();
+  
+  // PRIMITIVES collection - hide ALL primitives from pickers
+  // Designers should use semantic tokens (from Spacing, Gap, Tokens, etc.), not raw primitives
+  if (collection === 'primitives') {
+    return 'all'; // Will be skipped, but we need special handling
+  }
+  
+  // COLOR variables - scope depends on collection AND path
+  if (type === 'COLOR') {
+    // Stroke collection colors → only STROKE_COLOR (not in Fill picker)
+    if (collection === 'stroke' || collection.startsWith('stroke')) {
+      console.log(`[Scopes] Stroke collection COLOR → strokeColor: ${variable.name}`);
+      return 'strokeColor';
+    }
+    // Effects collection colors → only EFFECT_COLOR (not in Fill picker)
+    if (collection === 'effects' || collection.startsWith('effects')) {
+      console.log(`[Scopes] Effects collection COLOR → effectColor: ${variable.name}`);
+      return 'effectColor';
+    }
+    
+    // Mixed collections - check path for stroke/effect colors
+    if (collection === 'primitives' || collection === 'tokens' || collection === 'components' || collection === 'core') {
+      // Stroke colors by path → only STROKE_COLOR
+      if (name.startsWith('stroke/') || name.includes('/stroke/')) {
+        return 'strokeColor';
+      }
+      // Effect colors by path → only EFFECT_COLOR  
+      if (name.startsWith('effect/') || name.includes('/effect/')) {
+        return 'effectColor';
+      }
+    }
+    
+    // All other colors → ALL_FILLS + STROKE_COLOR + EFFECT_COLOR
+    return 'color';
+  }
+  
+  // FLOAT variables - determine by collection name OR variable path
+  if (type === 'FLOAT') {
+    // Dedicated Spacing collection → WIDTH_HEIGHT only (not GAP)
+    if (collection === 'spacing') {
+      return 'spacing';
+    }
+    
+    // Dedicated Gap collection → GAP only
+    if (collection === 'gap') {
+      return 'gap';
+    }
+    
+    // Dedicated Radius collection → CORNER_RADIUS only
+    if (collection === 'radius') {
+      return 'radius';
+    }
+    
+    // Dedicated Icon Size collection → WIDTH_HEIGHT
+    if (collection === 'icon size') {
+      return 'iconSize';
+    }
+    
+    // Dedicated Stroke collection - width only
+    if (collection === 'stroke') {
+      if (name.endsWith('/width') || name.includes('width')) {
+        return 'strokeWidth';
+      }
+      return 'all';
+    }
+    
+    // Dedicated Effects collection - ALL float values are effect-related
+    if (collection === 'effects') {
+      // All FLOAT values in Effects collection should be EFFECT_FLOAT
+      // This includes: opacity, blur, spread, offset, x, y, value
+      return 'effectFloat';
+    }
+    
+    // Dedicated Typography collection - check property name
+    if (collection === 'typography') {
+      if (name.includes('fontsize') || name.includes('font-size') || name.endsWith('/size')) {
+        return 'fontSize';
+      }
+      if (name.includes('lineheight') || name.includes('line-height')) {
+        return 'lineHeight';
+      }
+      if (name.includes('letterspacing') || name.includes('letter-spacing')) {
+        return 'letterSpacing';
+      }
+      if (name.includes('fontweight') || name.includes('font-weight') || name.endsWith('/weight')) {
+        return 'fontWeight';
+      }
+      return 'all';
+    }
+    
+    // Mixed collections (Primitives, Tokens, Components, Core) - determine by variable PATH
+    if (collection === 'primitives' || collection === 'tokens' || collection === 'components' || collection === 'core') {
+      // Effects - float properties (opacity, blur, spread, offset)
+      if (name.startsWith('effect/') || name.includes('/effect/')) {
+        if (name.includes('opacity') || name.includes('blur') || 
+            name.includes('spread') || name.includes('offset') ||
+            name.endsWith('/x') || name.endsWith('/y')) {
+          return 'effectFloat';
+        }
+        return 'all';
+      }
+      
+      // Stroke width
+      if ((name.startsWith('stroke/') || name.includes('/stroke/')) && 
+          (name.endsWith('/width') || name.includes('/width'))) {
+        return 'strokeWidth';
+      }
+      
+      // Gap - explicit gap paths (NOT spacing)
+      if (name.startsWith('gap/') || name.includes('/gap/')) {
+        console.log(`[Scopes] Gap path detected → gap: ${variable.name} (collection: ${collectionName})`);
+        return 'gap';
+      }
+      
+      // Radius
+      if (name.startsWith('radius/') || name.includes('/radius/') || 
+          name.endsWith('/radius') || name.includes('corner')) {
+        return 'radius';
+      }
+      
+      // Typography properties
+      if (name.startsWith('typography/') || name.includes('/typography/') ||
+          name.startsWith('font/') || name.includes('/font/')) {
+        if (name.includes('size') || name.includes('fontsize')) return 'fontSize';
+        if (name.includes('lineheight') || name.includes('line-height') || name.includes('leading')) return 'lineHeight';
+        if (name.includes('letterspacing') || name.includes('letter-spacing') || name.includes('tracking')) return 'letterSpacing';
+        if (name.includes('weight') || name.includes('fontweight')) return 'fontWeight';
+        return 'all';
+      }
+      
+      // Icon Size
+      if (name.startsWith('iconsize/') || name.startsWith('icon-size/') ||
+          name.startsWith('icon/size') || name.includes('/iconsize/') || 
+          name.includes('/icon-size/')) {
+        return 'iconSize';
+      }
+      
+      // Spacing - padding, margin, space (WIDTH_HEIGHT only)
+      if (name.startsWith('spacing/') || name.startsWith('space/') ||
+          name.startsWith('padding/') || name.startsWith('margin/') ||
+          name.includes('/spacing/') || name.includes('/space/') ||
+          name.includes('/padding/') || name.includes('/margin/')) {
+        return 'spacing';
+      }
+    }
+  }
+  
+  return 'all';
+}
+
+/** Determine scope category from variable name and type */
+function getScopeCategoryFromVariable(variable: Variable): VariableScopeCategory {
+  const name = variable.name.toLowerCase();
+  const type = variable.resolvedType;
+  
+  // COLOR variables always get color scopes
+  if (type === 'COLOR') {
+    return 'color';
+  }
+  
+  // FLOAT variables - determine by path
+  if (type === 'FLOAT') {
+    // Typography - check specific property names
+    if (name.includes('/fontsize') || name.includes('/font-size') || 
+        name.includes('font/size') || name.endsWith('/size') && name.includes('typography')) {
+      return 'fontSize';
+    }
+    if (name.includes('/lineheight') || name.includes('/line-height') || 
+        name.includes('font/lineheight')) {
+      return 'lineHeight';
+    }
+    if (name.includes('/letterspacing') || name.includes('/letter-spacing') || 
+        name.includes('font/letterspacing')) {
+      return 'letterSpacing';
+    }
+    if (name.includes('/fontweight') || name.includes('/font-weight') || 
+        name.includes('font/weight') || name.endsWith('/weight')) {
+      return 'fontWeight';
+    }
+    
+    // Effects - offset, blur, spread (for shadows)
+    if (name.includes('/offsetx') || name.includes('/offsety') || 
+        name.includes('/blur') || name.includes('/spread') ||
+        name.includes('effect/') && (name.endsWith('/x') || name.endsWith('/y'))) {
+      return 'effectFloat';
+    }
+    
+    // Stroke width - only width property in stroke collection
+    if ((name.startsWith('stroke/') || name.includes('/stroke/')) && 
+        name.endsWith('/width')) {
+      return 'strokeWidth';
+    }
+    
+    // Radius - anything in radius collection or ending with radius
+    if (name.startsWith('radius/') || name.includes('/radius/') || 
+        name.endsWith('/radius')) {
+      return 'radius';
+    }
+    
+    // Gap - only gap collection
+    if (name.startsWith('gap/') && !name.includes('spacing')) {
+      return 'gap';
+    }
+    
+    // Icon Size
+    if (name.startsWith('iconsize/') || name.startsWith('icon-size/') ||
+        name.includes('/iconsize/') || name.includes('/icon-size/')) {
+      return 'iconSize';
+    }
+    
+    // Spacing - spacing collection (includes width/height and gap)
+    if (name.startsWith('spacing/') || name.startsWith('space/') ||
+        name.includes('/spacing/') || name.includes('/space/')) {
+      return 'spacing';
+    }
+  }
+  
+  return 'all';
+}
+
+/** Get valid scopes for variable type */
+function getValidScopesForType(resolvedType: VariableResolvedDataType): VariableScope[] {
+  switch (resolvedType) {
+    case 'COLOR':
+      return ['ALL_FILLS', 'FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL', 'STROKE_COLOR', 'EFFECT_COLOR'];
+    case 'FLOAT':
+      return ['WIDTH_HEIGHT', 'GAP', 'CORNER_RADIUS', 'STROKE_FLOAT', 'EFFECT_FLOAT', 
+              'FONT_SIZE', 'LINE_HEIGHT', 'LETTER_SPACING', 'FONT_WEIGHT', 'PARAGRAPH_SPACING', 'PARAGRAPH_INDENT'];
+    case 'STRING':
+      return ['FONT_FAMILY', 'FONT_STYLE'];
+    default:
+      return [];
+  }
+}
+
+/** Check if scopes are valid for variable type */
+function filterValidScopes(scopes: VariableScope[], resolvedType: VariableResolvedDataType): VariableScope[] {
+  const validScopes = getValidScopesForType(resolvedType);
+  return scopes.filter(scope => validScopes.includes(scope) || scope === 'ALL_SCOPES');
+}
+
+/** Apply scopes to a variable based on its name and type */
+function applyVariableScopes(variable: Variable, scopeCategory?: VariableScopeCategory): void {
+  // Determine category from variable if not provided
+  const category = scopeCategory || getScopeCategoryFromVariable(variable);
+  
+  // Skip if default 'all'
+  if (category === 'all') return;
+  
+  const scopes = SCOPE_MAPPINGS[category];
+  
+  // Filter scopes to only those valid for this variable type
+  const validScopes = filterValidScopes(scopes, variable.resolvedType);
+  
+  // Only set if we have valid scopes
+  if (validScopes.length > 0) {
+    try {
+      variable.scopes = validScopes;
+    } catch (error) {
+      // Silently skip if scope assignment fails
+      console.warn(`Could not set scopes for ${variable.name}:`, error);
+    }
+  }
+}
+
+// Legacy function for backward compatibility
+function getScopeCategoryFromName(name: string): VariableScopeCategory {
+  return 'all'; // Now using getScopeCategoryFromVariable instead
+}
+
 // Cache for existing variables to avoid repeated API calls
 let existingVariablesCache: Variable[] | null = null;
 
@@ -215,7 +531,8 @@ async function getCachedVariables(): Promise<Variable[]> {
 async function createVariable(
   name: string, 
   collection: VariableCollection, 
-  type: VariableResolvedDataType
+  type: VariableResolvedDataType,
+  scopeCategory?: VariableScopeCategory
 ): Promise<Variable> {
   // Use cached variables for lookup
   const cachedVars = await getCachedVariables();
@@ -224,10 +541,18 @@ async function createVariable(
   );
   
   if (existing) {
+    // Update scopes on existing variable if category provided
+    if (scopeCategory) {
+      applyVariableScopes(existing, scopeCategory);
+    }
     return existing;
   }
   
   const newVar = figma.variables.createVariable(name, collection, type);
+  
+  // Apply scopes based on category or auto-detect from name
+  applyVariableScopes(newVar, scopeCategory);
+  
   // Add to cache
   existingVariablesCache?.push(newVar);
   return newVar;
@@ -300,11 +625,14 @@ const MANAGED_COLLECTIONS = [
   'Primitives',
   'Tokens', 
   'Components',
+  'Core',
   'Spacing',
   'Gap',
   'Icon Size',
   'Radius',
   'Typography',
+  'Stroke',
+  'Effects',
 ];
 
 /** Style prefixes managed by the plugin */
@@ -9177,6 +9505,87 @@ figma.ui.onmessage = async (msg: PluginMessage) => {
           figma.notify(`⚠️ Paint Styles: ${result.created} создано, ${result.updated} обновлено, ${result.errors.length} ошибок`);
         } else {
           figma.notify(`✅ Paint Styles: ${result.created} создано, ${result.updated} обновлено`);
+        }
+        break;
+      }
+
+      // Update Variable Scopes for all managed collections
+      case 'update-variable-scopes': {
+        try {
+          figma.notify('⏳ Обновление scopes переменных...');
+          
+          // Get collections first
+          const collections = await figma.variables.getLocalVariableCollectionsAsync();
+          
+          // Filter only managed collections
+          const managedCollections = collections.filter(c => 
+            MANAGED_COLLECTIONS.includes(c.name as any)
+          );
+          
+          console.log('[Scopes] Managed collections found:', managedCollections.map(c => `"${c.name}"`).join(', '));
+          
+          // Get variables from managed collections by iterating collection.variableIds
+          let updated = 0;
+          let skipped = 0;
+          let hidden = 0;
+          let totalVars = 0;
+          const categoryStats: Record<string, number> = {};
+          
+          for (const collection of managedCollections) {
+            const isPrimitives = collection.name.toLowerCase() === 'primitives';
+            console.log(`[Scopes] Processing collection: "${collection.name}" with ${collection.variableIds.length} variables${isPrimitives ? ' (will hide all)' : ''}`);
+            
+            for (const varId of collection.variableIds) {
+              try {
+                const variable = await figma.variables.getVariableByIdAsync(varId);
+                if (!variable) continue;
+                
+                totalVars++;
+                
+                // PRIMITIVES: Hide all from pickers (empty scopes)
+                if (isPrimitives) {
+                  try {
+                    variable.scopes = [];
+                    hidden++;
+                    categoryStats['hidden (primitives)'] = (categoryStats['hidden (primitives)'] || 0) + 1;
+                  } catch (e) {
+                    console.warn(`[Scopes] Could not hide primitive ${variable.name}`);
+                  }
+                  continue;
+                }
+                
+                const category = getScopeCategoryByCollection(variable, collection.name);
+                categoryStats[category] = (categoryStats[category] || 0) + 1;
+                
+                if (category !== 'all') {
+                  applyVariableScopes(variable, category);
+                  updated++;
+                } else {
+                  skipped++;
+                }
+              } catch (e) {
+                console.error(`[Scopes] Error processing variable ${varId}:`, e);
+              }
+            }
+          }
+          
+          console.log(`[Scopes] Done: ${totalVars} processed, ${updated} updated, ${hidden} hidden (primitives), ${skipped} skipped`);
+          console.log('[Scopes] Categories:', JSON.stringify(categoryStats, null, 2));
+          
+          figma.ui.postMessage({
+            type: 'variable-scopes-updated',
+            payload: { success: true, updated, hidden }
+          });
+          
+          figma.notify(`✅ Scopes: ${updated} обновлено, ${hidden} скрыто (primitives)`);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          console.error('[Scopes] Error:', errorMessage);
+          figma.ui.postMessage({
+            type: 'variable-scopes-error',
+            payload: { error: errorMessage }
+          });
+          figma.notify(`❌ Ошибка: ${errorMessage}`);
         }
         break;
       }

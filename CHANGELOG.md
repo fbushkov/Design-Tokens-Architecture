@@ -1,5 +1,39 @@
 # 📝 Changelog - Design Tokens Plugin
 
+## [2025-12-22] - Variable Scopes Implementation 🎯
+
+### ✅ Добавлено
+
+#### Variable Scopes — автоматическая настройка контекстов переменных
+Figma Variable Scopes ограничивают где переменные показываются в property pickers.
+
+**Реализованные категории:**
+- **Primitives** → скрыты из всех pickers (дизайнеры используют семантические токены)
+- **Spacing** → `WIDTH_HEIGHT` + `GAP` (padding, margin, gap)
+- **Gap** → только `GAP` (Auto Layout gap)
+- **Radius** → `CORNER_RADIUS`
+- **Icon Size** → `WIDTH_HEIGHT`
+- **Typography** → `FONT_SIZE`, `LINE_HEIGHT`, `LETTER_SPACING`, `FONT_WEIGHT`
+- **Stroke colors** → `STROKE_COLOR` (не показываются в Fill picker)
+- **Effect colors** → `EFFECT_COLOR` (только shadow/blur colors)
+- **Effect floats** → `EFFECT_FLOAT` (opacity, blur, spread)
+- **Stroke width** → `STROKE_FLOAT`
+
+**Особенности:**
+- Path-based detection для смешанных коллекций (stroke/..., effect/...)
+- Primitives полностью скрыты (`scopes = []`)
+- UI кнопка "Обновить Variable Scopes" в Token Manager
+
+### 📁 Изменённые файлы
+- `src/plugin/code.ts`:
+  - `SCOPE_MAPPINGS` — маппинг категорий на Figma scopes
+  - `getScopeCategoryByCollection()` — определение категории по коллекции/пути
+  - `applyVariableScopes()` — применение scopes к переменным
+  - Handler `update-variable-scopes` с детальным логированием
+- `src/ui/token-manager-ui.ts` — кнопка UI
+
+---
+
 ## [2025-12-22] - Bug Fixes: Spacing & Stroke Token Creation 🐛
 
 ### 🔧 Исправлено

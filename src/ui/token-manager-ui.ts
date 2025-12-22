@@ -1308,6 +1308,17 @@ function renderSyncOverview(
             Импортировать
           </button>
         </div>
+        
+        <div class="sync-action-card">
+          <div class="action-icon">🎯</div>
+          <div class="action-info">
+            <div class="action-title">Обновить Variable Scopes</div>
+            <div class="action-desc">Настроить контексты применения (typography → текст, radius → углы)</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btn-update-variable-scopes">
+            Обновить Scopes
+          </button>
+        </div>
         ` : ''}
       </div>
       
@@ -1733,6 +1744,12 @@ export function handleProjectSyncEvents(container: HTMLElement): void {
       importToTokenMap();
       return;
     }
+    
+    // Update Variable Scopes
+    if (target.id === 'btn-update-variable-scopes' || target.closest('#btn-update-variable-scopes')) {
+      updateVariableScopes();
+      return;
+    }
   });
 }
 
@@ -1844,6 +1861,15 @@ function importToTokenMap(): void {
   } else {
     alert('Нет токенов для импорта.');
   }
+}
+
+/**
+ * Update Variable Scopes - send message to plugin
+ */
+function updateVariableScopes(): void {
+  parent.postMessage({
+    pluginMessage: { type: 'update-variable-scopes' }
+  }, '*');
 }
 
 /**

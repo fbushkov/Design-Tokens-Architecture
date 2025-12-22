@@ -225,6 +225,7 @@ export const MANAGED_COLLECTIONS = [
   'Icon Size',
   'Radius',
   'Typography',
+  'Stroke',
   'Effects',
 ] as const;
 

@@ -364,6 +364,14 @@ window.onmessage = (event: MessageEvent) => {
       postMessage('sync-from-project', {});
       break;
     
+    case 'variable-scopes-updated':
+      showNotification(`✅ Variable Scopes обновлены: ${msg.payload.updated} переменных`);
+      break;
+    
+    case 'variable-scopes-error':
+      showNotification('❌ Ошибка обновления scopes: ' + msg.payload.error, true);
+      break;
+    
     case 'themes-synced':
       if (msg.payload?.success) {
         const stats = msg.payload.stats;
