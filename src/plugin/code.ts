@@ -6320,9 +6320,16 @@ async function createSpacingSemanticCollection(data: SpacingSemanticData): Promi
       // Convert path: "spacing.button.default.paddingX" -> "spacing/button/default/paddingX"
       const varName = token.path.replace(/\./g, '/');
       
+      // Validate varName doesn't have consecutive slashes or empty segments
+      if (varName.includes('//') || varName.startsWith('/') || varName.endsWith('/')) {
+        result.errors.push(`${token.path}: Некорректный путь (пустые сегменты)`);
+        continue;
+      }
+      
       // Get or create variable
       let variable = existingVarMap.get(varName);
       if (!variable) {
+        console.log(`[Spacing] Создаём переменную: ${varName}`);
         variable = figma.variables.createVariable(varName, spacingCollection!, 'FLOAT');
         result.created++;
       }
@@ -6362,8 +6369,11 @@ async function createSpacingSemanticCollection(data: SpacingSemanticData): Promi
       }
       
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error 
+        ? `${error.message} (${error.name})` 
+        : JSON.stringify(error);
       console.error(`[Spacing] Ошибка создания ${token.path}:`, error);
+      console.error(`[Spacing] Token data:`, JSON.stringify(token));
       result.errors.push(`${token.path}: ${errorMessage}`);
     }
   }
