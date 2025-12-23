@@ -2475,14 +2475,16 @@ async function createColorVariablesWithStructure(
     };
     
     variable.setValueForMode(primitivesCollection.defaultModeId, color);
-    variable.description = varData.description;
+    if (varData.description) {
+      variable.description = varData.description;
+    }
     
     createdPrimitives.set(variableName, variable);
   }
   
-  // 1.0.1 Create Base Colors from passed variables (white, black, transparent-light, transparent-dark)
+  // 1.0.1 Create Base Colors from passed variables (white, black, transparent, transparent-light, transparent-dark)
   // These come from UI input, not hardcoded values
-  const baseColorNames = ['colors/base/white', 'colors/base/black', 'colors/base/transparent-light', 'colors/base/transparent-dark'];
+  const baseColorNames = ['colors/base/white', 'colors/base/black', 'colors/base/transparent', 'colors/base/transparent-light', 'colors/base/transparent-dark'];
   
   for (const baseColorName of baseColorNames) {
     // Find the color in passed variables

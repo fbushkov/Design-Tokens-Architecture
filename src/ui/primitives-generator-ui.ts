@@ -82,8 +82,9 @@ const systemColors: Map<string, string> = new Map([
 const baseColors: Map<string, string> = new Map([
   ['white', '#FFFFFF'],
   ['black', '#000000'],
-  ['transparent-light', 'rgba(0,0,0,0.3)'],
-  ['transparent-dark', 'rgba(0,0,0,0.7)'],
+  ['transparent', 'rgba(0,0,0,0)'],        // Fully transparent (for ghost buttons)
+  ['transparent-light', 'rgba(0,0,0,0.3)'], // Semi-transparent overlay light
+  ['transparent-dark', 'rgba(0,0,0,0.7)'],  // Semi-transparent overlay dark
 ]);
 
 // For backwards compatibility - always returns product config
