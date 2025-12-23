@@ -58,19 +58,19 @@
 | # | Компонент | Описание | Токены |
 |---|-----------|----------|--------|
 | 1 | **button/** | Кнопки (primary, secondary, ghost, danger) | 20 |
-| 2 | **input/** | Текстовые поля | 12 |
+| 2 | **input/** | Текстовые поля (с disabled states) | 19 |
 | 3 | **select/** | Выпадающие списки | 9 |
 | 4 | **checkbox/** | Чекбоксы | 6 |
 | 5 | **radio/** | Радиокнопки | 5 |
 | 6 | **toggle/** | Переключатели | 4 |
-| 7 | **card/** | Карточки | 6 |
+| 7 | **card/** | Карточки (active, selected, strokes) | 10 |
 | 8 | **modal/** | Модальные окна | 5 |
-| 9 | **badge/** | Бейджи (success, warning, error, info, neutral) | 10 |
-| 10 | **alert/** | Уведомления | 16 |
+| 9 | **badge/** | Бейджи (success, warning, error, info, neutral, brand) | 18 |
+| 10 | **alert/** | Уведомления (с link токенами) | 20 |
 | 11 | **tooltip/** | Подсказки | 2 |
 | 12 | **avatar/** | Аватары | 4 |
 | 13 | **tabs/** | Вкладки | 4 |
-| 14 | **nav/** | Навигация | 7 |
+| 14 | **nav/** | Навигация (selected, disabled, icons) | 15 |
 | 15 | **table/** | Таблицы | 7 |
 | 16 | **pagination/** | Пагинация | 5 |
 | 17 | **progress/** | Прогресс-бары | 3 |

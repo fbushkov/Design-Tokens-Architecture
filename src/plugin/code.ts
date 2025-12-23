@@ -2799,17 +2799,23 @@ async function createColorVariablesWithStructure(
     // ============================================
     { name: 'input/container/container-surface', source: 'surface/card/card' },
     { name: 'input/container/container-surface-hover', source: 'surface/card/card-hover' },
+    { name: 'input/container/container-surface-disabled', source: 'bg/interactive/interactive-primary-disabled' },
     { name: 'input/container/container-stroke', source: 'stroke/default/default' },
     { name: 'input/container/container-stroke-hover', source: 'stroke/default/default-hover' },
     { name: 'input/container/container-stroke-focus', source: 'stroke/focus/focus' },
     { name: 'input/container/container-stroke-error', source: 'stroke/error/error' },
     { name: 'input/container/container-stroke-disabled', source: 'stroke/disabled/disabled' },
     { name: 'input/text/text-value', source: 'content/primary/primary' },
+    { name: 'input/text/text-value-disabled', source: 'content/disabled/disabled' },
     { name: 'input/text/text-placeholder', source: 'content/tertiary/tertiary' },
+    { name: 'input/text/text-placeholder-disabled', source: 'content/disabled/disabled' },
     { name: 'input/text/text-label', source: 'content/primary/primary' },
+    { name: 'input/text/text-label-disabled', source: 'content/disabled/disabled' },
     { name: 'input/text/text-helper', source: 'content/secondary/secondary' },
     { name: 'input/text/text-helper-error', source: 'text/error/error' },
     { name: 'input/icon/icon-default', source: 'content/secondary/secondary' },
+    { name: 'input/icon/icon-disabled', source: 'content/disabled/disabled' },
+    { name: 'input/icon/icon-error', source: 'text/error/error' },
     
     // ============================================
     // SELECT COMPONENT
@@ -2853,7 +2859,11 @@ async function createColorVariablesWithStructure(
     // ============================================
     { name: 'card/container/container-surface', source: 'surface/card/card' },
     { name: 'card/container/container-surface-hover', source: 'surface/card/card-hover' },
+    { name: 'card/container/container-surface-active', source: 'bg/interactive/interactive-primary-active' },
+    { name: 'card/container/container-surface-selected', source: 'bg/interactive/interactive-primary-selected' },
     { name: 'card/container/container-stroke', source: 'stroke/subtle/subtle' },
+    { name: 'card/container/container-stroke-hover', source: 'stroke/default/default' },
+    { name: 'card/container/container-stroke-selected', source: 'border/brand/brand' },
     { name: 'card/header/header-content', source: 'content/primary/primary' },
     { name: 'card/body/body-content', source: 'content/secondary/secondary' },
     { name: 'card/footer/footer-content', source: 'content/tertiary/tertiary' },
@@ -2872,14 +2882,22 @@ async function createColorVariablesWithStructure(
     // ============================================
     { name: 'badge/success/success-surface', source: 'feedback/success-surface/success-surface' },
     { name: 'badge/success/success-content', source: 'feedback/success-content/success-content' },
+    { name: 'badge/success/success-stroke', source: 'border/success/success' },
     { name: 'badge/warning/warning-surface', source: 'feedback/warning-surface/warning-surface' },
     { name: 'badge/warning/warning-content', source: 'feedback/warning-content/warning-content' },
+    { name: 'badge/warning/warning-stroke', source: 'border/warning/warning' },
     { name: 'badge/error/error-surface', source: 'feedback/error-surface/error-surface' },
     { name: 'badge/error/error-content', source: 'feedback/error-content/error-content' },
+    { name: 'badge/error/error-stroke', source: 'border/error/error' },
     { name: 'badge/info/info-surface', source: 'feedback/info-surface/info-surface' },
     { name: 'badge/info/info-content', source: 'feedback/info-content/info-content' },
+    { name: 'badge/info/info-stroke', source: 'border/info/info' },
     { name: 'badge/neutral/neutral-surface', source: 'bg/interactive/interactive-primary' },
     { name: 'badge/neutral/neutral-content', source: 'content/primary/primary' },
+    { name: 'badge/neutral/neutral-stroke', source: 'stroke/default/default' },
+    { name: 'badge/brand/brand-surface', source: 'bg/brand/brand-subtle' },
+    { name: 'badge/brand/brand-content', source: 'content/brand/brand' },
+    { name: 'badge/brand/brand-stroke', source: 'border/brand/brand' },
     
     // ============================================
     // ALERT / TOAST COMPONENT
@@ -2888,18 +2906,22 @@ async function createColorVariablesWithStructure(
     { name: 'alert/success/success-content', source: 'feedback/success-content/success-content' },
     { name: 'alert/success/success-stroke', source: 'feedback/success-stroke/success-stroke' },
     { name: 'alert/success/success-icon', source: 'feedback/success-content/success-content' },
+    { name: 'alert/success/success-link', source: 'text/link/link-default' },
     { name: 'alert/warning/warning-surface', source: 'feedback/warning-surface/warning-surface' },
     { name: 'alert/warning/warning-content', source: 'feedback/warning-content/warning-content' },
     { name: 'alert/warning/warning-stroke', source: 'feedback/warning-stroke/warning-stroke' },
     { name: 'alert/warning/warning-icon', source: 'feedback/warning-content/warning-content' },
+    { name: 'alert/warning/warning-link', source: 'text/link/link-default' },
     { name: 'alert/error/error-surface', source: 'feedback/error-surface/error-surface' },
     { name: 'alert/error/error-content', source: 'feedback/error-content/error-content' },
     { name: 'alert/error/error-stroke', source: 'feedback/error-stroke/error-stroke' },
     { name: 'alert/error/error-icon', source: 'feedback/error-content/error-content' },
+    { name: 'alert/error/error-link', source: 'text/link/link-default' },
     { name: 'alert/info/info-surface', source: 'feedback/info-surface/info-surface' },
     { name: 'alert/info/info-content', source: 'feedback/info-content/info-content' },
     { name: 'alert/info/info-stroke', source: 'feedback/info-stroke/info-stroke' },
     { name: 'alert/info/info-icon', source: 'feedback/info-content/info-content' },
+    { name: 'alert/info/info-link', source: 'text/link/link-default' },
     
     // ============================================
     // TOOLTIP COMPONENT
@@ -2928,11 +2950,19 @@ async function createColorVariablesWithStructure(
     // ============================================
     { name: 'nav/item/item-surface', source: 'surface/page/page' },
     { name: 'nav/item/item-surface-hover', source: 'bg/interactive/interactive-primary-hover' },
-    { name: 'nav/item/item-surface-active', source: 'bg/interactive/interactive-primary-selected' },
+    { name: 'nav/item/item-surface-active', source: 'bg/interactive/interactive-primary-active' },
+    { name: 'nav/item/item-surface-selected', source: 'bg/interactive/interactive-primary-selected' },
+    { name: 'nav/item/item-surface-disabled', source: 'bg/interactive/interactive-primary-disabled' },
     { name: 'nav/item/item-content', source: 'content/secondary/secondary' },
+    { name: 'nav/item/item-content-hover', source: 'content/primary/primary' },
     { name: 'nav/item/item-content-active', source: 'content/brand/brand' },
+    { name: 'nav/item/item-content-selected', source: 'content/brand/brand' },
+    { name: 'nav/item/item-content-disabled', source: 'content/disabled/disabled' },
     { name: 'nav/icon/icon-default', source: 'content/secondary/secondary' },
+    { name: 'nav/icon/icon-hover', source: 'content/primary/primary' },
     { name: 'nav/icon/icon-active', source: 'content/brand/brand' },
+    { name: 'nav/icon/icon-selected', source: 'content/brand/brand' },
+    { name: 'nav/icon/icon-disabled', source: 'content/disabled/disabled' },
     
     // ============================================
     // TABLE COMPONENT

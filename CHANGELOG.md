@@ -1,5 +1,83 @@
 # 📝 Changelog - Design Tokens Plugin
 
+## [2025-12-23] - Component States Expansion & Transparent Primitive 🎨
+
+### ✅ Добавлено
+
+#### Transparent Base Color (Primitives)
+- **Новый примитив**: `colors/transparent/transparent` = `rgba(0,0,0,0)`
+- Добавлен в `baseColors` Map для поддержки ghost-кнопок
+- UI: новая карточка с checkerboard preview в разделе Primitives
+
+#### Ghost Action — полная поддержка transparent
+- **До**: ghost-кнопки использовали `neutral` цвета для фона
+- **После**: ghost использует `transparent` для default/focus/disabled состояний
+- Hover/active остаются с subtle neutral фоном для обратной связи
+
+#### Content Tokens для Ghost/Danger кнопок
+- `content/on-action-ghost` → ссылается на `content/primary/primary`
+- `content/on-action-ghost-disabled` → ссылается на `content/disabled/disabled`
+- `content/on-action-danger` → ссылается на `content/on-action-primary`
+- `content/on-action-danger-disabled` → ссылается на `content/disabled/disabled`
+
+#### Расширенные компоненты
+
+**Input** (было 13 → стало 19 токенов):
+- `container-surface-disabled`
+- `text-value-disabled`, `text-placeholder-disabled`, `text-label-disabled`
+- `icon-disabled`, `icon-error`
+
+**Card** (было 6 → стало 10 токенов):
+- `container-surface-active`, `container-surface-selected`
+- `container-stroke-hover`, `container-stroke-selected`
+
+**Badge** (было 10 → стало 18 токенов):
+- Borders для всех вариантов: `success-stroke`, `warning-stroke`, `error-stroke`, `info-stroke`, `neutral-stroke`
+- **Новый brand вариант**: `brand-surface`, `brand-content`, `brand-stroke`
+
+**Alert** (было 16 → стало 20 токенов):
+- Link токены: `success-link`, `warning-link`, `error-link`, `info-link`
+
+**Nav** (было 7 → стало 15 токенов):
+- `item-surface-selected`, `item-surface-disabled`
+- `item-content-hover`, `item-content-selected`, `item-content-disabled`
+- `icon-hover`, `icon-selected`, `icon-disabled`
+
+### 🔧 Исправлено
+
+#### Token Naming для variant='default'
+- **Проблема**: Токены с `variant: 'default'` получали суффикс `-default` (например `action/ghost/ghost-default`)
+- **Решение**: `variant='default'` больше не добавляется к имени → `action/ghost/ghost`
+
+#### Description Validation Error
+- **Проблема**: `set_description: Property description failed validation`
+- **Решение**: Добавлена проверка `if (varData.description)` перед присвоением
+
+#### Tokens/Components Update Logic
+- **До**: Генераторы пропускали существующие токены (SKIP)
+- **После**: Генераторы обновляют существующие токены (UPDATE) для синхронизации изменений
+
+### 📁 Изменённые файлы
+- `src/plugin/code.ts` — ghost transparent, content tokens, component expansions, naming fix
+- `src/ui/primitives-generator-ui.ts` — transparent в baseColors Map
+- `src/ui/ui.html` — transparent color card с checkerboard CSS
+- `src/ui/tokens-generator-ui.ts` — UPDATE вместо SKIP
+- `src/ui/components-generator-ui.ts` — UPDATE вместо SKIP
+
+### 📐 Архитектура ссылок
+
+Компоненты ссылаются на Tokens (semantic), НЕ на Primitives напрямую:
+
+```
+Primitives:  colors/neutral/neutral-50
+     ↓
+Tokens:      bg/interactive/interactive-primary-active  →  neutral-100
+     ↓
+Components:  card/container-surface-active  →  bg/interactive/interactive-primary-active
+```
+
+---
+
 ## [2025-12-22] - Variable Scopes Implementation 🎯
 
 ### ✅ Добавлено
