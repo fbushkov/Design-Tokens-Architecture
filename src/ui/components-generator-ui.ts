@@ -346,7 +346,7 @@ export function generateComponentTokens(): boolean {
   
   const components = Array.from(componentsState.selectedComponents);
   let createdCount = 0;
-  let skippedCount = 0;
+  let updatedCount = 0;
   
   components.forEach(componentKey => {
     const mappings = componentsState.componentMappings[componentKey];
@@ -373,12 +373,7 @@ export function generateComponentTokens(): boolean {
           t => t.fullPath === fullPath && t.collection === 'Components'
         );
         
-        if (existingToken) {
-          skippedCount++;
-          return;
-        }
-        
-        // Создаем токен
+        // Создаем или обновляем токен
         let value: TokenDefinition['value'];
         let referenceInfo: { light: string; dark?: string } | undefined;
         
@@ -390,6 +385,16 @@ export function generateComponentTokens(): boolean {
           // Если не нашли - создаем placeholder (значения в формате 0-1 для Figma)
           value = { hex: '#808080', rgba: { r: 0.5, g: 0.5, b: 0.5, a: 1 } };
           console.warn(`Semantic token not found: ${mapping.reference} for ${tokenPathStr}`);
+        }
+        
+        if (existingToken) {
+          // Обновляем существующий токен
+          existingToken.value = value;
+          existingToken.references = referenceInfo;
+          existingToken.description = mapping.desc;
+          existingToken.tags = [theme.id, componentKey, mapping.reference];
+          updatedCount++;
+          return;
         }
         
         createToken({
@@ -409,7 +414,7 @@ export function generateComponentTokens(): boolean {
     });
   });
   
-  console.log(`Generated ${createdCount} component tokens, skipped ${skippedCount} existing`);
+  console.log(`Generated ${createdCount} component tokens, updated ${updatedCount} existing`);
   
   // Отправляем событие обновления
   window.dispatchEvent(new CustomEvent('tokens-updated'));

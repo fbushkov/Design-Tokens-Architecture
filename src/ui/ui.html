@@ -3512,6 +3512,14 @@
       border-radius: inherit;
     }
 
+    .transparent-preview.transparent-full::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: transparent;
+      border-radius: inherit;
+    }
+
     .btn-sm {
       padding: var(--spacing-xs) var(--spacing-sm);
       font-size: 11px;
@@ -5820,6 +5828,17 @@
             <div class="color-input-group">
               <input type="color" class="color-picker" data-color="black" value="#19191A">
               <input type="text" class="form-input color-hex" data-color="black" value="#19191A">
+            </div>
+          </div>
+
+          <div class="color-card" data-color-name="transparent" data-category="base">
+            <div class="color-card-header">
+              <label class="form-label">Transparent</label>
+              <span class="badge badge-sm">ghost</span>
+            </div>
+            <div class="color-input-group">
+              <div class="transparent-preview transparent-full"></div>
+              <input type="text" class="form-input color-hex" data-color="transparent" value="rgba(0,0,0,0)">
             </div>
           </div>
 

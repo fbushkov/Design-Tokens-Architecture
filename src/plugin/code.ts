@@ -1584,7 +1584,7 @@ interface SemanticColorMapping {
   states: string[];
   sourceColor: string;
   sourceStep: number; // 25-975, где 500 = base
-  useBaseColor?: 'white' | 'black' | 'transparent-light' | 'transparent-dark'; // Direct reference to base color
+  useBaseColor?: 'white' | 'black' | 'transparent' | 'transparent-light' | 'transparent-dark'; // Direct reference to base color
 }
 
 // ============================================
@@ -1741,7 +1741,12 @@ const SEMANTIC_COLOR_MAPPINGS: SemanticColorMapping[] = [
   { category: 'action', subcategory: 'primary', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'brand', sourceStep: 500 },
   { category: 'action', subcategory: 'secondary', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'neutral', sourceStep: 100 },
   { category: 'action', subcategory: 'tertiary', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'action', subcategory: 'ghost', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'neutral', sourceStep: 25 },
+  // Ghost: default/focus/disabled = transparent, hover/active = neutral
+  { category: 'action', subcategory: 'ghost', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'transparent' },
+  { category: 'action', subcategory: 'ghost', variant: 'hover', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  { category: 'action', subcategory: 'ghost', variant: 'active', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
+  { category: 'action', subcategory: 'ghost', variant: 'focus', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'transparent' },
+  { category: 'action', subcategory: 'ghost', variant: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'transparent' },
   { category: 'action', subcategory: 'danger', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'error', sourceStep: 500 },
   { category: 'action', subcategory: 'success', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'success', sourceStep: 500 },
   { category: 'action', subcategory: 'warning', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'warning', sourceStep: 500 },
@@ -1764,8 +1769,11 @@ const SEMANTIC_COLOR_MAPPINGS: SemanticColorMapping[] = [
   { category: 'content', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 300 },
   { category: 'content', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
   { category: 'content', subcategory: 'brand', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 500 },
-  { category: 'content', subcategory: 'on-action-primary', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'content', subcategory: 'on-action-secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  // On-action content (text/icons on buttons)
+  { category: 'content', subcategory: 'on-action-primary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
+  { category: 'content', subcategory: 'on-action-secondary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'content', subcategory: 'on-action-ghost', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'content', subcategory: 'on-action-danger', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
   
   // ============================================
   // STROKE - Borders (legacy support)
@@ -2104,7 +2112,12 @@ const SEMANTIC_COLOR_MAPPINGS_DARK: SemanticColorMapping[] = [
   { category: 'action', subcategory: 'primary', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'brand', sourceStep: 500 },
   { category: 'action', subcategory: 'secondary', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'neutral', sourceStep: 800 },
   { category: 'action', subcategory: 'tertiary', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'neutral', sourceStep: 900 },
-  { category: 'action', subcategory: 'ghost', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'neutral', sourceStep: 900 },
+  // Ghost: default/focus/disabled = transparent, hover/active = neutral
+  { category: 'action', subcategory: 'ghost', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 900, useBaseColor: 'transparent' },
+  { category: 'action', subcategory: 'ghost', variant: 'hover', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
+  { category: 'action', subcategory: 'ghost', variant: 'active', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
+  { category: 'action', subcategory: 'ghost', variant: 'focus', states: ['default'], sourceColor: 'neutral', sourceStep: 900, useBaseColor: 'transparent' },
+  { category: 'action', subcategory: 'ghost', variant: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 900, useBaseColor: 'transparent' },
   { category: 'action', subcategory: 'danger', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'error', sourceStep: 500 },
   { category: 'action', subcategory: 'success', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'success', sourceStep: 500 },
   { category: 'action', subcategory: 'warning', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'warning', sourceStep: 500 },
@@ -2127,8 +2140,11 @@ const SEMANTIC_COLOR_MAPPINGS_DARK: SemanticColorMapping[] = [
   { category: 'content', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 600 },
   { category: 'content', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
   { category: 'content', subcategory: 'brand', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 400 },
-  { category: 'content', subcategory: 'on-action-primary', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'content', subcategory: 'on-action-secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 50 },
+  // On-action content (text/icons on buttons) - dark theme
+  { category: 'content', subcategory: 'on-action-primary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 950, useBaseColor: 'black' },
+  { category: 'content', subcategory: 'on-action-secondary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 50 },
+  { category: 'content', subcategory: 'on-action-ghost', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 50 },
+  { category: 'content', subcategory: 'on-action-danger', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 950, useBaseColor: 'black' },
   
   // ============================================
   // STROKE - Borders (dark theme, legacy support)
@@ -2644,14 +2660,18 @@ async function createColorVariablesWithStructure(
       //   text/link/link-default, text/link/link-hover
       //   text/primary/primary, text/primary/primary-hover
       //   bg/page/page-primary, bg/page/page-secondary
+      //   action/ghost/ghost (variant='default', state='default')
+      //   action/ghost/ghost-hover (variant='hover', state='default')
       let tokenName: string;
-      if (mapping.variant) {
-        // With variant: category/subcategory/subcategory-variant-state
+      if (mapping.variant && mapping.variant !== 'default') {
+        // With non-default variant: category/subcategory/subcategory-variant-state
+        // For ghost states: action/ghost/ghost-hover, action/ghost/ghost-active
         tokenName = state === 'default' 
           ? `${mapping.category}/${mapping.subcategory}/${mapping.subcategory}-${mapping.variant}`
           : `${mapping.category}/${mapping.subcategory}/${mapping.subcategory}-${mapping.variant}-${state}`;
       } else {
-        // Without variant: category/subcategory/subcategory-state
+        // Without variant or variant='default': category/subcategory/subcategory-state
+        // For ghost default: action/ghost/ghost
         tokenName = state === 'default' 
           ? `${mapping.category}/${mapping.subcategory}/${mapping.subcategory}`
           : `${mapping.category}/${mapping.subcategory}/${mapping.subcategory}-${state}`;
@@ -2729,34 +2749,50 @@ async function createColorVariablesWithStructure(
     // ============================================
     // BUTTON COMPONENT
     // ============================================
-    // Primary Button
+    // Primary Button - full state coverage
     { name: 'button/primary/primary-bg', source: 'action/primary/primary' },
     { name: 'button/primary/primary-bg-hover', source: 'action/primary/primary-hover' },
     { name: 'button/primary/primary-bg-active', source: 'action/primary/primary-active' },
     { name: 'button/primary/primary-bg-focus', source: 'action/primary/primary-focus' },
     { name: 'button/primary/primary-bg-disabled', source: 'action/primary/primary-disabled' },
     { name: 'button/primary/primary-label', source: 'content/on-action-primary/on-action-primary' },
+    { name: 'button/primary/primary-label-disabled', source: 'content/on-action-primary/on-action-primary-disabled' },
     { name: 'button/primary/primary-icon', source: 'content/on-action-primary/on-action-primary' },
+    { name: 'button/primary/primary-icon-disabled', source: 'content/on-action-primary/on-action-primary-disabled' },
     
-    // Secondary Button
+    // Secondary Button - full state coverage
     { name: 'button/secondary/secondary-bg', source: 'action/secondary/secondary' },
     { name: 'button/secondary/secondary-bg-hover', source: 'action/secondary/secondary-hover' },
     { name: 'button/secondary/secondary-bg-active', source: 'action/secondary/secondary-active' },
+    { name: 'button/secondary/secondary-bg-focus', source: 'action/secondary/secondary-focus' },
+    { name: 'button/secondary/secondary-bg-disabled', source: 'action/secondary/secondary-disabled' },
     { name: 'button/secondary/secondary-stroke', source: 'stroke/default/default' },
     { name: 'button/secondary/secondary-label', source: 'content/on-action-secondary/on-action-secondary' },
+    { name: 'button/secondary/secondary-label-disabled', source: 'content/on-action-secondary/on-action-secondary-disabled' },
     { name: 'button/secondary/secondary-icon', source: 'content/on-action-secondary/on-action-secondary' },
+    { name: 'button/secondary/secondary-icon-disabled', source: 'content/on-action-secondary/on-action-secondary-disabled' },
     
-    // Ghost Button
+    // Ghost Button - full state coverage (bg uses transparent)
     { name: 'button/ghost/ghost-bg', source: 'action/ghost/ghost' },
     { name: 'button/ghost/ghost-bg-hover', source: 'action/ghost/ghost-hover' },
-    { name: 'button/ghost/ghost-label', source: 'content/primary/primary' },
-    { name: 'button/ghost/ghost-icon', source: 'content/primary/primary' },
+    { name: 'button/ghost/ghost-bg-active', source: 'action/ghost/ghost-active' },
+    { name: 'button/ghost/ghost-bg-focus', source: 'action/ghost/ghost-focus' },
+    { name: 'button/ghost/ghost-bg-disabled', source: 'action/ghost/ghost-disabled' },
+    { name: 'button/ghost/ghost-label', source: 'content/on-action-ghost/on-action-ghost' },
+    { name: 'button/ghost/ghost-label-disabled', source: 'content/on-action-ghost/on-action-ghost-disabled' },
+    { name: 'button/ghost/ghost-icon', source: 'content/on-action-ghost/on-action-ghost' },
+    { name: 'button/ghost/ghost-icon-disabled', source: 'content/on-action-ghost/on-action-ghost-disabled' },
     
-    // Danger Button
+    // Danger Button - full state coverage
     { name: 'button/danger/danger-bg', source: 'action/danger/danger' },
     { name: 'button/danger/danger-bg-hover', source: 'action/danger/danger-hover' },
-    { name: 'button/danger/danger-label', source: 'content/inverse/inverse' },
-    { name: 'button/danger/danger-icon', source: 'content/inverse/inverse' },
+    { name: 'button/danger/danger-bg-active', source: 'action/danger/danger-active' },
+    { name: 'button/danger/danger-bg-focus', source: 'action/danger/danger-focus' },
+    { name: 'button/danger/danger-bg-disabled', source: 'action/danger/danger-disabled' },
+    { name: 'button/danger/danger-label', source: 'content/on-action-danger/on-action-danger' },
+    { name: 'button/danger/danger-label-disabled', source: 'content/on-action-danger/on-action-danger-disabled' },
+    { name: 'button/danger/danger-icon', source: 'content/on-action-danger/on-action-danger' },
+    { name: 'button/danger/danger-icon-disabled', source: 'content/on-action-danger/on-action-danger-disabled' },
     
     // ============================================
     // INPUT COMPONENT

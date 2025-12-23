@@ -273,7 +273,7 @@ export function generateSemanticTokens(): boolean {
   
   const categories = Array.from(tokensState.selectedCategories);
   let createdCount = 0;
-  let skippedCount = 0;
+  let updatedCount = 0;
   const state = getState();
   
   categories.forEach(categoryKey => {
@@ -303,12 +303,7 @@ export function generateSemanticTokens(): boolean {
           t => t.fullPath === fullPath && t.collection === 'Tokens'
         );
         
-        if (existingToken) {
-          skippedCount++;
-          return;
-        }
-        
-        // Создаем токен
+        // Создаем или обновляем токен
         let value: TokenDefinition['value'];
         let referenceInfo: { light: string; dark?: string } | undefined;
         
@@ -320,6 +315,16 @@ export function generateSemanticTokens(): boolean {
           // Если не нашли - создаем placeholder (значения в формате 0-1 для Figma)
           value = { hex: '#808080', rgba: { r: 0.5, g: 0.5, b: 0.5, a: 1 } };
           console.warn(`Primitive not found: ${primitiveRef} for token ${tokenPathStr}`);
+        }
+        
+        if (existingToken) {
+          // Обновляем существующий токен
+          existingToken.value = value;
+          existingToken.references = referenceInfo;
+          existingToken.description = mapping.desc;
+          existingToken.tags = [theme.id, categoryKey, primitiveRef];
+          updatedCount++;
+          return;
         }
         
         createToken({
@@ -339,7 +344,7 @@ export function generateSemanticTokens(): boolean {
     });
   });
   
-  console.log(`Generated ${createdCount} tokens, skipped ${skippedCount} existing`);
+  console.log(`Generated ${createdCount} tokens, updated ${updatedCount} existing`);
   
   // Отправляем событие обновления
   window.dispatchEvent(new CustomEvent('tokens-updated'));
