@@ -1380,7 +1380,7 @@ async function exportTokensByTheme(): Promise<TokensByThemeResult> {
 // "action/primary/primary-hover" -> "action-primary-hover"
 // "bg/surface/surface" -> "bg-surface"
 // "text/primary/primary" -> "text-primary"
-// "stroke/default/default" -> "stroke-default"
+// "border/default/default" -> "stroke-default"
 function variableNameToFlatKey(name: string): string {
   const parts = name.split('/');
   
@@ -1599,20 +1599,12 @@ const SEMANTIC_COLOR_MAPPINGS: SemanticColorMapping[] = [
   { category: 'bg', subcategory: 'page', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
   { category: 'bg', subcategory: 'page', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 50 },
   { category: 'bg', subcategory: 'page', variant: 'tertiary', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
-  // Container/Card backgrounds - primary uses base white
-  { category: 'bg', subcategory: 'card', variant: 'primary', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
-  { category: 'bg', subcategory: 'card', variant: 'secondary', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 50 },
-  { category: 'bg', subcategory: 'card', variant: 'elevated', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
-  // Interactive backgrounds
-  { category: 'bg', subcategory: 'interactive', variant: 'primary', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 50 },
-  { category: 'bg', subcategory: 'interactive', variant: 'secondary', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 100 },
-  // Overlay/Modal backgrounds - overlays use transparent colors
+  // Muted backgrounds - for hover areas, list items, interactive zones
+  { category: 'bg', subcategory: 'muted', variant: 'primary', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 50 },
+  { category: 'bg', subcategory: 'muted', variant: 'secondary', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 100 },
+  // Overlay backgrounds - use transparent colors
   { category: 'bg', subcategory: 'overlay', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 900, useBaseColor: 'transparent-dark' },
   { category: 'bg', subcategory: 'overlay', variant: 'light', states: ['default'], sourceColor: 'neutral', sourceStep: 700, useBaseColor: 'transparent-light' },
-  { category: 'bg', subcategory: 'modal', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
-  { category: 'bg', subcategory: 'drawer', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
-  { category: 'bg', subcategory: 'popover', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
-  { category: 'bg', subcategory: 'tooltip', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
   // Semantic backgrounds
   { category: 'bg', subcategory: 'brand', variant: 'subtle', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 50 },
   { category: 'bg', subcategory: 'brand', variant: 'default', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 100 },
@@ -1624,9 +1616,9 @@ const SEMANTIC_COLOR_MAPPINGS: SemanticColorMapping[] = [
   { category: 'bg', subcategory: 'error', variant: 'default', states: ['default'], sourceColor: 'error', sourceStep: 100 },
   { category: 'bg', subcategory: 'info', variant: 'subtle', states: ['default'], sourceColor: 'brand', sourceStep: 50 },
   { category: 'bg', subcategory: 'info', variant: 'default', states: ['default'], sourceColor: 'brand', sourceStep: 100 },
-  // Inverse backgrounds
-  { category: 'bg', subcategory: 'inverse', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
-  { category: 'bg', subcategory: 'inverse', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
+  // Dark backgrounds (for inverse/dark themes)
+  { category: 'bg', subcategory: 'dark', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'bg', subcategory: 'dark', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
   // Table backgrounds
   { category: 'bg', subcategory: 'table', variant: 'header', states: ['default'], sourceColor: 'neutral', sourceStep: 50 },
   { category: 'bg', subcategory: 'table', variant: 'row-odd', states: ['default', 'hover', 'selected'], sourceColor: 'neutral', sourceStep: 25 },
@@ -1652,7 +1644,6 @@ const SEMANTIC_COLOR_MAPPINGS: SemanticColorMapping[] = [
   { category: 'text', subcategory: 'secondary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 600 },
   { category: 'text', subcategory: 'tertiary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 400 },
   { category: 'text', subcategory: 'placeholder', states: ['default'], sourceColor: 'neutral', sourceStep: 400 },
-  { category: 'text', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 300 },
   // Semantic text
   { category: 'text', subcategory: 'brand', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 500 },
   { category: 'text', subcategory: 'success', states: ['default'], sourceColor: 'success', sourceStep: 600 },
@@ -1662,15 +1653,9 @@ const SEMANTIC_COLOR_MAPPINGS: SemanticColorMapping[] = [
   // Link text
   { category: 'text', subcategory: 'link', variant: 'default', states: ['default', 'hover', 'active', 'visited', 'disabled'], sourceColor: 'brand', sourceStep: 500 },
   { category: 'text', subcategory: 'link', variant: 'subtle', states: ['default', 'hover', 'active', 'visited', 'disabled'], sourceColor: 'neutral', sourceStep: 600 },
-  // Inverse text - uses base white for light text on dark bg
-  { category: 'text', subcategory: 'inverse', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
-  { category: 'text', subcategory: 'inverse', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
-  // On-color text (for colored backgrounds) - uses base white
-  { category: 'text', subcategory: 'on-brand', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
-  { category: 'text', subcategory: 'on-success', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
-  { category: 'text', subcategory: 'on-warning', states: ['default'], sourceColor: 'neutral', sourceStep: 900, useBaseColor: 'black' },
-  { category: 'text', subcategory: 'on-error', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
-  { category: 'text', subcategory: 'on-info', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
+  // On-dark text - for light text on dark backgrounds
+  { category: 'text', subcategory: 'on-dark', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
+  { category: 'text', subcategory: 'on-dark', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
   // Label text
   { category: 'text', subcategory: 'label', variant: 'default', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 700 },
   { category: 'text', subcategory: 'label', variant: 'required', states: ['default'], sourceColor: 'error', sourceStep: 500 },
@@ -1679,22 +1664,21 @@ const SEMANTIC_COLOR_MAPPINGS: SemanticColorMapping[] = [
   { category: 'text', subcategory: 'helper', states: ['default', 'error'], sourceColor: 'neutral', sourceStep: 500 },
   
   // ============================================
-  // BORDER - All border/stroke colors
+  // BORDER - All border/stroke colors (unified)
   // ============================================
   // Base borders
-  { category: 'border', subcategory: 'default', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 200 },
+  { category: 'border', subcategory: 'default', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 200 },
   { category: 'border', subcategory: 'subtle', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
   { category: 'border', subcategory: 'strong', states: ['default'], sourceColor: 'neutral', sourceStep: 400 },
-  { category: 'border', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  // Focus borders
+  { category: 'border', subcategory: 'focus', variant: 'default', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  { category: 'border', subcategory: 'focus', variant: 'error', states: ['default'], sourceColor: 'error', sourceStep: 500 },
   // Semantic borders
   { category: 'border', subcategory: 'brand', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 500 },
   { category: 'border', subcategory: 'success', states: ['default'], sourceColor: 'success', sourceStep: 500 },
   { category: 'border', subcategory: 'warning', states: ['default'], sourceColor: 'warning', sourceStep: 500 },
   { category: 'border', subcategory: 'error', states: ['default'], sourceColor: 'error', sourceStep: 500 },
   { category: 'border', subcategory: 'info', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
-  // Focus borders
-  { category: 'border', subcategory: 'focus', variant: 'default', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
-  { category: 'border', subcategory: 'focus', variant: 'error', states: ['default'], sourceColor: 'error', sourceStep: 500 },
   // Input borders
   { category: 'border', subcategory: 'input', states: ['default', 'hover', 'focus', 'error', 'disabled'], sourceColor: 'neutral', sourceStep: 300 },
   // Card borders
@@ -1702,8 +1686,8 @@ const SEMANTIC_COLOR_MAPPINGS: SemanticColorMapping[] = [
   // Table borders
   { category: 'border', subcategory: 'table', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
   { category: 'border', subcategory: 'table', variant: 'header', states: ['default'], sourceColor: 'neutral', sourceStep: 300 },
-  // Inverse borders
-  { category: 'border', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
+  // Dark/inverse borders
+  { category: 'border', subcategory: 'on-dark', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
   
   // ============================================
   // ICON - All icon colors
@@ -1712,20 +1696,14 @@ const SEMANTIC_COLOR_MAPPINGS: SemanticColorMapping[] = [
   { category: 'icon', subcategory: 'primary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 700 },
   { category: 'icon', subcategory: 'secondary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 500 },
   { category: 'icon', subcategory: 'tertiary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 400 },
-  { category: 'icon', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 300 },
   // Semantic icons
   { category: 'icon', subcategory: 'brand', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 500 },
   { category: 'icon', subcategory: 'success', states: ['default'], sourceColor: 'success', sourceStep: 500 },
   { category: 'icon', subcategory: 'warning', states: ['default'], sourceColor: 'warning', sourceStep: 500 },
   { category: 'icon', subcategory: 'error', states: ['default'], sourceColor: 'error', sourceStep: 500 },
   { category: 'icon', subcategory: 'info', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
-  // Inverse icons
-  { category: 'icon', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
-  // On-color icons
-  { category: 'icon', subcategory: 'on-brand', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'icon', subcategory: 'on-success', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'icon', subcategory: 'on-warning', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
-  { category: 'icon', subcategory: 'on-error', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  // On-dark icons
+  { category: 'icon', subcategory: 'on-dark', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
   
   // ============================================
   // DIVIDER - Separator lines
@@ -1733,7 +1711,7 @@ const SEMANTIC_COLOR_MAPPINGS: SemanticColorMapping[] = [
   { category: 'divider', subcategory: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
   { category: 'divider', subcategory: 'subtle', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
   { category: 'divider', subcategory: 'strong', states: ['default'], sourceColor: 'neutral', sourceStep: 300 },
-  { category: 'divider', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
+  { category: 'divider', subcategory: 'on-dark', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
   
   // ============================================
   // ACTION - Interactive elements (buttons, links)
@@ -1752,54 +1730,35 @@ const SEMANTIC_COLOR_MAPPINGS: SemanticColorMapping[] = [
   { category: 'action', subcategory: 'warning', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'warning', sourceStep: 500 },
   
   // ============================================
-  // SURFACE - Container backgrounds (legacy support)
+  // SURFACE - Container backgrounds
   // ============================================
-  { category: 'surface', subcategory: 'page', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'surface', subcategory: 'card', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'surface', subcategory: 'elevated', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'surface', subcategory: 'overlay', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
-  { category: 'surface', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'surface', subcategory: 'card', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
+  { category: 'surface', subcategory: 'elevated', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
+  { category: 'surface', subcategory: 'modal', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
+  { category: 'surface', subcategory: 'popover', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
+  { category: 'surface', subcategory: 'drawer', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
+  { category: 'surface', subcategory: 'tooltip', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
+  { category: 'surface', subcategory: 'overlay', states: ['default'], sourceColor: 'neutral', sourceStep: 900, useBaseColor: 'transparent-dark' },
   
   // ============================================
-  // CONTENT - Text/icons (legacy support)
+  // CONTENT - Text/icons inside components
   // ============================================
   { category: 'content', subcategory: 'primary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 900 },
   { category: 'content', subcategory: 'secondary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 600 },
   { category: 'content', subcategory: 'tertiary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 400 },
-  { category: 'content', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 300 },
-  { category: 'content', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
   { category: 'content', subcategory: 'brand', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 500 },
   // On-action content (text/icons on buttons)
   { category: 'content', subcategory: 'on-action-primary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
   { category: 'content', subcategory: 'on-action-secondary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 900 },
   { category: 'content', subcategory: 'on-action-ghost', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 900 },
   { category: 'content', subcategory: 'on-action-danger', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
-  
-  // ============================================
-  // STROKE - Borders (legacy support)
-  // ============================================
-  { category: 'stroke', subcategory: 'default', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 200 },
-  { category: 'stroke', subcategory: 'subtle', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
-  { category: 'stroke', subcategory: 'strong', states: ['default'], sourceColor: 'neutral', sourceStep: 400 },
-  { category: 'stroke', subcategory: 'focus', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
-  { category: 'stroke', subcategory: 'error', states: ['default'], sourceColor: 'error', sourceStep: 500 },
-  { category: 'stroke', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
-  
-  // ============================================
-  // FEEDBACK - Status indicators
-  // ============================================
-  { category: 'feedback', subcategory: 'success-surface', states: ['default'], sourceColor: 'success', sourceStep: 50 },
-  { category: 'feedback', subcategory: 'success-content', states: ['default'], sourceColor: 'success', sourceStep: 700 },
-  { category: 'feedback', subcategory: 'success-stroke', states: ['default'], sourceColor: 'success', sourceStep: 500 },
-  { category: 'feedback', subcategory: 'warning-surface', states: ['default'], sourceColor: 'warning', sourceStep: 50 },
-  { category: 'feedback', subcategory: 'warning-content', states: ['default'], sourceColor: 'warning', sourceStep: 700 },
-  { category: 'feedback', subcategory: 'warning-stroke', states: ['default'], sourceColor: 'warning', sourceStep: 500 },
-  { category: 'feedback', subcategory: 'error-surface', states: ['default'], sourceColor: 'error', sourceStep: 50 },
-  { category: 'feedback', subcategory: 'error-content', states: ['default'], sourceColor: 'error', sourceStep: 700 },
-  { category: 'feedback', subcategory: 'error-stroke', states: ['default'], sourceColor: 'error', sourceStep: 500 },
-  { category: 'feedback', subcategory: 'info-surface', states: ['default'], sourceColor: 'brand', sourceStep: 50 },
-  { category: 'feedback', subcategory: 'info-content', states: ['default'], sourceColor: 'brand', sourceStep: 700 },
-  { category: 'feedback', subcategory: 'info-stroke', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  // On-surface content (text/icons on colored surfaces)
+  { category: 'content', subcategory: 'on-brand', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
+  { category: 'content', subcategory: 'on-success', states: ['default'], sourceColor: 'success', sourceStep: 700 },
+  { category: 'content', subcategory: 'on-warning', states: ['default'], sourceColor: 'warning', sourceStep: 700 },
+  { category: 'content', subcategory: 'on-error', states: ['default'], sourceColor: 'error', sourceStep: 700 },
+  { category: 'content', subcategory: 'on-info', states: ['default'], sourceColor: 'brand', sourceStep: 700 },
+  { category: 'content', subcategory: 'on-dark', states: ['default'], sourceColor: 'neutral', sourceStep: 25, useBaseColor: 'white' },
   
   // ============================================
   // FOCUS - Focus ring colors
@@ -1978,9 +1937,9 @@ const SEMANTIC_COLOR_MAPPINGS_DARK: SemanticColorMapping[] = [
   { category: 'bg', subcategory: 'card', variant: 'primary', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 900 },
   { category: 'bg', subcategory: 'card', variant: 'secondary', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 850 },
   { category: 'bg', subcategory: 'card', variant: 'elevated', states: ['default'], sourceColor: 'neutral', sourceStep: 850 },
-  // Interactive backgrounds
-  { category: 'bg', subcategory: 'interactive', variant: 'primary', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 850 },
-  { category: 'bg', subcategory: 'interactive', variant: 'secondary', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 800 },
+  // Muted backgrounds - for hover areas, list items
+  { category: 'bg', subcategory: 'muted', variant: 'primary', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 850 },
+  { category: 'bg', subcategory: 'muted', variant: 'secondary', states: ['default', 'hover', 'active', 'selected', 'disabled'], sourceColor: 'neutral', sourceStep: 800 },
   // Overlay/Modal backgrounds - overlays use transparent colors
   { category: 'bg', subcategory: 'overlay', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 950, useBaseColor: 'transparent-dark' },
   { category: 'bg', subcategory: 'overlay', variant: 'light', states: ['default'], sourceColor: 'neutral', sourceStep: 900, useBaseColor: 'transparent-light' },
@@ -1999,9 +1958,9 @@ const SEMANTIC_COLOR_MAPPINGS_DARK: SemanticColorMapping[] = [
   { category: 'bg', subcategory: 'error', variant: 'default', states: ['default'], sourceColor: 'error', sourceStep: 800 },
   { category: 'bg', subcategory: 'info', variant: 'subtle', states: ['default'], sourceColor: 'brand', sourceStep: 900 },
   { category: 'bg', subcategory: 'info', variant: 'default', states: ['default'], sourceColor: 'brand', sourceStep: 800 },
-  // Inverse backgrounds
-  { category: 'bg', subcategory: 'inverse', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
-  { category: 'bg', subcategory: 'inverse', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
+  // Dark backgrounds (light areas in dark theme - "inverse")
+  { category: 'bg', subcategory: 'dark', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  { category: 'bg', subcategory: 'dark', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 200 },
   // Table backgrounds
   { category: 'bg', subcategory: 'table', variant: 'header', states: ['default'], sourceColor: 'neutral', sourceStep: 850 },
   { category: 'bg', subcategory: 'table', variant: 'row-odd', states: ['default', 'hover', 'selected'], sourceColor: 'neutral', sourceStep: 900 },
@@ -2027,7 +1986,6 @@ const SEMANTIC_COLOR_MAPPINGS_DARK: SemanticColorMapping[] = [
   { category: 'text', subcategory: 'secondary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 300 },
   { category: 'text', subcategory: 'tertiary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 500 },
   { category: 'text', subcategory: 'placeholder', states: ['default'], sourceColor: 'neutral', sourceStep: 500 },
-  { category: 'text', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 600 },
   // Semantic text
   { category: 'text', subcategory: 'brand', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 400 },
   { category: 'text', subcategory: 'success', states: ['default'], sourceColor: 'success', sourceStep: 400 },
@@ -2037,15 +1995,9 @@ const SEMANTIC_COLOR_MAPPINGS_DARK: SemanticColorMapping[] = [
   // Link text
   { category: 'text', subcategory: 'link', variant: 'default', states: ['default', 'hover', 'active', 'visited', 'disabled'], sourceColor: 'brand', sourceStep: 400 },
   { category: 'text', subcategory: 'link', variant: 'subtle', states: ['default', 'hover', 'active', 'visited', 'disabled'], sourceColor: 'neutral', sourceStep: 300 },
-  // Inverse text - uses base black for inverse text in dark theme
-  { category: 'text', subcategory: 'inverse', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 900, useBaseColor: 'black' },
-  { category: 'text', subcategory: 'inverse', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
-  // On-color text
-  { category: 'text', subcategory: 'on-brand', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'text', subcategory: 'on-success', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'text', subcategory: 'on-warning', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
-  { category: 'text', subcategory: 'on-error', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'text', subcategory: 'on-info', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  // On-dark text (dark text on light backgrounds in dark theme)
+  { category: 'text', subcategory: 'on-dark', variant: 'primary', states: ['default'], sourceColor: 'neutral', sourceStep: 900, useBaseColor: 'black' },
+  { category: 'text', subcategory: 'on-dark', variant: 'secondary', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
   // Label text
   { category: 'text', subcategory: 'label', variant: 'default', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 200 },
   { category: 'text', subcategory: 'label', variant: 'required', states: ['default'], sourceColor: 'error', sourceStep: 400 },
@@ -2057,10 +2009,9 @@ const SEMANTIC_COLOR_MAPPINGS_DARK: SemanticColorMapping[] = [
   // BORDER - All border/stroke colors (dark theme)
   // ============================================
   // Base borders
-  { category: 'border', subcategory: 'default', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 700 },
+  { category: 'border', subcategory: 'default', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 700 },
   { category: 'border', subcategory: 'subtle', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
   { category: 'border', subcategory: 'strong', states: ['default'], sourceColor: 'neutral', sourceStep: 500 },
-  { category: 'border', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
   // Semantic borders
   { category: 'border', subcategory: 'brand', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 500 },
   { category: 'border', subcategory: 'success', states: ['default'], sourceColor: 'success', sourceStep: 500 },
@@ -2077,8 +2028,8 @@ const SEMANTIC_COLOR_MAPPINGS_DARK: SemanticColorMapping[] = [
   // Table borders
   { category: 'border', subcategory: 'table', variant: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
   { category: 'border', subcategory: 'table', variant: 'header', states: ['default'], sourceColor: 'neutral', sourceStep: 600 },
-  // Inverse borders
-  { category: 'border', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 300 },
+  // On-dark borders (for light backgrounds in dark theme)
+  { category: 'border', subcategory: 'on-dark', states: ['default'], sourceColor: 'neutral', sourceStep: 300 },
   
   // ============================================
   // ICON - All icon colors (dark theme)
@@ -2086,17 +2037,13 @@ const SEMANTIC_COLOR_MAPPINGS_DARK: SemanticColorMapping[] = [
   { category: 'icon', subcategory: 'primary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 200 },
   { category: 'icon', subcategory: 'secondary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 400 },
   { category: 'icon', subcategory: 'tertiary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 500 },
-  { category: 'icon', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 600 },
   { category: 'icon', subcategory: 'brand', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 400 },
   { category: 'icon', subcategory: 'success', states: ['default'], sourceColor: 'success', sourceStep: 400 },
   { category: 'icon', subcategory: 'warning', states: ['default'], sourceColor: 'warning', sourceStep: 400 },
   { category: 'icon', subcategory: 'error', states: ['default'], sourceColor: 'error', sourceStep: 400 },
   { category: 'icon', subcategory: 'info', states: ['default'], sourceColor: 'brand', sourceStep: 400 },
-  { category: 'icon', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
-  { category: 'icon', subcategory: 'on-brand', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'icon', subcategory: 'on-success', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
-  { category: 'icon', subcategory: 'on-warning', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
-  { category: 'icon', subcategory: 'on-error', states: ['default'], sourceColor: 'neutral', sourceStep: 25 },
+  // On-dark icons (dark icons for light backgrounds in dark theme)
+  { category: 'icon', subcategory: 'on-dark', states: ['default'], sourceColor: 'neutral', sourceStep: 900, useBaseColor: 'black' },
   
   // ============================================
   // DIVIDER - Separator lines (dark theme)
@@ -2104,7 +2051,7 @@ const SEMANTIC_COLOR_MAPPINGS_DARK: SemanticColorMapping[] = [
   { category: 'divider', subcategory: 'default', states: ['default'], sourceColor: 'neutral', sourceStep: 700 },
   { category: 'divider', subcategory: 'subtle', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
   { category: 'divider', subcategory: 'strong', states: ['default'], sourceColor: 'neutral', sourceStep: 600 },
-  { category: 'divider', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 300 },
+  { category: 'divider', subcategory: 'on-dark', states: ['default'], sourceColor: 'neutral', sourceStep: 300 },
   
   // ============================================
   // ACTION - Interactive elements (dark theme)
@@ -2123,54 +2070,35 @@ const SEMANTIC_COLOR_MAPPINGS_DARK: SemanticColorMapping[] = [
   { category: 'action', subcategory: 'warning', states: ['default', 'hover', 'active', 'focus', 'disabled'], sourceColor: 'warning', sourceStep: 500 },
   
   // ============================================
-  // SURFACE - Container backgrounds (dark theme, legacy support)
+  // SURFACE - Container backgrounds (dark theme)
   // ============================================
-  { category: 'surface', subcategory: 'page', states: ['default'], sourceColor: 'neutral', sourceStep: 950 },
   { category: 'surface', subcategory: 'card', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 900 },
   { category: 'surface', subcategory: 'elevated', states: ['default'], sourceColor: 'neutral', sourceStep: 850 },
-  { category: 'surface', subcategory: 'overlay', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
-  { category: 'surface', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  { category: 'surface', subcategory: 'modal', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'surface', subcategory: 'popover', states: ['default'], sourceColor: 'neutral', sourceStep: 850 },
+  { category: 'surface', subcategory: 'drawer', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
+  { category: 'surface', subcategory: 'tooltip', states: ['default'], sourceColor: 'neutral', sourceStep: 100 },
+  { category: 'surface', subcategory: 'overlay', states: ['default'], sourceColor: 'neutral', sourceStep: 800, useBaseColor: 'transparent-dark' },
   
   // ============================================
-  // CONTENT - Text/icons (dark theme, legacy support)
+  // CONTENT - Text/icons inside components (dark theme)
   // ============================================
   { category: 'content', subcategory: 'primary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 50 },
   { category: 'content', subcategory: 'secondary', states: ['default', 'hover', 'disabled'], sourceColor: 'neutral', sourceStep: 300 },
   { category: 'content', subcategory: 'tertiary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 500 },
-  { category: 'content', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 600 },
-  { category: 'content', subcategory: 'inverse', states: ['default'], sourceColor: 'neutral', sourceStep: 900 },
   { category: 'content', subcategory: 'brand', states: ['default', 'hover'], sourceColor: 'brand', sourceStep: 400 },
   // On-action content (text/icons on buttons) - dark theme
   { category: 'content', subcategory: 'on-action-primary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 950, useBaseColor: 'black' },
   { category: 'content', subcategory: 'on-action-secondary', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 50 },
   { category: 'content', subcategory: 'on-action-ghost', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 50 },
   { category: 'content', subcategory: 'on-action-danger', states: ['default', 'disabled'], sourceColor: 'neutral', sourceStep: 950, useBaseColor: 'black' },
-  
-  // ============================================
-  // STROKE - Borders (dark theme, legacy support)
-  // ============================================
-  { category: 'stroke', subcategory: 'default', states: ['default', 'hover'], sourceColor: 'neutral', sourceStep: 700 },
-  { category: 'stroke', subcategory: 'subtle', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
-  { category: 'stroke', subcategory: 'strong', states: ['default'], sourceColor: 'neutral', sourceStep: 500 },
-  { category: 'stroke', subcategory: 'focus', states: ['default'], sourceColor: 'brand', sourceStep: 400 },
-  { category: 'stroke', subcategory: 'error', states: ['default'], sourceColor: 'error', sourceStep: 500 },
-  { category: 'stroke', subcategory: 'disabled', states: ['default'], sourceColor: 'neutral', sourceStep: 800 },
-  
-  // ============================================
-  // FEEDBACK - Status indicators (dark theme)
-  // ============================================
-  { category: 'feedback', subcategory: 'success-surface', states: ['default'], sourceColor: 'success', sourceStep: 900 },
-  { category: 'feedback', subcategory: 'success-content', states: ['default'], sourceColor: 'success', sourceStep: 300 },
-  { category: 'feedback', subcategory: 'success-stroke', states: ['default'], sourceColor: 'success', sourceStep: 500 },
-  { category: 'feedback', subcategory: 'warning-surface', states: ['default'], sourceColor: 'warning', sourceStep: 900 },
-  { category: 'feedback', subcategory: 'warning-content', states: ['default'], sourceColor: 'warning', sourceStep: 300 },
-  { category: 'feedback', subcategory: 'warning-stroke', states: ['default'], sourceColor: 'warning', sourceStep: 500 },
-  { category: 'feedback', subcategory: 'error-surface', states: ['default'], sourceColor: 'error', sourceStep: 900 },
-  { category: 'feedback', subcategory: 'error-content', states: ['default'], sourceColor: 'error', sourceStep: 300 },
-  { category: 'feedback', subcategory: 'error-stroke', states: ['default'], sourceColor: 'error', sourceStep: 500 },
-  { category: 'feedback', subcategory: 'info-surface', states: ['default'], sourceColor: 'brand', sourceStep: 900 },
-  { category: 'feedback', subcategory: 'info-content', states: ['default'], sourceColor: 'brand', sourceStep: 300 },
-  { category: 'feedback', subcategory: 'info-stroke', states: ['default'], sourceColor: 'brand', sourceStep: 500 },
+  // On-surface content (text/icons on colored surfaces) - dark theme
+  { category: 'content', subcategory: 'on-brand', states: ['default'], sourceColor: 'neutral', sourceStep: 950, useBaseColor: 'black' },
+  { category: 'content', subcategory: 'on-success', states: ['default'], sourceColor: 'success', sourceStep: 200 },
+  { category: 'content', subcategory: 'on-warning', states: ['default'], sourceColor: 'warning', sourceStep: 200 },
+  { category: 'content', subcategory: 'on-error', states: ['default'], sourceColor: 'error', sourceStep: 200 },
+  { category: 'content', subcategory: 'on-info', states: ['default'], sourceColor: 'brand', sourceStep: 200 },
+  { category: 'content', subcategory: 'on-dark', states: ['default'], sourceColor: 'neutral', sourceStep: 900, useBaseColor: 'black' },
   
   // ============================================
   // FOCUS - Focus ring colors (dark theme)
@@ -2766,7 +2694,7 @@ async function createColorVariablesWithStructure(
     { name: 'button/secondary/secondary-bg-active', source: 'action/secondary/secondary-active' },
     { name: 'button/secondary/secondary-bg-focus', source: 'action/secondary/secondary-focus' },
     { name: 'button/secondary/secondary-bg-disabled', source: 'action/secondary/secondary-disabled' },
-    { name: 'button/secondary/secondary-stroke', source: 'stroke/default/default' },
+    { name: 'button/secondary/secondary-stroke', source: 'border/default/default' },
     { name: 'button/secondary/secondary-label', source: 'content/on-action-secondary/on-action-secondary' },
     { name: 'button/secondary/secondary-label-disabled', source: 'content/on-action-secondary/on-action-secondary-disabled' },
     { name: 'button/secondary/secondary-icon', source: 'content/on-action-secondary/on-action-secondary' },
@@ -2799,30 +2727,30 @@ async function createColorVariablesWithStructure(
     // ============================================
     { name: 'input/container/container-surface', source: 'surface/card/card' },
     { name: 'input/container/container-surface-hover', source: 'surface/card/card-hover' },
-    { name: 'input/container/container-surface-disabled', source: 'bg/interactive/interactive-primary-disabled' },
-    { name: 'input/container/container-stroke', source: 'stroke/default/default' },
-    { name: 'input/container/container-stroke-hover', source: 'stroke/default/default-hover' },
-    { name: 'input/container/container-stroke-focus', source: 'stroke/focus/focus' },
-    { name: 'input/container/container-stroke-error', source: 'stroke/error/error' },
-    { name: 'input/container/container-stroke-disabled', source: 'stroke/disabled/disabled' },
+    { name: 'input/container/container-surface-disabled', source: 'bg/muted/muted-primary-disabled' },
+    { name: 'input/container/container-stroke', source: 'border/default/default' },
+    { name: 'input/container/container-stroke-hover', source: 'border/default/default-hover' },
+    { name: 'input/container/container-stroke-focus', source: 'border/focus/focus' },
+    { name: 'input/container/container-stroke-error', source: 'border/error/error' },
+    { name: 'input/container/container-stroke-disabled', source: 'border/default/default-disabled' },
     { name: 'input/text/text-value', source: 'content/primary/primary' },
-    { name: 'input/text/text-value-disabled', source: 'content/disabled/disabled' },
+    { name: 'input/text/text-value-disabled', source: 'content/primary/primary-disabled' },
     { name: 'input/text/text-placeholder', source: 'content/tertiary/tertiary' },
-    { name: 'input/text/text-placeholder-disabled', source: 'content/disabled/disabled' },
+    { name: 'input/text/text-placeholder-disabled', source: 'content/primary/primary-disabled' },
     { name: 'input/text/text-label', source: 'content/primary/primary' },
-    { name: 'input/text/text-label-disabled', source: 'content/disabled/disabled' },
+    { name: 'input/text/text-label-disabled', source: 'content/primary/primary-disabled' },
     { name: 'input/text/text-helper', source: 'content/secondary/secondary' },
     { name: 'input/text/text-helper-error', source: 'text/error/error' },
     { name: 'input/icon/icon-default', source: 'content/secondary/secondary' },
-    { name: 'input/icon/icon-disabled', source: 'content/disabled/disabled' },
+    { name: 'input/icon/icon-disabled', source: 'content/primary/primary-disabled' },
     { name: 'input/icon/icon-error', source: 'text/error/error' },
     
     // ============================================
     // SELECT COMPONENT
     // ============================================
     { name: 'select/container/container-surface', source: 'surface/card/card' },
-    { name: 'select/container/container-stroke', source: 'stroke/default/default' },
-    { name: 'select/container/container-stroke-focus', source: 'stroke/focus/focus' },
+    { name: 'select/container/container-stroke', source: 'border/default/default' },
+    { name: 'select/container/container-stroke-focus', source: 'border/focus/focus' },
     { name: 'select/text/text-value', source: 'content/primary/primary' },
     { name: 'select/text/text-placeholder', source: 'content/tertiary/tertiary' },
     { name: 'select/icon/icon-default', source: 'content/secondary/secondary' },
@@ -2835,14 +2763,14 @@ async function createColorVariablesWithStructure(
     // ============================================
     { name: 'checkbox/container/container-surface', source: 'surface/card/card' },
     { name: 'checkbox/container/container-surface-checked', source: 'action/primary/primary' },
-    { name: 'checkbox/container/container-stroke', source: 'stroke/default/default' },
-    { name: 'checkbox/container/container-stroke-focus', source: 'stroke/focus/focus' },
+    { name: 'checkbox/container/container-stroke', source: 'border/default/default' },
+    { name: 'checkbox/container/container-stroke-focus', source: 'border/focus/focus' },
     { name: 'checkbox/icon/icon-check', source: 'content/on-action-primary/on-action-primary' },
     { name: 'checkbox/text/text-label', source: 'content/primary/primary' },
     
     { name: 'radio/container/container-surface', source: 'surface/card/card' },
     { name: 'radio/container/container-surface-checked', source: 'action/primary/primary' },
-    { name: 'radio/container/container-stroke', source: 'stroke/default/default' },
+    { name: 'radio/container/container-stroke', source: 'border/default/default' },
     { name: 'radio/indicator/indicator-dot', source: 'content/on-action-primary/on-action-primary' },
     { name: 'radio/text/text-label', source: 'content/primary/primary' },
     
@@ -2859,10 +2787,10 @@ async function createColorVariablesWithStructure(
     // ============================================
     { name: 'card/container/container-surface', source: 'surface/card/card' },
     { name: 'card/container/container-surface-hover', source: 'surface/card/card-hover' },
-    { name: 'card/container/container-surface-active', source: 'bg/interactive/interactive-primary-active' },
-    { name: 'card/container/container-surface-selected', source: 'bg/interactive/interactive-primary-selected' },
-    { name: 'card/container/container-stroke', source: 'stroke/subtle/subtle' },
-    { name: 'card/container/container-stroke-hover', source: 'stroke/default/default' },
+    { name: 'card/container/container-surface-active', source: 'bg/muted/muted-primary-active' },
+    { name: 'card/container/container-surface-selected', source: 'bg/muted/muted-primary-selected' },
+    { name: 'card/container/container-stroke', source: 'border/subtle/subtle' },
+    { name: 'card/container/container-stroke-hover', source: 'border/default/default' },
     { name: 'card/container/container-stroke-selected', source: 'border/brand/brand' },
     { name: 'card/header/header-content', source: 'content/primary/primary' },
     { name: 'card/body/body-content', source: 'content/secondary/secondary' },
@@ -2880,21 +2808,21 @@ async function createColorVariablesWithStructure(
     // ============================================
     // BADGE COMPONENT
     // ============================================
-    { name: 'badge/success/success-surface', source: 'feedback/success-surface/success-surface' },
-    { name: 'badge/success/success-content', source: 'feedback/success-content/success-content' },
+    { name: 'badge/success/success-surface', source: 'bg/success/success-subtle' },
+    { name: 'badge/success/success-content', source: 'content/on-success/on-success' },
     { name: 'badge/success/success-stroke', source: 'border/success/success' },
-    { name: 'badge/warning/warning-surface', source: 'feedback/warning-surface/warning-surface' },
-    { name: 'badge/warning/warning-content', source: 'feedback/warning-content/warning-content' },
+    { name: 'badge/warning/warning-surface', source: 'bg/warning/warning-subtle' },
+    { name: 'badge/warning/warning-content', source: 'content/on-warning/on-warning' },
     { name: 'badge/warning/warning-stroke', source: 'border/warning/warning' },
-    { name: 'badge/error/error-surface', source: 'feedback/error-surface/error-surface' },
-    { name: 'badge/error/error-content', source: 'feedback/error-content/error-content' },
+    { name: 'badge/error/error-surface', source: 'bg/error/error-subtle' },
+    { name: 'badge/error/error-content', source: 'content/on-error/on-error' },
     { name: 'badge/error/error-stroke', source: 'border/error/error' },
-    { name: 'badge/info/info-surface', source: 'feedback/info-surface/info-surface' },
-    { name: 'badge/info/info-content', source: 'feedback/info-content/info-content' },
+    { name: 'badge/info/info-surface', source: 'bg/info/info-subtle' },
+    { name: 'badge/info/info-content', source: 'content/on-info/on-info' },
     { name: 'badge/info/info-stroke', source: 'border/info/info' },
-    { name: 'badge/neutral/neutral-surface', source: 'bg/interactive/interactive-primary' },
+    { name: 'badge/neutral/neutral-surface', source: 'bg/muted/muted-primary' },
     { name: 'badge/neutral/neutral-content', source: 'content/primary/primary' },
-    { name: 'badge/neutral/neutral-stroke', source: 'stroke/default/default' },
+    { name: 'badge/neutral/neutral-stroke', source: 'border/default/default' },
     { name: 'badge/brand/brand-surface', source: 'bg/brand/brand-subtle' },
     { name: 'badge/brand/brand-content', source: 'content/brand/brand' },
     { name: 'badge/brand/brand-stroke', source: 'border/brand/brand' },
@@ -2902,38 +2830,38 @@ async function createColorVariablesWithStructure(
     // ============================================
     // ALERT / TOAST COMPONENT
     // ============================================
-    { name: 'alert/success/success-surface', source: 'feedback/success-surface/success-surface' },
-    { name: 'alert/success/success-content', source: 'feedback/success-content/success-content' },
-    { name: 'alert/success/success-stroke', source: 'feedback/success-stroke/success-stroke' },
-    { name: 'alert/success/success-icon', source: 'feedback/success-content/success-content' },
+    { name: 'alert/success/success-surface', source: 'bg/success/success-subtle' },
+    { name: 'alert/success/success-content', source: 'content/on-success/on-success' },
+    { name: 'alert/success/success-stroke', source: 'border/success/success' },
+    { name: 'alert/success/success-icon', source: 'content/on-success/on-success' },
     { name: 'alert/success/success-link', source: 'text/link/link-default' },
-    { name: 'alert/warning/warning-surface', source: 'feedback/warning-surface/warning-surface' },
-    { name: 'alert/warning/warning-content', source: 'feedback/warning-content/warning-content' },
-    { name: 'alert/warning/warning-stroke', source: 'feedback/warning-stroke/warning-stroke' },
-    { name: 'alert/warning/warning-icon', source: 'feedback/warning-content/warning-content' },
+    { name: 'alert/warning/warning-surface', source: 'bg/warning/warning-subtle' },
+    { name: 'alert/warning/warning-content', source: 'content/on-warning/on-warning' },
+    { name: 'alert/warning/warning-stroke', source: 'border/warning/warning' },
+    { name: 'alert/warning/warning-icon', source: 'content/on-warning/on-warning' },
     { name: 'alert/warning/warning-link', source: 'text/link/link-default' },
-    { name: 'alert/error/error-surface', source: 'feedback/error-surface/error-surface' },
-    { name: 'alert/error/error-content', source: 'feedback/error-content/error-content' },
-    { name: 'alert/error/error-stroke', source: 'feedback/error-stroke/error-stroke' },
-    { name: 'alert/error/error-icon', source: 'feedback/error-content/error-content' },
+    { name: 'alert/error/error-surface', source: 'bg/error/error-subtle' },
+    { name: 'alert/error/error-content', source: 'content/on-error/on-error' },
+    { name: 'alert/error/error-stroke', source: 'border/error/error' },
+    { name: 'alert/error/error-icon', source: 'content/on-error/on-error' },
     { name: 'alert/error/error-link', source: 'text/link/link-default' },
-    { name: 'alert/info/info-surface', source: 'feedback/info-surface/info-surface' },
-    { name: 'alert/info/info-content', source: 'feedback/info-content/info-content' },
-    { name: 'alert/info/info-stroke', source: 'feedback/info-stroke/info-stroke' },
-    { name: 'alert/info/info-icon', source: 'feedback/info-content/info-content' },
+    { name: 'alert/info/info-surface', source: 'bg/info/info-subtle' },
+    { name: 'alert/info/info-content', source: 'content/on-info/on-info' },
+    { name: 'alert/info/info-stroke', source: 'border/info/info' },
+    { name: 'alert/info/info-icon', source: 'content/on-info/on-info' },
     { name: 'alert/info/info-link', source: 'text/link/link-default' },
     
     // ============================================
     // TOOLTIP COMPONENT
     // ============================================
-    { name: 'tooltip/container/container-surface', source: 'surface/inverse/inverse' },
-    { name: 'tooltip/text/text-content', source: 'content/inverse/inverse' },
+    { name: 'tooltip/container/container-surface', source: 'surface/tooltip/tooltip' },
+    { name: 'tooltip/text/text-content', source: 'content/on-dark/on-dark' },
     
     // ============================================
     // AVATAR COMPONENT
     // ============================================
-    { name: 'avatar/container/container-surface', source: 'bg/interactive/interactive-primary' },
-    { name: 'avatar/container/container-stroke', source: 'stroke/subtle/subtle' },
+    { name: 'avatar/container/container-surface', source: 'bg/muted/muted-primary' },
+    { name: 'avatar/container/container-stroke', source: 'border/subtle/subtle' },
     { name: 'avatar/text/text-initials', source: 'content/primary/primary' },
     { name: 'avatar/icon/icon-default', source: 'content/secondary/secondary' },
     
@@ -2949,37 +2877,37 @@ async function createColorVariablesWithStructure(
     // NAVIGATION COMPONENT
     // ============================================
     { name: 'nav/item/item-surface', source: 'surface/page/page' },
-    { name: 'nav/item/item-surface-hover', source: 'bg/interactive/interactive-primary-hover' },
-    { name: 'nav/item/item-surface-active', source: 'bg/interactive/interactive-primary-active' },
-    { name: 'nav/item/item-surface-selected', source: 'bg/interactive/interactive-primary-selected' },
-    { name: 'nav/item/item-surface-disabled', source: 'bg/interactive/interactive-primary-disabled' },
+    { name: 'nav/item/item-surface-hover', source: 'bg/muted/muted-primary-hover' },
+    { name: 'nav/item/item-surface-active', source: 'bg/muted/muted-primary-active' },
+    { name: 'nav/item/item-surface-selected', source: 'bg/muted/muted-primary-selected' },
+    { name: 'nav/item/item-surface-disabled', source: 'bg/muted/muted-primary-disabled' },
     { name: 'nav/item/item-content', source: 'content/secondary/secondary' },
     { name: 'nav/item/item-content-hover', source: 'content/primary/primary' },
     { name: 'nav/item/item-content-active', source: 'content/brand/brand' },
     { name: 'nav/item/item-content-selected', source: 'content/brand/brand' },
-    { name: 'nav/item/item-content-disabled', source: 'content/disabled/disabled' },
+    { name: 'nav/item/item-content-disabled', source: 'content/primary/primary-disabled' },
     { name: 'nav/icon/icon-default', source: 'content/secondary/secondary' },
     { name: 'nav/icon/icon-hover', source: 'content/primary/primary' },
     { name: 'nav/icon/icon-active', source: 'content/brand/brand' },
     { name: 'nav/icon/icon-selected', source: 'content/brand/brand' },
-    { name: 'nav/icon/icon-disabled', source: 'content/disabled/disabled' },
+    { name: 'nav/icon/icon-disabled', source: 'content/primary/primary-disabled' },
     
     // ============================================
     // TABLE COMPONENT
     // ============================================
-    { name: 'table/header/header-surface', source: 'bg/interactive/interactive-primary' },
+    { name: 'table/header/header-surface', source: 'bg/muted/muted-primary' },
     { name: 'table/header/header-content', source: 'content/primary/primary' },
     { name: 'table/row/row-surface', source: 'surface/card/card' },
-    { name: 'table/row/row-surface-hover', source: 'bg/interactive/interactive-primary-hover' },
-    { name: 'table/row/row-surface-selected', source: 'bg/interactive/interactive-primary-selected' },
+    { name: 'table/row/row-surface-hover', source: 'bg/muted/muted-primary-hover' },
+    { name: 'table/row/row-surface-selected', source: 'bg/muted/muted-primary-selected' },
     { name: 'table/cell/cell-content', source: 'content/primary/primary' },
-    { name: 'table/divider/divider-line', source: 'stroke/subtle/subtle' },
+    { name: 'table/divider/divider-line', source: 'border/subtle/subtle' },
     
     // ============================================
     // PAGINATION COMPONENT
     // ============================================
-    { name: 'pagination/item/item-surface', source: 'bg/interactive/interactive-primary' },
-    { name: 'pagination/item/item-surface-hover', source: 'bg/interactive/interactive-primary-hover' },
+    { name: 'pagination/item/item-surface', source: 'bg/muted/muted-primary' },
+    { name: 'pagination/item/item-surface-hover', source: 'bg/muted/muted-primary-hover' },
     { name: 'pagination/item/item-surface-active', source: 'action/primary/primary' },
     { name: 'pagination/item/item-content', source: 'content/primary/primary' },
     { name: 'pagination/item/item-content-active', source: 'content/on-action-primary/on-action-primary' },
@@ -2987,35 +2915,35 @@ async function createColorVariablesWithStructure(
     // ============================================
     // PROGRESS / LOADER COMPONENT
     // ============================================
-    { name: 'progress/track/track-surface', source: 'bg/interactive/interactive-primary' },
+    { name: 'progress/track/track-surface', source: 'bg/muted/muted-primary' },
     { name: 'progress/indicator/indicator-surface', source: 'action/primary/primary' },
     { name: 'loader/indicator/indicator-spinner', source: 'action/primary/primary' },
     
     // ============================================
     // SKELETON COMPONENT
     // ============================================
-    { name: 'skeleton/container/container-surface', source: 'bg/interactive/interactive-primary' },
+    { name: 'skeleton/container/container-surface', source: 'bg/muted/muted-primary' },
     
     // ============================================
     // DIVIDER COMPONENT
     // ============================================
-    { name: 'divider/line/line-default', source: 'stroke/subtle/subtle' },
-    { name: 'divider/line/line-strong', source: 'stroke/default/default' },
+    { name: 'divider/line/line-default', source: 'border/subtle/subtle' },
+    { name: 'divider/line/line-strong', source: 'border/default/default' },
     
     // ============================================
     // DROPDOWN / MENU COMPONENT
     // ============================================
     { name: 'dropdown/container/container-surface', source: 'surface/elevated/elevated' },
-    { name: 'dropdown/container/container-stroke', source: 'stroke/subtle/subtle' },
+    { name: 'dropdown/container/container-stroke', source: 'border/subtle/subtle' },
     { name: 'dropdown/item/item-surface', source: 'surface/card/card' },
-    { name: 'dropdown/item/item-surface-hover', source: 'bg/interactive/interactive-primary-hover' },
-    { name: 'dropdown/item/item-surface-selected', source: 'bg/interactive/interactive-primary-selected' },
-    { name: 'dropdown/item/item-surface-disabled', source: 'bg/interactive/interactive-primary-disabled' },
+    { name: 'dropdown/item/item-surface-hover', source: 'bg/muted/muted-primary-hover' },
+    { name: 'dropdown/item/item-surface-selected', source: 'bg/muted/muted-primary-selected' },
+    { name: 'dropdown/item/item-surface-disabled', source: 'bg/muted/muted-primary-disabled' },
     { name: 'dropdown/item/item-content', source: 'content/primary/primary' },
     { name: 'dropdown/item/item-content-hover', source: 'content/primary/primary-hover' },
-    { name: 'dropdown/item/item-content-disabled', source: 'content/disabled/disabled' },
+    { name: 'dropdown/item/item-content-disabled', source: 'content/primary/primary-disabled' },
     { name: 'dropdown/item/item-icon', source: 'content/secondary/secondary' },
-    { name: 'dropdown/divider/divider-line', source: 'stroke/subtle/subtle' },
+    { name: 'dropdown/divider/divider-line', source: 'border/subtle/subtle' },
     { name: 'dropdown/header/header-content', source: 'content/tertiary/tertiary' },
     
     // ============================================
@@ -3032,7 +2960,7 @@ async function createColorVariablesWithStructure(
     // ============================================
     { name: 'chip/neutral/neutral-surface', source: 'badge/neutral/neutral-surface' },
     { name: 'chip/neutral/neutral-content', source: 'badge/neutral/neutral-content' },
-    { name: 'chip/neutral/neutral-stroke', source: 'stroke/default/default' },
+    { name: 'chip/neutral/neutral-stroke', source: 'border/default/default' },
     { name: 'chip/brand/brand-surface', source: 'badge/brand/brand-surface' },
     { name: 'chip/brand/brand-content', source: 'badge/brand/brand-content' },
     { name: 'chip/brand/brand-stroke', source: 'border/brand/brand' },
@@ -3053,15 +2981,15 @@ async function createColorVariablesWithStructure(
     // ============================================
     { name: 'stepper/step/step-surface-completed', source: 'action/primary/primary' },
     { name: 'stepper/step/step-surface-active', source: 'action/primary/primary' },
-    { name: 'stepper/step/step-surface-inactive', source: 'bg/interactive/interactive-primary' },
+    { name: 'stepper/step/step-surface-inactive', source: 'bg/muted/muted-primary' },
     { name: 'stepper/step/step-stroke-completed', source: 'action/primary/primary' },
     { name: 'stepper/step/step-stroke-active', source: 'action/primary/primary' },
-    { name: 'stepper/step/step-stroke-inactive', source: 'stroke/default/default' },
+    { name: 'stepper/step/step-stroke-inactive', source: 'border/default/default' },
     { name: 'stepper/step/step-content-completed', source: 'content/on-action-primary/on-action-primary' },
     { name: 'stepper/step/step-content-active', source: 'content/on-action-primary/on-action-primary' },
     { name: 'stepper/step/step-content-inactive', source: 'content/secondary/secondary' },
     { name: 'stepper/connector/connector-completed', source: 'action/primary/primary' },
-    { name: 'stepper/connector/connector-incomplete', source: 'stroke/default/default' },
+    { name: 'stepper/connector/connector-incomplete', source: 'border/default/default' },
     { name: 'stepper/label/label-completed', source: 'content/primary/primary' },
     { name: 'stepper/label/label-active', source: 'content/brand/brand' },
     { name: 'stepper/label/label-inactive', source: 'content/secondary/secondary' },
@@ -3076,7 +3004,7 @@ async function createColorVariablesWithStructure(
     { name: 'accordion/header/header-icon', source: 'content/secondary/secondary' },
     { name: 'accordion/body/body-surface', source: 'surface/card/card' },
     { name: 'accordion/body/body-content', source: 'content/secondary/secondary' },
-    { name: 'accordion/divider/divider-line', source: 'stroke/subtle/subtle' },
+    { name: 'accordion/divider/divider-line', source: 'border/subtle/subtle' },
     
     // ============================================
     // SLIDER / RANGE COMPONENT
@@ -3087,27 +3015,27 @@ async function createColorVariablesWithStructure(
     { name: 'slider/thumb/thumb-surface-hover', source: 'surface/elevated/elevated' },
     { name: 'slider/thumb/thumb-surface-active', source: 'action/primary/primary' },
     { name: 'slider/thumb/thumb-stroke', source: 'action/primary/primary' },
-    { name: 'slider/mark/mark-surface', source: 'stroke/default/default' },
+    { name: 'slider/mark/mark-surface', source: 'border/default/default' },
     { name: 'slider/label/label-content', source: 'content/secondary/secondary' },
     
     // ============================================
     // DATE PICKER COMPONENT
     // ============================================
     { name: 'datepicker/container/container-surface', source: 'surface/elevated/elevated' },
-    { name: 'datepicker/container/container-stroke', source: 'stroke/subtle/subtle' },
+    { name: 'datepicker/container/container-stroke', source: 'border/subtle/subtle' },
     { name: 'datepicker/header/header-content', source: 'content/primary/primary' },
     { name: 'datepicker/nav/nav-icon', source: 'content/secondary/secondary' },
     { name: 'datepicker/nav/nav-icon-hover', source: 'content/primary/primary' },
     { name: 'datepicker/day/day-surface', source: 'surface/card/card' },
-    { name: 'datepicker/day/day-surface-hover', source: 'bg/interactive/interactive-primary-hover' },
+    { name: 'datepicker/day/day-surface-hover', source: 'bg/muted/muted-primary-hover' },
     { name: 'datepicker/day/day-surface-selected', source: 'action/primary/primary' },
     { name: 'datepicker/day/day-surface-today', source: 'bg/brand/brand-subtle' },
     { name: 'datepicker/day/day-surface-range', source: 'bg/brand/brand-subtle' },
-    { name: 'datepicker/day/day-surface-disabled', source: 'bg/interactive/interactive-primary-disabled' },
+    { name: 'datepicker/day/day-surface-disabled', source: 'bg/muted/muted-primary-disabled' },
     { name: 'datepicker/day/day-content', source: 'content/primary/primary' },
     { name: 'datepicker/day/day-content-selected', source: 'content/on-action-primary/on-action-primary' },
     { name: 'datepicker/day/day-content-today', source: 'content/brand/brand' },
-    { name: 'datepicker/day/day-content-disabled', source: 'content/disabled/disabled' },
+    { name: 'datepicker/day/day-content-disabled', source: 'content/primary/primary-disabled' },
     { name: 'datepicker/day/day-content-outside', source: 'content/tertiary/tertiary' },
     { name: 'datepicker/weekday/weekday-content', source: 'content/tertiary/tertiary' },
     
@@ -3115,7 +3043,7 @@ async function createColorVariablesWithStructure(
     // POPOVER COMPONENT
     // ============================================
     { name: 'popover/container/container-surface', source: 'surface/elevated/elevated' },
-    { name: 'popover/container/container-stroke', source: 'stroke/subtle/subtle' },
+    { name: 'popover/container/container-stroke', source: 'border/subtle/subtle' },
     { name: 'popover/header/header-content', source: 'content/primary/primary' },
     { name: 'popover/body/body-content', source: 'content/secondary/secondary' },
     { name: 'popover/close/close-icon', source: 'content/secondary/secondary' },
@@ -3124,23 +3052,23 @@ async function createColorVariablesWithStructure(
     // ============================================
     // SNACKBAR / TOAST COMPONENT
     // ============================================
-    { name: 'snackbar/container/container-surface', source: 'surface/inverse/inverse' },
-    { name: 'snackbar/container/container-stroke', source: 'stroke/subtle/subtle' },
-    { name: 'snackbar/text/text-content', source: 'content/inverse/inverse' },
+    { name: 'snackbar/container/container-surface', source: 'surface/tooltip/tooltip' },
+    { name: 'snackbar/container/container-stroke', source: 'border/subtle/subtle' },
+    { name: 'snackbar/text/text-content', source: 'content/on-dark/on-dark' },
     { name: 'snackbar/action/action-content', source: 'text/brand/brand' },
-    { name: 'snackbar/close/close-icon', source: 'content/inverse/inverse' },
-    { name: 'snackbar/success/success-surface', source: 'feedback/success-surface/success-surface' },
-    { name: 'snackbar/success/success-content', source: 'feedback/success-content/success-content' },
-    { name: 'snackbar/success/success-icon', source: 'feedback/success-content/success-content' },
-    { name: 'snackbar/error/error-surface', source: 'feedback/error-surface/error-surface' },
-    { name: 'snackbar/error/error-content', source: 'feedback/error-content/error-content' },
-    { name: 'snackbar/error/error-icon', source: 'feedback/error-content/error-content' },
-    { name: 'snackbar/warning/warning-surface', source: 'feedback/warning-surface/warning-surface' },
-    { name: 'snackbar/warning/warning-content', source: 'feedback/warning-content/warning-content' },
-    { name: 'snackbar/warning/warning-icon', source: 'feedback/warning-content/warning-content' },
-    { name: 'snackbar/info/info-surface', source: 'feedback/info-surface/info-surface' },
-    { name: 'snackbar/info/info-content', source: 'feedback/info-content/info-content' },
-    { name: 'snackbar/info/info-icon', source: 'feedback/info-content/info-content' },
+    { name: 'snackbar/close/close-icon', source: 'content/on-dark/on-dark' },
+    { name: 'snackbar/success/success-surface', source: 'bg/success/success-subtle' },
+    { name: 'snackbar/success/success-content', source: 'content/on-success/on-success' },
+    { name: 'snackbar/success/success-icon', source: 'content/on-success/on-success' },
+    { name: 'snackbar/error/error-surface', source: 'bg/error/error-subtle' },
+    { name: 'snackbar/error/error-content', source: 'content/on-error/on-error' },
+    { name: 'snackbar/error/error-icon', source: 'content/on-error/on-error' },
+    { name: 'snackbar/warning/warning-surface', source: 'bg/warning/warning-subtle' },
+    { name: 'snackbar/warning/warning-content', source: 'content/on-warning/on-warning' },
+    { name: 'snackbar/warning/warning-icon', source: 'content/on-warning/on-warning' },
+    { name: 'snackbar/info/info-surface', source: 'bg/info/info-subtle' },
+    { name: 'snackbar/info/info-content', source: 'content/on-info/on-info' },
+    { name: 'snackbar/info/info-icon', source: 'content/on-info/on-info' },
     
     // ============================================
     // EMPTY STATE COMPONENT
@@ -3152,10 +3080,10 @@ async function createColorVariablesWithStructure(
     // ============================================
     // FILE UPLOAD COMPONENT
     // ============================================
-    { name: 'upload/container/container-surface', source: 'bg/interactive/interactive-primary' },
-    { name: 'upload/container/container-surface-hover', source: 'bg/interactive/interactive-primary-hover' },
+    { name: 'upload/container/container-surface', source: 'bg/muted/muted-primary' },
+    { name: 'upload/container/container-surface-hover', source: 'bg/muted/muted-primary-hover' },
     { name: 'upload/container/container-surface-active', source: 'bg/brand/brand-subtle' },
-    { name: 'upload/container/container-stroke', source: 'stroke/default/default' },
+    { name: 'upload/container/container-stroke', source: 'border/default/default' },
     { name: 'upload/container/container-stroke-hover', source: 'border/brand/brand' },
     { name: 'upload/container/container-stroke-active', source: 'border/brand/brand' },
     { name: 'upload/container/container-stroke-error', source: 'border/error/error' },
@@ -3164,7 +3092,7 @@ async function createColorVariablesWithStructure(
     { name: 'upload/text/text-primary', source: 'content/primary/primary' },
     { name: 'upload/text/text-secondary', source: 'content/secondary/secondary' },
     { name: 'upload/file/file-surface', source: 'surface/card/card' },
-    { name: 'upload/file/file-stroke', source: 'stroke/subtle/subtle' },
+    { name: 'upload/file/file-stroke', source: 'border/subtle/subtle' },
     { name: 'upload/file/file-icon', source: 'content/secondary/secondary' },
     { name: 'upload/file/file-name', source: 'content/primary/primary' },
     { name: 'upload/file/file-size', source: 'content/tertiary/tertiary' },
@@ -5061,7 +4989,7 @@ async function createStrokeSemanticCollection(data: StrokeSemanticData): Promise
             primitive = colorTokenMap.get(`stroke/${token.colorRef}`);
           }
           if (!primitive) {
-            // Try stroke/default/default pattern
+            // Try border/default/default pattern
             primitive = colorTokenMap.get(`stroke/${token.colorRef}/${token.colorRef}`);
           }
         }

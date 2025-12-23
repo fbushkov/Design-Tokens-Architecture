@@ -1,5 +1,70 @@
 # 📝 Changelog - Design Tokens Plugin
 
+## [2025-12-23] - Token Taxonomy Refactoring 🏗️
+
+### ♻️ Рефакторинг именования токенов
+
+Устранены когнитивные конфликты и дублирование в системе токенов.
+
+#### `bg/interactive` → `bg/muted`
+- **Проблема**: `interactive` конфликтовал с `action/` (оба "интерактивные")
+- **Решение**: Переименовано в `muted` — приглушённые фоны для hover-областей
+- **Применение**: list items, table rows, nav items, dropdown items
+
+#### `stroke/` → объединён в `border/`
+- **Проблема**: `stroke/` и `border/` дублировали друг друга
+- **Решение**: Удалена категория `stroke/`, все токены теперь в `border/`
+- **Примечание**: `stroke/width`, `stroke/style` остались (это Figma stroke properties)
+
+#### Удалена категория `feedback/`
+- **Проблема**: `feedback/success-surface` дублировал `bg/success/subtle`
+- **Решение**: Компоненты теперь используют композицию:
+  - `feedback/success-surface` → `bg/success/subtle`
+  - `feedback/success-content` → `content/on-success`
+  - `feedback/success-stroke` → `border/success`
+
+#### `inverse` → `on-dark` / `dark`
+- **Проблема**: "Inverse" было непонятным
+- **Решение**: 
+  - `bg/inverse` → `bg/dark` (тёмные фоны)
+  - `content/inverse` → `content/on-dark` (контент на тёмном фоне)
+  - `border/inverse` → `border/on-dark`
+
+#### Унифицированы `on-*` токены в `content/`
+- Все токены для контента на цветных поверхностях теперь в `content/`:
+  - `content/on-brand`
+  - `content/on-success`
+  - `content/on-warning`
+  - `content/on-error`
+  - `content/on-info`
+  - `content/on-dark`
+
+#### Уточнена категория `surface/`
+- `surface/` теперь только для контейнеров с границами:
+  - `surface/card`, `surface/elevated`, `surface/modal`
+  - `surface/popover`, `surface/drawer`, `surface/tooltip`
+  - `surface/overlay`
+- Удалены: `surface/page` (используй `bg/page`), `surface/inverse`
+
+### 📊 Итоговая структура токенов
+
+```
+TOKENS/
+├── bg/           → Области (page, muted, brand, success, dark, etc.)
+├── surface/      → Контейнеры (card, modal, popover, tooltip, overlay)
+├── text/         → Глобальный текст (primary, secondary, link, etc.)
+├── content/      → Контент внутри компонентов (on-action-*, on-brand, on-dark)
+├── border/       → Все границы (default, focus, error, brand, etc.)
+├── action/       → Фоны кнопок (primary, secondary, ghost, danger)
+├── icon/         → Глобальные иконки
+└── divider/      → Разделители
+```
+
+### 📁 Изменённые файлы
+- `src/plugin/code.ts` — SEMANTIC_COLOR_MAPPINGS и componentMappings
+
+---
+
 ## [2025-12-23] - Component States Expansion & Transparent Primitive 🎨
 
 ### ✅ Добавлено

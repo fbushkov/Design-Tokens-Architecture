@@ -92,7 +92,7 @@ export const DEFAULT_CATEGORIES: CategoryDefinition[] = [
       { id: 'bg-warning', name: 'warning', label: 'Warning', variants: ['subtle', 'default'], states: ['default'] },
       { id: 'bg-error', name: 'error', label: 'Error', variants: ['subtle', 'default'], states: ['default'] },
       { id: 'bg-info', name: 'info', label: 'Info', variants: ['subtle', 'default'], states: ['default'] },
-      { id: 'bg-inverse', name: 'inverse', label: 'Inverse', variants: ['primary', 'secondary'], states: ['default'] },
+      { id: 'bg-dark', name: 'dark', label: 'Dark', variants: ['primary', 'secondary'], states: ['default'] },
     ]
   },
   {
@@ -104,18 +104,13 @@ export const DEFAULT_CATEGORIES: CategoryDefinition[] = [
       { id: 'text-secondary', name: 'secondary', label: 'Secondary', states: ['default', 'hover', 'disabled'] },
       { id: 'text-tertiary', name: 'tertiary', label: 'Tertiary', states: ['default', 'disabled'] },
       { id: 'text-placeholder', name: 'placeholder', label: 'Placeholder', states: ['default'] },
-      { id: 'text-disabled', name: 'disabled', label: 'Disabled', states: ['default'] },
       { id: 'text-link', name: 'link', label: 'Link', variants: ['default', 'subtle'], states: ['default', 'hover', 'active', 'visited', 'disabled'] },
       { id: 'text-brand', name: 'brand', label: 'Brand', states: ['default', 'hover'] },
       { id: 'text-success', name: 'success', label: 'Success', states: ['default'] },
       { id: 'text-warning', name: 'warning', label: 'Warning', states: ['default'] },
       { id: 'text-error', name: 'error', label: 'Error', states: ['default'] },
       { id: 'text-info', name: 'info', label: 'Info', states: ['default'] },
-      { id: 'text-inverse', name: 'inverse', label: 'Inverse', variants: ['primary', 'secondary'], states: ['default'] },
-      { id: 'text-on-brand', name: 'on-brand', label: 'On Brand', states: ['default'] },
-      { id: 'text-on-success', name: 'on-success', label: 'On Success', states: ['default'] },
-      { id: 'text-on-warning', name: 'on-warning', label: 'On Warning', states: ['default'] },
-      { id: 'text-on-error', name: 'on-error', label: 'On Error', states: ['default'] },
+      { id: 'text-on-dark', name: 'on-dark', label: 'On Dark', variants: ['primary', 'secondary'], states: ['default'] },
       { id: 'text-label', name: 'label', label: 'Label', variants: ['default', 'required'], states: ['default', 'disabled'] },
       { id: 'text-caption', name: 'caption', label: 'Caption', states: ['default'] },
       { id: 'text-helper', name: 'helper', label: 'Helper', states: ['default', 'error'] },
@@ -126,10 +121,9 @@ export const DEFAULT_CATEGORIES: CategoryDefinition[] = [
     name: 'border',
     label: 'Borders',
     subcategories: [
-      { id: 'border-default', name: 'default', label: 'Default', states: ['default', 'hover'] },
+      { id: 'border-default', name: 'default', label: 'Default', states: ['default', 'hover', 'disabled'] },
       { id: 'border-subtle', name: 'subtle', label: 'Subtle', states: ['default'] },
       { id: 'border-strong', name: 'strong', label: 'Strong', states: ['default'] },
-      { id: 'border-disabled', name: 'disabled', label: 'Disabled', states: ['default'] },
       { id: 'border-focus', name: 'focus', label: 'Focus', variants: ['default', 'error', 'success'], states: ['default'] },
       { id: 'border-input', name: 'input', label: 'Input', states: ['default', 'hover', 'focus', 'error', 'disabled'] },
       { id: 'border-card', name: 'card', label: 'Card', states: ['default', 'hover', 'selected'] },
@@ -137,7 +131,7 @@ export const DEFAULT_CATEGORIES: CategoryDefinition[] = [
       { id: 'border-success', name: 'success', label: 'Success', states: ['default'] },
       { id: 'border-warning', name: 'warning', label: 'Warning', states: ['default'] },
       { id: 'border-error', name: 'error', label: 'Error', states: ['default'] },
-      { id: 'border-inverse', name: 'inverse', label: 'Inverse', states: ['default'] },
+      { id: 'border-on-dark', name: 'on-dark', label: 'On Dark', states: ['default'] },
     ]
   },
   {
@@ -148,14 +142,12 @@ export const DEFAULT_CATEGORIES: CategoryDefinition[] = [
       { id: 'icon-primary', name: 'primary', label: 'Primary', states: ['default', 'hover', 'disabled'] },
       { id: 'icon-secondary', name: 'secondary', label: 'Secondary', states: ['default', 'hover', 'disabled'] },
       { id: 'icon-tertiary', name: 'tertiary', label: 'Tertiary', states: ['default', 'disabled'] },
-      { id: 'icon-disabled', name: 'disabled', label: 'Disabled', states: ['default'] },
       { id: 'icon-brand', name: 'brand', label: 'Brand', states: ['default', 'hover'] },
       { id: 'icon-success', name: 'success', label: 'Success', states: ['default'] },
       { id: 'icon-warning', name: 'warning', label: 'Warning', states: ['default'] },
       { id: 'icon-error', name: 'error', label: 'Error', states: ['default'] },
       { id: 'icon-info', name: 'info', label: 'Info', states: ['default'] },
-      { id: 'icon-inverse', name: 'inverse', label: 'Inverse', states: ['default'] },
-      { id: 'icon-on-brand', name: 'on-brand', label: 'On Brand', states: ['default'] },
+      { id: 'icon-on-dark', name: 'on-dark', label: 'On Dark', states: ['default'] },
     ]
   },
   {
@@ -172,18 +164,7 @@ export const DEFAULT_CATEGORIES: CategoryDefinition[] = [
       { id: 'action-warning', name: 'warning', label: 'Warning', states: ['default', 'hover', 'active', 'focus', 'disabled'] },
     ]
   },
-  {
-    id: 'feedback',
-    name: 'feedback',
-    label: 'Feedback',
-    subcategories: [
-      { id: 'feedback-success', name: 'success', label: 'Success', variants: ['surface', 'content', 'stroke', 'icon'], states: ['default'] },
-      { id: 'feedback-warning', name: 'warning', label: 'Warning', variants: ['surface', 'content', 'stroke', 'icon'], states: ['default'] },
-      { id: 'feedback-error', name: 'error', label: 'Error', variants: ['surface', 'content', 'stroke', 'icon'], states: ['default'] },
-      { id: 'feedback-info', name: 'info', label: 'Info', variants: ['surface', 'content', 'stroke', 'icon'], states: ['default'] },
-      { id: 'feedback-neutral', name: 'neutral', label: 'Neutral', variants: ['surface', 'content', 'stroke'], states: ['default'] },
-    ]
-  },
+
   {
     id: 'status',
     name: 'status',
@@ -211,7 +192,7 @@ export const DEFAULT_CATEGORIES: CategoryDefinition[] = [
       { id: 'divider-default', name: 'default', label: 'Default', states: ['default'] },
       { id: 'divider-subtle', name: 'subtle', label: 'Subtle', states: ['default'] },
       { id: 'divider-strong', name: 'strong', label: 'Strong', states: ['default'] },
-      { id: 'divider-inverse', name: 'inverse', label: 'Inverse', states: ['default'] },
+      { id: 'divider-on-dark', name: 'on-dark', label: 'On Dark', states: ['default'] },
     ]
   },
   {

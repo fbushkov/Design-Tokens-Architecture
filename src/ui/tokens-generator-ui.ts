@@ -127,12 +127,10 @@ export const tokensState = {
       { token: 'text/primary', light: 'neutral-900', dark: 'neutral-50', desc: 'Primary text' },
       { token: 'text/secondary', light: 'neutral-600', dark: 'neutral-400', desc: 'Secondary text' },
       { token: 'text/tertiary', light: 'neutral-400', dark: 'neutral-500', desc: 'Tertiary text' },
-      { token: 'text/disabled', light: 'neutral-300', dark: 'neutral-600', desc: 'Disabled text' },
-      { token: 'text/inverse', light: 'neutral-25', dark: 'neutral-950', desc: 'Inverse text' },
+      { token: 'text/on-dark', light: 'neutral-25', dark: 'neutral-950', desc: 'Text on dark backgrounds' },
       { token: 'text/brand', light: 'brand-600', dark: 'brand-400', desc: 'Brand text' },
       { token: 'text/link', light: 'brand-500', dark: 'brand-400', desc: 'Link text' },
       { token: 'text/danger', light: 'error-500', dark: 'error-400', desc: 'Danger text' },
-      { token: 'text/danger-disabled', light: 'error-200', dark: 'error-800', desc: 'Danger disabled text' },
     ],
     
     // Content - контент на action элементах (текст, иконки)
