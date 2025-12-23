@@ -78,17 +78,37 @@ export const tokensState = {
   
   currentTheme: 'light',
   
-  selectedCategories: new Set<string>(['action', 'background', 'text', 'border', 'status']),
+  selectedCategories: new Set<string>(['action', 'background', 'text', 'content', 'border', 'status']),
   
   // Маппинг семантических токенов на примитивы
   semanticMappings: {
     // Action - интерактивные элементы
     action: [
+      // Primary
       { token: 'action/primary', light: 'brand-500', dark: 'brand-400', desc: 'Primary action' },
       { token: 'action/primary-hover', light: 'brand-600', dark: 'brand-300', desc: 'Primary hover' },
       { token: 'action/primary-active', light: 'brand-700', dark: 'brand-200', desc: 'Primary active' },
+      { token: 'action/primary-focus', light: 'brand-500', dark: 'brand-400', desc: 'Primary focus' },
+      { token: 'action/primary-disabled', light: 'brand-200', dark: 'brand-800', desc: 'Primary disabled' },
+      // Secondary
       { token: 'action/secondary', light: 'neutral-100', dark: 'neutral-800', desc: 'Secondary action' },
       { token: 'action/secondary-hover', light: 'neutral-200', dark: 'neutral-700', desc: 'Secondary hover' },
+      { token: 'action/secondary-active', light: 'neutral-300', dark: 'neutral-600', desc: 'Secondary active' },
+      { token: 'action/secondary-focus', light: 'neutral-100', dark: 'neutral-800', desc: 'Secondary focus' },
+      { token: 'action/secondary-disabled', light: 'neutral-50', dark: 'neutral-900', desc: 'Secondary disabled' },
+      // Ghost
+      { token: 'action/ghost', light: 'transparent', dark: 'transparent', desc: 'Ghost action' },
+      { token: 'action/ghost-hover', light: 'neutral-100', dark: 'neutral-800', desc: 'Ghost hover' },
+      { token: 'action/ghost-active', light: 'neutral-200', dark: 'neutral-700', desc: 'Ghost active' },
+      { token: 'action/ghost-focus', light: 'transparent', dark: 'transparent', desc: 'Ghost focus' },
+      { token: 'action/ghost-disabled', light: 'transparent', dark: 'transparent', desc: 'Ghost disabled' },
+      // Danger
+      { token: 'action/danger', light: 'error-500', dark: 'error-400', desc: 'Danger action' },
+      { token: 'action/danger-hover', light: 'error-600', dark: 'error-300', desc: 'Danger hover' },
+      { token: 'action/danger-active', light: 'error-700', dark: 'error-200', desc: 'Danger active' },
+      { token: 'action/danger-focus', light: 'error-500', dark: 'error-400', desc: 'Danger focus' },
+      { token: 'action/danger-disabled', light: 'error-200', dark: 'error-800', desc: 'Danger disabled' },
+      // General disabled
       { token: 'action/disabled', light: 'neutral-300', dark: 'neutral-600', desc: 'Disabled state' },
     ],
     
@@ -111,6 +131,24 @@ export const tokensState = {
       { token: 'text/inverse', light: 'neutral-25', dark: 'neutral-950', desc: 'Inverse text' },
       { token: 'text/brand', light: 'brand-600', dark: 'brand-400', desc: 'Brand text' },
       { token: 'text/link', light: 'brand-500', dark: 'brand-400', desc: 'Link text' },
+      { token: 'text/danger', light: 'error-500', dark: 'error-400', desc: 'Danger text' },
+      { token: 'text/danger-disabled', light: 'error-200', dark: 'error-800', desc: 'Danger disabled text' },
+    ],
+    
+    // Content - контент на action элементах (текст, иконки)
+    content: [
+      // On primary action
+      { token: 'content/on-primary', light: 'neutral-25', dark: 'neutral-950', desc: 'Content on primary' },
+      { token: 'content/on-primary-disabled', light: 'neutral-100', dark: 'neutral-800', desc: 'Disabled content on primary' },
+      // On secondary action
+      { token: 'content/on-secondary', light: 'neutral-900', dark: 'neutral-50', desc: 'Content on secondary' },
+      { token: 'content/on-secondary-disabled', light: 'neutral-400', dark: 'neutral-500', desc: 'Disabled content on secondary' },
+      // On ghost action
+      { token: 'content/on-ghost', light: 'neutral-900', dark: 'neutral-50', desc: 'Content on ghost' },
+      { token: 'content/on-ghost-disabled', light: 'neutral-400', dark: 'neutral-500', desc: 'Disabled content on ghost' },
+      // On danger action
+      { token: 'content/on-danger', light: 'neutral-25', dark: 'neutral-950', desc: 'Content on danger' },
+      { token: 'content/on-danger-disabled', light: 'error-100', dark: 'error-900', desc: 'Disabled content on danger' },
     ],
     
     // Border - границы
