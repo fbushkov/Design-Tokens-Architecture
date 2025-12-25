@@ -115,7 +115,16 @@ async function loadTypographyState(): Promise<boolean> {
     
     if (data) {
       if (data.state) {
-        typographyState = { ...createDefaultTypographyState(), ...data.state };
+        const defaults = createDefaultTypographyState();
+        typographyState = { ...defaults, ...data.state };
+        
+        // Merge missing line heights from defaults (migration)
+        DEFAULT_LINE_HEIGHTS.forEach(defaultLH => {
+          if (!typographyState.lineHeights.some(lh => lh.name === defaultLH.name)) {
+            typographyState.lineHeights.push(defaultLH);
+          }
+        });
+        typographyState.lineHeights.sort((a, b) => a.value - b.value);
       }
       if (data.breakpoints) {
         breakpointConfigs = data.breakpoints;
@@ -352,6 +361,9 @@ export function initTypographyUI(): void {
       
       // Re-render category filter with loaded custom categories
       renderCategoryFilter();
+      
+      // Update select options in modal
+      updateLineHeightSelect();
       
       // Если есть сохранённые семантические токены - рендерим их
       if (typographyState.semanticTokens.length > 0) {

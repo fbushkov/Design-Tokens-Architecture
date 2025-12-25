@@ -3541,7 +3541,7 @@ async function createExtendedTypographyPrimitives(
   
   // Line Height Scale (as percentages for Figma)
   const lineHeightScale: Record<string, number> = {
-    '100': 100, '110': 110, '120': 120, '125': 125, '130': 130,
+    '100': 100, '110': 110, '115': 115, '120': 120, '125': 125, '130': 130,
     '140': 140, '150': 150, '160': 160, '170': 170, '180': 180, '200': 200,
   };
   

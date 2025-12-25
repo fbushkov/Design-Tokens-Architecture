@@ -169,6 +169,7 @@ export const DEFAULT_FONT_SIZES: FontSizePrimitive[] = [
 export const DEFAULT_LINE_HEIGHTS: LineHeightPrimitive[] = [
   { name: '100', value: 1.0 },
   { name: '110', value: 1.1 },
+  { name: '115', value: 1.15 },
   { name: '120', value: 1.2 },
   { name: '125', value: 1.25 },
   { name: '130', value: 1.3 },
